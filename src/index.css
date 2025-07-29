@@ -79,6 +79,19 @@ body {
     @apply bg-gray-600 transform scale-105;
 }
 
+/* --- Glowing Effect for Reports Button --- */
+.glowing-border {
+    animation: glowing 2s infinite;
+    box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a, 0 0 15px #fde047;
+}
+
+@keyframes glowing {
+    0% { box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a; }
+    50% { box-shadow: 0 0 20px #fde047, 0 0 30px #fde047; }
+    100% { box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a; }
+}
+
+
 /* --- Map & Tile Styles --- */
 
 .map-viewport {
@@ -127,6 +140,9 @@ body {
 }
 .other-city {
     @apply bg-red-500 border-2 border-red-300;
+}
+.alliance-city {
+    @apply bg-blue-500 border-2 border-blue-300;
 }
 .dummy-city-plot {
     @apply bg-purple-500 border-2 border-purple-300;

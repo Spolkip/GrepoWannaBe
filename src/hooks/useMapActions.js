@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { db } from '../firebase/config';
-import { collection, writeBatch, doc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateDistance, calculateTravelTime } from '../utils/travel';
 import unitConfig from '../gameData/units.json';
@@ -106,18 +106,42 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         batch.set(newMovementRef, movementData);
 
-        const newGameState = JSON.parse(JSON.stringify(gameState));
-        for (const unitId in units) { newGameState.units[unitId] = (newGameState.units[unitId] || 0) - units[unitId]; }
-        
+        // --- THIS IS THE FIX ---
+        // Prepare the updated state for units and resources
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const updatedUnits = { ...gameState.units };
+        for (const unitId in units) {
+            updatedUnits[unitId] = (updatedUnits[unitId] || 0) - units[unitId];
+        }
+
+        const updatedResources = { ...gameState.resources };
+        const updatedCave = { ...gameState.cave };
         if (mode === 'scout') {
             if (resources && resources.silver) {
-                newGameState.cave.silver = (newGameState.cave.silver || 0) - resources.silver;
+                updatedCave.silver = (updatedCave.silver || 0) - resources.silver;
             }
         } else if (resources) {
             for (const resource in resources) {
-                newGameState.resources[resource] -= resources[resource];
+                updatedResources[resource] -= resources[resource];
             }
         }
+        
+        // Add the update operation to the same batch
+        batch.update(gameDocRef, {
+            units: updatedUnits,
+            resources: updatedResources,
+            cave: updatedCave
+        });
+        // --- END OF FIX ---
+
+
+        // Optimistically update the local state for immediate UI feedback
+        const newGameState = {
+            ...gameState,
+            units: updatedUnits,
+            resources: updatedResources,
+            cave: updatedCave,
+        };
 
         try {
             await batch.commit();

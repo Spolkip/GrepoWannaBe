@@ -1,7 +1,7 @@
 // src/contexts/GameContext.js
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot, getDoc, deleteDoc } from "firebase/firestore"; // Add getDoc and deleteDoc
+import { doc, onSnapshot, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -17,6 +17,7 @@ export const GameProvider = ({ children, worldId }) => {
     const [playerHasChosenFaction, setPlayerHasChosenFaction] = useState(false);
     const [loading, setLoading] = useState(true);
     const [playerGod, setPlayerGod] = useState(null);
+    const [playerAlliance, setPlayerAlliance] = useState(null); // Added alliance state
 
     useEffect(() => {
         if (!currentUser || !worldId) {
@@ -53,7 +54,7 @@ export const GameProvider = ({ children, worldId }) => {
         
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribePlayer = onSnapshot(gameDocRef, async (docSnap) => {
-            cityListenerUnsubscribe(); // Clear any previous listener
+            cityListenerUnsubscribe();
 
             if (docSnap.exists() && docSnap.data().playerInfo) {
                 const gameData = docSnap.data();
@@ -63,12 +64,11 @@ export const GameProvider = ({ children, worldId }) => {
                     const cityDocRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
                     const citySnap = await getDoc(cityDocRef);
 
-                    // Check if the city slot from the player's game data actually exists in the current world
                     if (citySnap.exists() && citySnap.data().ownerId === currentUser.uid) {
-                        // Game state is valid, proceed normally
                         setGameState(gameData);
                         setPlayerHasChosenFaction(true);
                         setPlayerGod(gameData.god || null);
+                        setPlayerAlliance(gameData.alliance || null); // Set alliance from game data
 
                         cityListenerUnsubscribe = onSnapshot(cityDocRef, (cityDataSnap) => {
                             if (cityDataSnap.exists()) {
@@ -78,21 +78,19 @@ export const GameProvider = ({ children, worldId }) => {
                             checkAllLoaded();
                         });
                     } else {
-                        // Stale game data found (e.g., from a deleted world). Clean it up.
                         console.warn("Stale game data detected. Deleting and forcing re-selection.");
-                        await deleteDoc(gameDocRef); // This will re-trigger the snapshot with docSnap.exists() as false
+                        await deleteDoc(gameDocRef);
                     }
                 } else {
-                     // Malformed game data (missing location). Clean it up.
                      console.warn("Malformed game data detected. Deleting and forcing re-selection.");
                      await deleteDoc(gameDocRef);
                 }
             } else {
-                // No valid game data for this user in this world, treat as a new player.
                 setGameState(null);
                 setPlayerCity(null);
                 setPlayerHasChosenFaction(false);
                 setPlayerGod(null);
+                setPlayerAlliance(null); // Reset alliance
                 playerCityLoaded = true; 
             }
             playerStateLoaded = true;
@@ -111,6 +109,6 @@ export const GameProvider = ({ children, worldId }) => {
         };
     }, [currentUser, worldId]);
 
-    const value = { gameState, setGameState, worldState, playerCity, playerHasChosenFaction, loading, worldId, playerGod, setPlayerGod };
+    const value = { gameState, setGameState, worldState, playerCity, playerHasChosenFaction, loading, worldId, playerGod, setPlayerGod, playerAlliance, setPlayerAlliance };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

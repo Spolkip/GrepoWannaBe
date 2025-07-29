@@ -1,18 +1,16 @@
+// src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
-// WaterTile component represents a water tile on the map.
 export const WaterTile = React.memo(() => (
     <div className="w-full h-full bg-blue-800 border-r border-b border-blue-900" />
 ));
 
-// LandTile component represents a land tile on the map.
 export const LandTile = React.memo(() => (
     <div className="w-full h-full bg-green-600 border-r border-b border-green-700" />
 ));
 
-// CitySlotTile component represents a city slot on the map.
-export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity }) => {
+export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance }) => {
     const { currentUser } = useAuth();
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
@@ -22,6 +20,9 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity 
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             tooltipText = `Your City: ${slotData.cityName}`;
+        } else if (playerAlliance && slotData.alliance === playerAlliance) {
+            slotClass = 'alliance-city';
+            tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
         } else if (slotData.ownerId.startsWith('dummy_')) {
             slotClass = 'dummy-city-plot';
             tooltipText = `Dummy City: ${slotData.cityName}<br>Owner: ${ownerName}`;
@@ -43,7 +44,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity 
     );
 });
 
-// FarmingVillageTile component represents a conquerable village on the map.
 export const FarmingVillageTile = React.memo(({ villageData, onClick }) => {
     const { currentUser } = useAuth();
     let villageClass = 'neutral-village';

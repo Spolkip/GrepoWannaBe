@@ -1,3 +1,5 @@
+// src/components/map/FarmingVillageModal.js
+
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
@@ -26,7 +28,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
         });
 
         return () => unsubscribe(); // Cleanup listener when the modal closes
-    }, [worldId, initialVillage.id]);
+    }, [worldId, village.id]); // Corrected dependency
 
     const demandOptions = [
         { name: '5 minutes', duration: 300, multiplier: 0.125 },

@@ -1,62 +1,46 @@
+// src/hooks/useModalState.js
 import { useState } from 'react';
 
 export const useModalState = () => {
-    const [selectedCity, setSelectedCity] = useState(null);
-    const [selectedVillage, setSelectedVillage] = useState(null);
-    const [actionDetails, setActionDetails] = useState(null);
-    const [isMovementsPanelOpen, setIsMovementsPanelOpen] = useState(false);
-    const [isReportsPanelOpen, setIsReportsPanelOpen] = useState(false);
+    const [modalState, setModalState] = useState({
+        selectedCity: null,
+        selectedVillage: null,
+        actionDetails: null,
+        isMovementsPanelOpen: false,
+        isReportsPanelOpen: false,
+        isAllianceModalOpen: false,
+    });
 
     const openModal = (type, data) => {
-        switch (type) {
-            case 'city':
-                setSelectedCity(data);
-                break;
-            case 'village':
-                setSelectedVillage(data);
-                break;
-            case 'action':
-                setActionDetails(data);
-                break;
-            case 'movements':
-                setIsMovementsPanelOpen(true);
-                break;
-            case 'reports':
-                setIsReportsPanelOpen(true);
-                break;
-            default:
-                break;
-        }
+        setModalState(prevState => {
+            switch (type) {
+                case 'city': return { ...prevState, selectedCity: data };
+                case 'village': return { ...prevState, selectedVillage: data };
+                case 'action': return { ...prevState, actionDetails: data };
+                case 'movements': return { ...prevState, isMovementsPanelOpen: true };
+                case 'reports': return { ...prevState, isReportsPanelOpen: true };
+                case 'alliance': return { ...prevState, isAllianceModalOpen: true };
+                default: return prevState;
+            }
+        });
     };
 
     const closeModal = (type) => {
-        switch (type) {
-            case 'city':
-                setSelectedCity(null);
-                break;
-            case 'village':
-                setSelectedVillage(null);
-                break;
-            case 'action':
-                setActionDetails(null);
-                break;
-            case 'movements':
-                setIsMovementsPanelOpen(false);
-                break;
-            case 'reports':
-                setIsReportsPanelOpen(false);
-                break;
-            default:
-                break;
-        }
+        setModalState(prevState => {
+            switch (type) {
+                case 'city': return { ...prevState, selectedCity: null };
+                case 'village': return { ...prevState, selectedVillage: null };
+                case 'action': return { ...prevState, actionDetails: null };
+                case 'movements': return { ...prevState, isMovementsPanelOpen: false };
+                case 'reports': return { ...prevState, isReportsPanelOpen: false };
+                case 'alliance': return { ...prevState, isAllianceModalOpen: false };
+                default: return prevState;
+            }
+        });
     };
 
     return {
-        selectedCity,
-        selectedVillage,
-        actionDetails,
-        isMovementsPanelOpen,
-        isReportsPanelOpen,
+        modalState,
         openModal,
         closeModal,
     };

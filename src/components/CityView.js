@@ -1,7 +1,8 @@
-// spolkip/grepoliswannabe/GrepolisWannaBe-84ea944fec8305f67d645494c64605ee04b71622/src/components/CityView.js
+// src/components/CityView.js
+
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore'; // Import writeBatch
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import Modal from './shared/Modal';
@@ -14,7 +15,7 @@ import ShipyardMenu from './city/ShipyardMenu';
 import BuildingDetailsModal from './city/BuildingDetailsModal';
 import SenateView from './city/SenateView';
 import TempleMenu from './city/TempleMenu';
-import CaveMenu from './city/CaveMenu'; // Import CaveMenu
+import CaveMenu from './city/CaveMenu';
 import Cityscape from './city/Cityscape';
 
 // Import resource images
@@ -36,8 +37,12 @@ const CityView = ({ showMap, worldId }) => {
   const [isBarracksMenuOpen, setIsBarracksMenuOpen] = useState(false);
   const [isShipyardMenuOpen, setIsShipyardMenuOpen] = useState(false);
   const [isTempleMenuOpen, setIsTempleMenuOpen] = useState(false);
-  const [isCaveMenuOpen, setIsCaveMenuOpen] = useState(false); // New state for CaveMenu
+  const [isCaveMenuOpen, setIsCaveMenuOpen] = useState(false);
   const [isCheatMenuOpen, setIsCheatMenuOpen] = useState(false);
+  
+  // New state for renaming city
+  const [isEditingCityName, setIsEditingCityName] = useState(false);
+  const [newCityName, setNewCityName] = useState('');
 
   // Draggable view states
   const viewportRef = useRef(null);
@@ -49,7 +54,10 @@ const CityView = ({ showMap, worldId }) => {
   const gameStateRef = useRef(cityGameState);
   useEffect(() => {
     gameStateRef.current = cityGameState;
-  }, [cityGameState]);
+    if (cityGameState && !isEditingCityName) {
+      setNewCityName(cityGameState.cityName);
+    }
+  }, [cityGameState, isEditingCityName]);
 
   const clampPan = useCallback((newPan) => {
     if (!viewportRef.current) return { x: 0, y: 0 };
@@ -116,7 +124,7 @@ const CityView = ({ showMap, worldId }) => {
 
     const cost = building.baseCost;
     let populationCost = Math.floor(cost.population * Math.pow(1.1, level - 1));
-    const initialBuildings = ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave']; // Added cave here
+    const initialBuildings = ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'];
     if (level === 1 && initialBuildings.includes(buildingId)) {
       populationCost = 0;
     }
@@ -134,7 +142,6 @@ const CityView = ({ showMap, worldId }) => {
     if (buildings) {
       for (const buildingId in buildings) {
         const buildingData = buildings[buildingId];
-        // Ensure initial buildings don't consume population at level 1
         const startLevel = ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].includes(buildingId) ? 1 : 0;
         for (let i = startLevel; i <= buildingData.level; i++) {
           if (i > 0) {
@@ -161,6 +168,57 @@ const CityView = ({ showMap, worldId }) => {
       setMessage('Error saving your progress.');
     }
   }, [currentUser, worldId]);
+  
+  // --- New function to handle city name change ---
+  const handleCityNameSave = async () => {
+    if (!newCityName.trim() || newCityName.trim() === cityGameState.cityName) {
+        setIsEditingCityName(false);
+        return;
+    }
+
+    const trimmedName = newCityName.trim();
+    if (trimmedName.length > 20) {
+        setMessage("City name cannot exceed 20 characters.");
+        return;
+    }
+
+    const citySlotId = cityGameState.cityLocation?.slotId;
+    if (!citySlotId) {
+        setMessage("Error: City location is unknown.");
+        return;
+    }
+    
+    const newGameState = { ...cityGameState, cityName: trimmedName };
+
+    try {
+        const batch = writeBatch(db);
+        const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+        const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
+
+        batch.update(gameDocRef, { cityName: trimmedName, lastUpdated: Date.now() });
+        batch.update(citySlotRef, { cityName: trimmedName });
+
+        await batch.commit();
+
+        setCityGameState(newGameState);
+        setMessage("City name updated!");
+    } catch (error) {
+        console.error("Failed to update city name:", error);
+        setMessage("Error updating city name.");
+    } finally {
+        setIsEditingCityName(false);
+    }
+  };
+
+  const handleCityNameKeyDown = (e) => {
+      if (e.key === 'Enter') {
+          handleCityNameSave();
+      } else if (e.key === 'Escape') {
+          setNewCityName(cityGameState.cityName);
+          setIsEditingCityName(false);
+      }
+  };
+
 
   useEffect(() => {
     if (!currentUser || !worldId) return;
@@ -168,12 +226,9 @@ const CityView = ({ showMap, worldId }) => {
     const unsubscribe = onSnapshot(gameDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Initialize units and cave if they don't exist
         if (!data.units) data.units = {};
         if (!data.worship) data.worship = {};
         if (!data.cave) data.cave = { silver: 0 }; 
-        // Ensure cave building exists and has a level for new cities
-        // This handles cases where cities were created before the fix in CityFounding.js
         if (!data.buildings.cave) {
             data.buildings.cave = { level: 1 };
         }
@@ -245,12 +300,13 @@ const CityView = ({ showMap, worldId }) => {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (gameStateRef.current) saveGameState(gameStateRef.current); // Corrected: Use gameStateRef.current
+      if (gameStateRef.current) saveGameState(gameStateRef.current);
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [saveGameState]);
-
+  
+  // --- Keep all existing handlers like handleUpgrade, handleTrainTroops, etc. ---
   const handleUpgrade = async (buildingId) => {
     if (!cityGameState || !worldId) return;
     const building = cityGameState.buildings[buildingId] || { level: 0 };
@@ -356,13 +412,11 @@ const CityView = ({ showMap, worldId }) => {
     setIsTempleMenuOpen(false);
   };
 
+
   const handlePlotClick = (buildingId) => {
-    console.log("handlePlotClick triggered for building:", buildingId); // Debugging
     const buildingData = cityGameState.buildings[buildingId];
-    // If building doesn't exist or its level is 0, default to opening SenateView
     if (!buildingData || buildingData.level === 0) {
       setIsSenateViewOpen(true);
-      console.log("Opening SenateView because building is not built or level 0."); // Debugging
       return;
     }
     switch (buildingId) {
@@ -370,10 +424,7 @@ const CityView = ({ showMap, worldId }) => {
       case 'barracks': setIsBarracksMenuOpen(true); break;
       case 'shipyard': setIsShipyardMenuOpen(true); break;
       case 'temple': setIsTempleMenuOpen(true); break;
-      case 'cave':
-        console.log("Attempting to open CaveMenu."); // Debugging
-        setIsCaveMenuOpen(true);
-        break; // Open CaveMenu
+      case 'cave': setIsCaveMenuOpen(true); break;
       default: setSelectedBuildingId(buildingId); break;
     }
   };
@@ -424,7 +475,25 @@ const CityView = ({ showMap, worldId }) => {
       <Modal message={message} onClose={() => setMessage('')} />
       <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-center p-4 bg-gray-800 shadow-lg border-b border-gray-700 z-10">
         <div>
-          <h1 className="font-title text-3xl text-gray-300">{cityGameState.cityName}</h1>
+          {isEditingCityName ? (
+            <input
+              type="text"
+              value={newCityName}
+              onChange={(e) => setNewCityName(e.target.value)}
+              onBlur={handleCityNameSave}
+              onKeyDown={handleCityNameKeyDown}
+              className="font-title text-3xl bg-gray-700 text-gray-200 border border-gray-500 rounded px-2"
+              autoFocus
+            />
+          ) : (
+            <h1 
+              className="font-title text-3xl text-gray-300 cursor-pointer hover:bg-gray-700/50 rounded px-2"
+              onDoubleClick={() => setIsEditingCityName(true)}
+              title="Double-click to rename"
+            >
+              {cityGameState.cityName}
+            </h1>
+          )}
           {cityGameState.god && <p className="text-lg text-yellow-400 font-semibold">Worshipping: {cityGameState.god}</p>}
           <p className="text-sm text-blue-300">{`${cityGameState.playerInfo.nation} (${cityGameState.playerInfo.religion})`}</p>
           <button onClick={showMap} className="text-sm text-blue-400 hover:text-blue-300 mt-1">← Return to Map</button>
@@ -516,11 +585,11 @@ const CityView = ({ showMap, worldId }) => {
           favorData={cityGameState.worship || {}}
         />
       )}
-      {isCaveMenuOpen && ( // Render CaveMenu when isCaveMenuOpen is true
+      {isCaveMenuOpen && (
         <CaveMenu
           cityGameState={cityGameState}
           onClose={() => setIsCaveMenuOpen(false)}
-          saveGameState={saveGameState} // Pass saveGameState for updates
+          saveGameState={saveGameState}
           currentUser={currentUser}
           worldId={worldId}
         />

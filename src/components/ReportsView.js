@@ -4,177 +4,223 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import unitConfig from '../gameData/units.json'; // Added import for unitConfig
-import buildingConfig from '../gameData/buildings.json'; // Added import for buildingConfig
+import unitConfig from '../gameData/units.json';
+import buildingConfig from '../gameData/buildings.json';
 
-// ReportsPanel component displays a list of all active troop movements.
 const ReportsView = ({ onClose }) => {
     const { currentUser } = useAuth();
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
+    const [activeTab, setActiveTab] = useState('Combat');
 
-    // Fetch reports for the current user and subscribe to real-time updates
+    const tabs = {
+        'Combat': ['attack', 'attack_village'],
+        'Reinforce': ['reinforce'],
+        'Trade': ['trade'],
+        'Scout': ['scout', 'spy_caught'],
+        'Misc': ['return'],
+    };
+
     useEffect(() => {
         if (!currentUser) return;
-
         const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), orderBy('timestamp', 'desc'));
         const unsubscribe = onSnapshot(reportsQuery, (snapshot) => {
             const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setReports(reportsData);
         });
-
-        return () => unsubscribe(); // Unsubscribe on component unmount
+        return () => unsubscribe();
     }, [currentUser]);
 
-    // Handle selecting a report to view its details
     const handleSelectReport = async (report) => {
         setSelectedReport(report);
-        // Mark report as read if it hasn't been yet
         if (!report.read) {
             const reportRef = doc(db, 'users', currentUser.uid, 'reports', report.id);
             await updateDoc(reportRef, { read: true });
         }
     };
 
-    // Handle deleting a report
     const handleDeleteReport = async (reportId) => {
         const reportRef = doc(db, 'users', currentUser.uid, 'reports', reportId);
         await deleteDoc(reportRef);
-        // If the deleted report was currently selected, clear the selection
         if (selectedReport && selectedReport.id === reportId) {
             setSelectedReport(null);
         }
     };
 
-    // Renders the specific outcome details based on the report's type
-     const renderReportOutcome = (report) => {
+    const handleTabClick = (tabName) => {
+        setActiveTab(tabName);
+        setSelectedReport(null); // Clear selected report when changing tabs
+    };
+    
+    const getReportTitleColor = (report) => {
         switch (report.type) {
+            case 'attack':
+            case 'attack_village':
+                return report.outcome?.attackerWon ? 'text-green-400' : 'text-red-400';
+            case 'scout':
+                return report.scoutSucceeded ? 'text-green-400' : 'text-red-400';
+            case 'spy_caught':
+                return 'text-red-400';
             case 'return':
+            case 'reinforce':
+                return 'text-blue-400';
+            case 'trade':
+                return 'text-yellow-400';
+            default:
+                return 'text-gray-300';
+        }
+    };
+
+    const getReportTitle = (report) => {
+        let title = report.title || 'Untitled Report';
+        if (report.type === 'attack' || report.type === 'attack_village') {
+            title += report.outcome?.attackerWon ? ' (Victory)' : ' (Defeat)';
+        }
+        return title;
+    };
+
+    const renderUnitList = (units) => {
+        if (!units || Object.keys(units).length === 0) return 'None';
+        return Object.entries(units)
+            .map(([id, count]) => `${count} ${unitConfig[id]?.name || id}`)
+            .join(', ');
+    };
+
+    const renderReportOutcome = (report) => {
+        const outcome = report.outcome || {};
+        const attacker = report.attacker || {};
+        const defender = report.defender || {};
+
+        switch (report.type) {
+            case 'attack':
+                const survivingAttackers = {};
+                for (const unitId in attacker.units) {
+                    const survived = (attacker.units[unitId] || 0) - (outcome.attackerLosses?.[unitId] || 0);
+                    if (survived > 0) survivingAttackers[unitId] = survived;
+                }
+
+                const survivingDefenders = {};
+                for (const unitId in defender.units) {
+                    const survived = (defender.units[unitId] || 0) - (outcome.defenderLosses?.[unitId] || 0);
+                    if (survived > 0) survivingDefenders[unitId] = survived;
+                }
+
                 return (
                     <>
-                        <p className="font-bold text-blue-400">Troops Returned</p>
-                        <p className="text-sm text-gray-300">Surviving Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unitConfig[unit]?.name || unit}`).join(', ') || 'None'}</p>
-                        <p className="text-sm text-gray-300">Loot: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                        <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
+                            {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
+                        </p>
+                        <div className="space-y-4 text-sm">
+                            <div className="p-2 bg-gray-700/50 rounded">
+                                <h4 className="font-semibold text-lg text-yellow-300">Attacker: {attacker.cityName}</h4>
+                                <p><strong>Units Sent:</strong> {renderUnitList(attacker.units)}</p>
+                                <p><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                                <p><strong>Survivors:</strong> {renderUnitList(survivingAttackers)}</p>
+                            </div>
+                            <div className="p-2 bg-gray-700/50 rounded">
+                                <h4 className="font-semibold text-lg text-yellow-300">Defender: {defender.cityName}</h4>
+                                <p><strong>Units:</strong> {renderUnitList(defender.units)}</p>
+                                <p><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                                <p><strong>Survivors:</strong> {renderUnitList(survivingDefenders)}</p>
+                            </div>
+                            {outcome.attackerWon && outcome.plunder && (
+                                <div className="p-2 bg-green-800/30 rounded">
+                                    <h4 className="font-semibold text-lg text-green-300">Loot</h4>
+                                    <p>{Object.entries(outcome.plunder).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                                </div>
+                            )}
+                        </div>
                     </>
                 );
-            case 'attack_village': {
-                const outcome = report.outcome || {};
-                const attacker = report.attacker || {};
-                const defender = report.defender || {};
 
+            case 'attack_village':
                 return (
                     <>
                         <p className={`font-bold ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
                             {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
                         </p>
                         <div className="text-sm mt-2 space-y-2">
-                            <div>
-                                <h4 className="font-semibold">Your Attack</h4>
-                                <p>From: {attacker.cityName}</p>
-                                <p>Units Sent: {Object.entries(attacker.units || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ')}</p>
-                                <p>Losses: {Object.entries(attacker.losses || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ') || 'None'}</p>
+                             <div className="p-2 bg-gray-700/50 rounded">
+                                <h4 className="font-semibold text-lg text-yellow-300">Your Attack on {defender.villageName}</h4>
+                                <p><strong>Units Sent:</strong> {renderUnitList(attacker.units)}</p>
+                                <p><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
                             </div>
-                            <div>
-                                <h4 className="font-semibold">Village Defence</h4>
-                                <p>At: {defender.villageName}</p>
-                                <p>Defending Troops: {Object.entries(defender.troops || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ')}</p>
-                                <p>Losses: {Object.entries(defender.losses || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ') || 'None'}</p>
+                             <div className="p-2 bg-gray-700/50 rounded">
+                                <h4 className="font-semibold text-lg text-yellow-300">Village Defence</h4>
+                                <p><strong>Defending Troops:</strong> {renderUnitList(defender.troops)}</p>
+                                <p><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
                             </div>
                             {outcome.attackerWon && (
-                                <p className="text-green-400">You have conquered the village!</p>
+                                <p className="text-green-400 font-bold">You have conquered the village!</p>
                             )}
                         </div>
                     </>
                 );
-            }
-            case 'attack':
-                const outcome = report.outcome || {};
-                const survivingAttackers = outcome.survivingAttackers || {};
-                const survivingDefenders = outcome.survivingDefenders || {};
-                const loot = outcome.loot || {};
 
-                return (
-                    <>
-                        <p className={`font-bold ${outcome.winner === 'attacker' ? 'text-green-400' : 'text-red-400'}`}>
-                            {outcome.winner === 'attacker' ? 'Victory!' : 'Defeat!'}
-                        </p>
-                        <div className="text-sm">
-                            <h4 className="font-semibold mt-2">Attackers</h4>
-                            <p>From: {report.originCityName}</p>
-                            <p>Surviving Units: {Object.entries(survivingAttackers).map(([unit, count]) => `${count} ${unit}`).join(', ') || 'None'}</p>
-
-                            <h4 className="font-semibold mt-2">Defenders</h4>
-                            <p>At: {report.targetCityName}</p>
-                            <p>Surviving Units: {Object.entries(survivingDefenders).map(([unit, count]) => `${count} ${unit}`).join(', ') || 'None'}</p>
-
-                            {outcome.winner === 'attacker' && (
-                                <>
-                                    <h4 className="font-semibold mt-2">Loot</h4>
-                                    <p>{Object.entries(loot).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                                </>
-                            )}
-                        </div>
-                    </>
-                );
             case 'scout':
                 return (
                     <>
                         {report.scoutSucceeded ? (
-                            <>
+                            <div className="space-y-1">
                                 <p className="font-bold text-green-400">Scout Successful!</p>
-                                <p className="text-sm text-gray-300">Target City: {report.targetCityName}</p>
-                                <p className="text-sm text-gray-300">Owner: {report.targetOwner}</p>
-                                <p className="text-sm text-gray-300">Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unitConfig[unit]?.name || unit}`).join(', ') || 'None'}</p>
-                                <p className="text-sm text-gray-300">Resources: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                                <p className="text-sm text-gray-300">Buildings: {Object.entries(report.buildings || {}).map(([bldg, data]) => `${buildingConfig[bldg]?.name || bldg} (Lvl ${data.level})`).join(', ') || 'None'}</p>
-                                <p className="text-sm text-gray-300">Worshipped God: {report.god || 'None'}</p>
-                            </>
+                                <p><strong>Target:</strong> {report.targetCityName} (Owner: {report.targetOwnerUsername})</p>
+                                <p><strong>Worshipped God:</strong> {report.god || 'None'}</p>
+                                <p><strong>Units:</strong> {renderUnitList(report.units)}</p>
+                                <p><strong>Resources:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                                <p><strong>Buildings:</strong> {Object.entries(report.buildings || {}).map(([bldg, data]) => `${buildingConfig[bldg]?.name || bldg} (Lvl ${data.level})`).join(', ') || 'None'}</p>
+                            </div>
                         ) : (
                             <p className="font-bold text-red-400">{report.message || 'Scout Failed!'}</p>
                         )}
                     </>
                 );
-            case 'reinforce': //
-                 return (
-                    <>
-                        <p className="font-bold text-blue-400">Reinforcement Arrived</p>
-                        <p className="text-sm text-gray-300">From: {report.originCityName}</p>
-                        <p className="text-sm text-gray-300">To: {report.targetCityName}</p>
-                        <p className="text-sm text-gray-300">Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unit}`).join(', ') || 'None'}</p>
-                    </>
-                );
-            case 'trade': //
+            
+            case 'return':
                 return (
-                    <>
-                        <p className="font-bold text-green-400">Trade Complete</p>
-                        <p className="text-sm text-gray-300">From: {report.originCityName}</p>
-                        <p className="text-sm text-gray-300">To: {report.targetCityName}</p>
-                        <p className="text-sm text-gray-300">Resources: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                    </>
-                );
-                            case 'return':
-                return (
-                    <>
+                    <div className="space-y-1">
                         <p className="font-bold text-blue-400">Troops Returned</p>
-                        <p className="text-sm text-gray-300">Surviving Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unitConfig[unit]?.name || unit}`).join(', ') || 'None'}</p>
-                        <p className="text-sm text-gray-300">Loot: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                    </>
+                        <p><strong>Surviving Units:</strong> {renderUnitList(report.units)}</p>
+                        <p><strong>Loot:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                    </div>
                 );
-            case 'spy_caught': //
+
+            case 'spy_caught':
                 return (
-                    <>
+                     <div className="space-y-1">
                         <p className="font-bold text-red-400">Spy Detected!</p>
-                        <p className="text-sm text-gray-300">A spy from {report.originCity || 'an unknown city'} was detected.</p>
+                        <p>A spy from {report.originCityName || 'an unknown city'} was detected.</p>
                         {report.silverGained > 0 && (
-                            <p className="text-sm text-gray-300">You gained {Math.floor(report.silverGained)} silver from the spy.</p>
+                            <p>You gained {Math.floor(report.silverGained)} silver from the spy.</p>
                         )}
-                    </>
+                    </div>
                 );
+            
+            case 'reinforce':
+                return (
+                    <div className="space-y-1">
+                        <p className="font-bold text-blue-400">Reinforcement Arrived</p>
+                        <p><strong>From:</strong> {report.originCityName}</p>
+                        <p><strong>To:</strong> {report.targetCityName}</p>
+                        <p><strong>Units:</strong> {renderUnitList(report.units)}</p>
+                    </div>
+                );
+
+            case 'trade':
+                return (
+                    <div className="space-y-1">
+                        <p className="font-bold text-yellow-400">Trade Complete</p>
+                        <p><strong>From:</strong> {report.originCityName}</p>
+                        <p><strong>To:</strong> {report.targetCityName}</p>
+                        <p><strong>Resources:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                    </div>
+                );
+
             default:
                 return <p>Report type not recognized.</p>;
         }
     };
 
+    const filteredReports = reports.filter(report => tabs[activeTab]?.includes(report.type));
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -185,26 +231,46 @@ const ReportsView = ({ onClose }) => {
                 </div>
 
                 <div className="flex flex-grow overflow-hidden">
-                    {/* Reports List */}
-                    <div className="w-1/3 border-r border-gray-600 overflow-y-auto">
-                        <ul>
-                            {reports.map(report => (
-                                <li
-                                    key={report.id}
-                                    className={`p-3 cursor-pointer ${selectedReport && selectedReport.id === report.id ? 'bg-gray-700' : ''} ${!report.read ? 'font-bold' : ''} hover:bg-gray-700`}
-                                    onClick={() => handleSelectReport(report)}
+                    <div className="w-1/3 border-r border-gray-600 flex flex-col">
+                        <div className="flex border-b border-gray-600">
+                            {Object.keys(tabs).map(tabName => (
+                                <button
+                                    key={tabName}
+                                    onClick={() => handleTabClick(tabName)}
+                                    className={`flex-1 p-2 text-sm font-bold transition-colors ${
+                                        activeTab === tabName
+                                            ? 'bg-gray-700 text-white'
+                                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                                    }`}
                                 >
-                                    <div className="flex justify-between items-center">
-                                        <span>{report.title || 'Untitled Report'}</span>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-500 hover:text-red-400 text-xs">Delete</button>
-                                    </div>
-                                    <p className="text-xs text-gray-400">{new Date(report.timestamp?.toDate()).toLocaleString()}</p>
-                                </li>
+                                    {tabName}
+                                </button>
                             ))}
+                        </div>
+                        
+                        <ul className="overflow-y-auto">
+                            {filteredReports.length > 0 ? (
+                                filteredReports.map(report => (
+                                    <li
+                                        key={report.id}
+                                        className={`p-3 cursor-pointer border-l-4 ${selectedReport && selectedReport.id === report.id ? 'bg-gray-700 border-yellow-400' : 'border-transparent'} ${!report.read ? 'font-bold' : ''} hover:bg-gray-700`}
+                                        onClick={() => handleSelectReport(report)}
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <span className={`truncate pr-2 ${getReportTitleColor(report)}`}>
+                                                {getReportTitle(report)}
+                                            </span>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-500 hover:text-red-400 text-xs flex-shrink-0">Delete</button>
+                                        </div>
+                                        <p className="text-xs text-gray-400">{report.timestamp?.toDate().toLocaleString()}</p>
+                                    </li>
+                                ))
+                            ) : (
+                                <p className="p-4 text-center text-gray-500">No reports in this category.</p>
+                            )}
                         </ul>
                     </div>
-
-                    {/* Report Details */}
+                    
                     <div className="w-2/3 p-4 overflow-y-auto">
                         {selectedReport ? (
                             <div>

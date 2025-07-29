@@ -1,9 +1,10 @@
+// src/components/MapView.js
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 
 // UI Components
 import Modal from './shared/Modal';
@@ -12,7 +13,7 @@ import TopBar from './map/TopBar';
 import MapGrid from './map/MapGrid';
 import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
-import FarmingVillageModal from './map/FarmingVillageModal';
+import AllianceModal from './map/AllianceModal';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -22,23 +23,20 @@ import { useMapActions } from '../hooks/useMapActions';
 
 // Utilities
 import { calculateDistance } from '../utils/travel';
-import { getVillageTroops } from '../utils/combat'; // Import the shared function
+import { getVillageTroops } from '../utils/combat';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, worldId, playerCity } = useGame();
+    const { worldState, gameState, worldId, playerCity, playerAlliance } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
+    const [unreadReportsCount, setUnreadReportsCount] = useState(0); // New state for unread reports
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
 
     const {
-        selectedCity,
-        selectedVillage,
-        actionDetails,
-        isMovementsPanelOpen,
-        isReportsPanelOpen,
+        modalState,
         openModal,
         closeModal,
     } = useModalState();
@@ -71,6 +69,16 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
+    // Effect to listen for unread reports
+    useEffect(() => {
+        if (!currentUser) return;
+        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), where('read', '==', false));
+        const unsubscribe = onSnapshot(reportsQuery, (snapshot) => {
+            setUnreadReportsCount(snapshot.size);
+        });
+        return () => unsubscribe();
+    }, [currentUser]);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.code === 'Space') {
@@ -106,7 +114,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 const distance = calculateDistance(playerCity, slotData);
                 setTravelTimeInfo({ distance });
             }
-            openModal('city', slotData)
+            const cityDataWithAlliance = { ...slotData, playerAlliance };
+            openModal('city', cityDataWithAlliance);
         } else {
             setMessage('This plot is empty. Future updates will allow colonization!');
         }
@@ -134,7 +143,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 y: villageData.y,
                 islandId: villageData.islandId,
                 isVillageTarget: true,
-                troops: getVillageTroops(villageData), // Use the shared function
+                troops: getVillageTroops(villageData),
                 level: villageData.level || 1
             };
             openModal('city', targetData);
@@ -210,6 +219,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onGoToCity={showCity}
                     onOpenMovements={() => openModal('movements')}
                     onOpenReports={() => openModal('reports')}
+                    onOpenAlliance={() => openModal('alliance')}
+                    unreadReportsCount={unreadReportsCount} // Pass the count to the sidebar
                     isAdmin={userProfile?.is_admin}
                     onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
                 />
@@ -247,6 +258,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                                 movements={movements}
                                 combinedSlots={combinedSlots}
                                 villages={villages}
+                                playerAlliance={playerAlliance}
                             />
                         </div>
                     </div>
@@ -254,13 +266,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             </div>
             
             <MapModals
-                modalState={{
-                    selectedCity,
-                    selectedVillage,
-                    actionDetails,
-                    isMovementsPanelOpen,
-                    isReportsPanelOpen,
-                }}
+                modalState={modalState}
                 closeModal={closeModal}
                 gameState={gameState}
                 playerCity={playerCity}
@@ -276,6 +282,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 handleRushMovement={handleRushMovement}
                 userProfile={userProfile}
             />
+            
+            {modalState.isAllianceModalOpen && (
+                <AllianceModal onClose={() => closeModal('alliance')} />
+            )}
         </div>
     );
 };

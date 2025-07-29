@@ -6,4 +6,20 @@ Alliances with researches and stuff to give more teamwork
 
 Researches on the academy.
 
-Settings remove visuals
+Settings remove visuals and grid
+
+Add hospital and wounded troops
+
+Think of a way to do leaderboard,
+
+Do messages system
+
+Do Settings
+
+Do forum
+
+Do a global chat
+
+Remake movement tab
+
+Remake movement and report window report
