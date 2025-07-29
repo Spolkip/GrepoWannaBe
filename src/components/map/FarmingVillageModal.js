@@ -20,7 +20,7 @@ const FarmingVillageModal = ({ village, onClose, worldId }) => {
         { name: '5 minutes', duration: 300, multiplier: 0.125 },
         { name: '40 minutes', duration: 2400, multiplier: 1 },
         { name: '2 hours', duration: 7200, multiplier: 3 },
-        { name: '4 hours', duration: 14400, multiplier: 6 },
+        { name: '4 hours', duration: 14400, multiplier: 4 },
     ];
 
     useEffect(() => {
@@ -213,7 +213,7 @@ const FarmingVillageModal = ({ village, onClose, worldId }) => {
                     <button 
                         onClick={handleUpgrade}
                         disabled={isProcessing || !canAffordUpgrade}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded w-full transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded w-40 transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
                     >
                         {isProcessing ? 'Processing...' : 'Upgrade Village'}
                     </button>
