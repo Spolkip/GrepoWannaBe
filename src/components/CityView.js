@@ -122,7 +122,7 @@ const CityView = ({ showMap, worldId }) => {
   const getUpgradeCost = useCallback((buildingId, level) => {
     const building = buildingConfig[buildingId];
     if (!building || level < 1)
-      return { wood: 0, stone: 0, silver: 0, population: 0 };
+      return { wood: 0, stone: 0, silver: 0, population: 0, time: 0 };
 
     const cost = building.baseCost;
     let populationCost = Math.floor(cost.population * Math.pow(1.1, level - 1));
@@ -136,6 +136,7 @@ const CityView = ({ showMap, worldId }) => {
       stone: Math.floor(cost.stone * Math.pow(1.6, level - 1)),
       silver: Math.floor(cost.silver * Math.pow(1.8, level - 1)),
       population: populationCost,
+      time: Math.floor(cost.time * Math.pow(1.5, level - 1)),
     };
   }, []);
 
@@ -164,7 +165,15 @@ const CityView = ({ showMap, worldId }) => {
     if (!currentUser || !worldId || !stateToSave) return;
     try {
       const gameDocRef = getGameDocRef(currentUser.uid, worldId);
-      await setDoc(gameDocRef, { ...stateToSave, lastUpdated: Date.now() }, { merge: true });
+      // Ensure buildQueue has serializable Timestamps if it exists
+      const dataToSave = { ...stateToSave, lastUpdated: Date.now() };
+      if (dataToSave.buildQueue) {
+          dataToSave.buildQueue = dataToSave.buildQueue.map(task => ({
+              ...task,
+              endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
+          }));
+      }
+      await setDoc(gameDocRef, dataToSave, { merge: true });
     } catch (error) {
       console.error('Failed to save game state:', error);
       setMessage('Error saving your progress.');
@@ -234,6 +243,7 @@ const CityView = ({ showMap, worldId }) => {
         if (!data.buildings.cave) {
             data.buildings.cave = { level: 1 };
         }
+        if (!data.buildQueue) data.buildQueue = [];
 
         const now = Date.now();
         const lastResourceUpdate = data.lastUpdated || now;
@@ -292,6 +302,50 @@ const CityView = ({ showMap, worldId }) => {
     }, 1000);
     return () => clearInterval(interval);
   }, [getProductionRates, getWarehouseCapacity]);
+  
+  useEffect(() => {
+    const processQueue = async () => {
+        const currentState = gameStateRef.current;
+        if (!currentUser || !worldId || !currentState || !currentState.buildQueue || currentState.buildQueue.length === 0) {
+            return;
+        }
+
+        const now = Date.now();
+        const completedTasks = [];
+        const remainingQueue = [];
+
+        currentState.buildQueue.forEach(task => {
+            const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : 0;
+            if (endTime > 0 && now >= endTime) {
+                completedTasks.push(task);
+            } else {
+                remainingQueue.push(task);
+            }
+        });
+
+        if (completedTasks.length > 0) {
+            const newBuildings = { ...currentState.buildings };
+            completedTasks.forEach(task => {
+                newBuildings[task.buildingId].level = task.level;
+            });
+
+            try {
+                const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+                await setDoc(gameDocRef, {
+                    buildings: newBuildings,
+                    buildQueue: remainingQueue,
+                    lastUpdated: Date.now()
+                }, { merge: true });
+            } catch (error) {
+                console.error("Error completing build task(s):", error);
+            }
+        }
+    };
+
+    const interval = setInterval(processQueue, 1000);
+    return () => clearInterval(interval);
+  }, [currentUser, worldId]);
+
 
   useEffect(() => {
     const saveInterval = setInterval(() => {
@@ -309,32 +363,65 @@ const CityView = ({ showMap, worldId }) => {
   }, [saveGameState]);
   
   const handleUpgrade = async (buildingId) => {
-    if (!cityGameState || !worldId) return;
-    const building = cityGameState.buildings[buildingId] || { level: 0 };
+    const currentState = gameStateRef.current;
+    if (!currentState || !worldId) return;
+
+    const currentQueue = currentState.buildQueue || [];
+
+    if (currentQueue.length >= 5) {
+        setMessage("Build queue is full (max 5).");
+        return;
+    }
+
+    const building = currentState.buildings[buildingId] || { level: 0 };
     const nextLevel = building.level + 1;
     const cost = getUpgradeCost(buildingId, nextLevel);
-    const currentUsedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
-    const maxPopulation = getFarmCapacity(cityGameState.buildings.farm.level);
+    const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+    const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
     const newTotalPopulation = currentUsedPopulation + cost.population;
 
     if (
-      cityGameState.resources.wood >= cost.wood &&
-      cityGameState.resources.stone >= cost.stone &&
-      cityGameState.resources.silver >= cost.silver &&
-      newTotalPopulation <= maxPopulation
+        currentState.resources.wood >= cost.wood &&
+        currentState.resources.stone >= cost.stone &&
+        currentState.resources.silver >= cost.silver &&
+        newTotalPopulation <= maxPopulation
     ) {
-      const newGameState = { ...cityGameState };
-      newGameState.resources.wood -= cost.wood;
-      newGameState.resources.stone -= cost.stone;
-      newGameState.resources.silver -= cost.silver;
-      newGameState.buildings[buildingId].level = nextLevel;
-      await saveGameState(newGameState);
-      setCityGameState(newGameState);
-      setMessage(`${buildingConfig[buildingId].name} ${building.level === 0 ? 'built' : 'upgraded'} to Level ${nextLevel}!`);
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+
+        newGameState.resources.wood -= cost.wood;
+        newGameState.resources.stone -= cost.stone;
+        newGameState.resources.silver -= cost.silver;
+
+        const lastEndTime = currentQueue.length > 0
+            ? currentQueue[currentQueue.length - 1].endTime.toDate().getTime()
+            : Date.now();
+
+        const endTime = new Date(lastEndTime + cost.time * 1000);
+
+        const newQueueItem = {
+            buildingId,
+            level: nextLevel,
+            endTime: endTime,
+        };
+
+        newGameState.buildQueue = [...currentQueue, newQueueItem];
+
+        try {
+            const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+            await setDoc(gameDocRef, {
+                resources: newGameState.resources,
+                buildQueue: newGameState.buildQueue,
+                lastUpdated: Date.now()
+            }, { merge: true });
+        } catch (error) {
+            console.error("Error adding to build queue:", error);
+            setMessage("Could not start upgrade. Please try again.");
+        }
     } else {
-      setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
+        setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
     }
   };
+
 
   const handleStartResearch = async (researchId) => {
     if (!cityGameState || !researchConfig[researchId]) return;
@@ -375,7 +462,6 @@ const CityView = ({ showMap, worldId }) => {
 
     await saveGameState(newGameState);
     setCityGameState(newGameState);
-    setMessage(`Research for ${research.name} completed!`);
   };
 
   const handleTrainTroops = async (unitId, amount) => {
@@ -414,7 +500,6 @@ const CityView = ({ showMap, worldId }) => {
       newGameState.units[unitId] = (newGameState.units[unitId] || 0) + amount;
       await saveGameState(newGameState);
       setCityGameState(newGameState);
-      setMessage(`Trained ${amount} ${unit.name}(s)!`);
     } else {
       setMessage(availablePopulation < totalCost.population ? 'Not enough available population!' : 'Not enough resources to train troops!');
     }
@@ -451,7 +536,6 @@ const CityView = ({ showMap, worldId }) => {
     const newGameState = { ...cityGameState, god: godName, worship: newWorshipData };
     await saveGameState(newGameState);
     setCityGameState(newGameState);
-    setMessage(`You are now worshipping ${godName}.`);
     setIsTempleMenuOpen(false);
   };
 
@@ -601,6 +685,7 @@ const CityView = ({ showMap, worldId }) => {
           onClose={() => setIsSenateViewOpen(false)}
           usedPopulation={usedPopulation}
           maxPopulation={maxPopulation}
+          buildQueue={cityGameState.buildQueue}
         />
       )}
       {isBarracksMenuOpen && (

@@ -23,3 +23,5 @@ Do a global chat
 Remake movement tab
 
 Remake movement and report window report
+
+Add population to resource buildings to produce more resources

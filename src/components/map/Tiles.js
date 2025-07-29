@@ -45,7 +45,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
 });
 
 export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredVillages }) => {
-    const { currentUser } = useAuth();
     let villageClass = 'neutral-village';
     let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
 

@@ -2,66 +2,66 @@
   "senate": {
     "name": "Senate",
     "description": "Manage your city and view building levels.",
-    "baseCost": { "wood": 200, "stone": 250, "silver": 150, "population": 10 }
+    "baseCost": { "wood": 200, "stone": 250, "silver": 150, "population": 10, "time": 120 }
   },
   "timber_camp": {
     "name": "Timber Camp",
     "description": "Generates wood for your empire.",
-    "baseCost": { "wood": 60, "stone": 80, "silver": 20, "population": 5 }
+    "baseCost": { "wood": 60, "stone": 80, "silver": 20, "population": 5, "time": 60 }
   },
   "quarry": {
     "name": "Quarry",
     "description": "Mines stone for construction.",
-    "baseCost": { "wood": 80, "stone": 60, "silver": 20, "population": 5 }
+    "baseCost": { "wood": 80, "stone": 60, "silver": 20, "population": 5, "time": 60 }
   },
   "silver_mine": {
     "name": "Silver Mine",
     "description": "Mints silver coins.",
-    "baseCost": { "wood": 100, "stone": 100, "silver": 50, "population": 8 }
+    "baseCost": { "wood": 100, "stone": 100, "silver": 50, "population": 8, "time": 90 }
   },
   "warehouse": {
     "name": "Warehouse",
     "description": "Stores your precious resources.",
-    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 5 }
+    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 5, "time": 80 }
   },
   "barracks": {
     "name": "Barracks",
     "description": "Train land units to attack and defend.",
-    "baseCost": { "wood": 120, "stone": 100, "silver": 80, "population": 10 }
+    "baseCost": { "wood": 120, "stone": 100, "silver": 80, "population": 10, "time": 150 }
   },
   "shipyard": {
     "name": "Shipyard",
     "description": "Build ships for naval warfare.",
-    "baseCost": { "wood": 150, "stone": 100, "silver": 100, "population": 10 }
+    "baseCost": { "wood": 150, "stone": 100, "silver": 100, "population": 10, "time": 180 }
   },
   "academy": {
     "name": "Academy",
     "description": "Research new technologies and units.",
-    "baseCost": { "wood": 220, "stone": 220, "silver": 180, "population": 15 }
+    "baseCost": { "wood": 220, "stone": 220, "silver": 180, "population": 15, "time": 240 }
   },
   "city_wall": {
     "name": "City Wall",
     "description": "Increases the defense of your city.",
-    "baseCost": { "wood": 50, "stone": 250, "silver": 100, "population": 5 }
+    "baseCost": { "wood": 50, "stone": 250, "silver": 100, "population": 5, "time": 100 }
   },
   "cave": {
     "name": "Cave",
     "description": "Train spies and store silver safely from raids.",
-    "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5 }
+    "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5, "time": 120 }
   },
   "market": {
     "name": "Market",
     "description": "Trade resources with other players.",
-    "baseCost": { "wood": 180, "stone": 180, "silver": 180, "population": 10 }
+    "baseCost": { "wood": 180, "stone": 180, "silver": 180, "population": 10, "time": 200 }
   },
   "temple": {
     "name": "Temple",
     "description": "Worship the gods to gain their favor.",
-    "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10 }
+    "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10, "time": 300 }
   },
   "farm": {
     "name": "Farm",
     "description": "Increases your city's population capacity.",
-    "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0 }
+    "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 }
   }
 }

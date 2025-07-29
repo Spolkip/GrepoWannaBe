@@ -1,5 +1,6 @@
 import React from 'react';
 import buildingConfig from '../../gameData/buildings.json';
+import BuildQueue from './BuildQueue';
 
 const formatTime = (seconds) => {
     if (seconds < 60) return `${Math.floor(seconds)}s`;
@@ -19,11 +20,13 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
-            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-600 pb-3 mb-4">
                     <h2 className="text-3xl font-bold font-title text-yellow-300">Senate</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
+
+                <BuildQueue buildQueue={buildQueue} />
                 
                 <div className='flex justify-between items-center mb-4 p-3 bg-gray-900 rounded-lg'>
                     <p className="text-lg">Population: <span className="font-bold text-green-400">{maxPopulation - usedPopulation}</span> / {maxPopulation}</p>
@@ -44,7 +47,7 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                             const inQueue = isBuildingInQueue(id);
                             
                             return (
-                                <div key={id} className="bg-gray-700 p-4 rounded-lg flex flex-col justify-between shadow-md border border-gray-600">
+                                <div key={id} className={`bg-gray-700 p-4 rounded-lg flex flex-col justify-between shadow-md border border-gray-600 transition-opacity ${buildQueue.length >= 5 && !inQueue ? 'opacity-50' : ''}`}>
                                     <div>
                                         <h3 className="text-xl font-semibold text-yellow-400">{config.name}</h3>
                                         <p className="text-sm text-gray-300 mb-2">Level: {level}</p>
@@ -59,7 +62,7 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                                     </div>
                                     <button
                                         onClick={() => onUpgrade(id)}
-                                        disabled={!canAfford || inQueue}
+                                        disabled={!canAfford || inQueue || buildQueue.length >= 5}
                                         className={`w-full py-2 rounded font-bold transition-colors ${
                                             inQueue
                                                 ? 'bg-gray-500 cursor-not-allowed'
@@ -68,7 +71,7 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                                                 : 'bg-red-800 opacity-50 cursor-not-allowed'
                                         }`}
                                     >
-                                        {inQueue ? 'Queued' : (level === 0 ? 'Build' : `Upgrade to ${level + 1}`)}
+                                        {inQueue ? 'Queued' : (buildQueue.length >= 5 ? 'Queue Full' : (level === 0 ? 'Build' : `Upgrade to ${level + 1}`))}
                                     </button>
                                 </div>
                             );
