@@ -321,7 +321,7 @@ const CityView = ({ showMap, worldId }) => {
     }
   };
 
-  const handleCheat = async (amounts) => {
+  const handleCheat = async (amounts, troop, warehouseLevels) => {
     if (!cityGameState || !userProfile?.is_admin) return;
     const newGameState = { ...cityGameState };
     newGameState.resources.wood += amounts.wood;
@@ -330,6 +330,12 @@ const CityView = ({ showMap, worldId }) => {
     if (amounts.population > 0) {
       const farmLevel = newGameState.buildings.farm.level;
       newGameState.buildings.farm.level = farmLevel + amounts.population;
+    }
+    if (troop.amount > 0) {
+        newGameState.units[troop.unit] = (newGameState.units[troop.unit] || 0) + troop.amount;
+    }
+    if (warehouseLevels > 0) {
+        newGameState.buildings.warehouse.level += warehouseLevels;
     }
     await saveGameState(newGameState);
     setMessage("Admin cheat applied!");

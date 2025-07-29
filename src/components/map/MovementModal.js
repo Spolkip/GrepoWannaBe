@@ -283,7 +283,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                         </div>
                     )}
 
-                    {mode === 'attack' && selectedLandUnitsForFormation.length > 0 && (
+                                      {mode === 'attack' && selectedLandUnitsForFormation.length > 0 && (
                         <div className="mt-4 pt-4 border-t border-gray-700">
                             <h4 className="text-lg text-white font-bold mb-2">Attack Formation</h4>
                             {/* Render dropdowns for each attack layer */}
@@ -298,7 +298,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                         <option value="">None</option>
                                         {/* Filter out units already selected in other layers AND units not selected for attack */}
                                         {selectedLandUnitsForFormation
-                                            .filter(unitId => !Object.values(attackLayers).some((selectedUnit, key) => selectedUnit === unitId && key !== layer.name))
+                                            .filter(unitId => !Object.entries(attackLayers).some(([key, selectedUnit]) => selectedUnit === unitId && key !== layer.name))
                                             .map(unitId => (
                                                 <option key={unitId} value={unitId}>{unitConfig[unitId].name}</option>
                                             ))}

@@ -3,50 +3,43 @@ import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase/config';
-import { collection, writeBatch, doc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
+import { doc, updateDoc } from 'firebase/firestore';
 
 // UI Components
 import Modal from './shared/Modal';
-import ReportsView from './ReportsView';
-import SideInfoPanel from './SideInfoPanel';
-import MovementModal from './map/MovementModal';
-import MovementsPanel from './map/MovementsPanel';
-import OtherCityModal from './map/OtherCityModal';
-import FarmingVillageModal from './map/FarmingVillageModal';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
-import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile } from './map/Tiles';
-import MovementIndicator from './map/MovementIndicator';
+import MapGrid from './map/MapGrid';
+import MapModals from './map/MapModals';
+import SideInfoPanel from './SideInfoPanel';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
 import { useMapData } from '../hooks/usemapdatapls';
+import { useModalState } from '../hooks/useModalState';
+import { useMapActions } from '../hooks/useMapActions';
 
-
-// Utilities & Config
-import { calculateDistance, calculateTravelTime } from '../utils/travel';
-import unitConfig from '../gameData/units.json';
-import buildingConfig from '../gameData/buildings.json';
-
-// Constants
-const TILE_SIZE = 32;
+// Utilities
+import { calculateDistance } from '../utils/travel';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, worldId, playerCity, setGameState } = useGame();
+    const { worldState, gameState, worldId, playerCity } = useGame();
 
-    const [message, setMessage] = useState('');
-    const [selectedCity, setSelectedCity] = useState(null);
-    const [selectedVillage, setSelectedVillage] = useState(null);
-    const [travelTimeInfo, setTravelTimeInfo] = useState(null);
-    const [actionDetails, setActionDetails] = useState(null);
-    const [isMovementsPanelOpen, setIsMovementsPanelOpen] = useState(false);
-    const [isReportsPanelOpen, setIsReportsPanelOpen] = useState(false);
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
+
+    const {
+        selectedCity,
+        selectedVillage,
+        actionDetails,
+        isMovementsPanelOpen,
+        isReportsPanelOpen,
+        openModal,
+        closeModal,
+    } = useModalState();
 
     const {
         pan,
@@ -66,7 +59,16 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         invalidateChunkCache
     } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
 
-
+    const {
+        message,
+        setMessage,
+        travelTimeInfo,
+        setTravelTimeInfo,
+        handleActionClick,
+        handleSendMovement,
+        handleCreateDummyCity
+    } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
+    
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.code === 'Space') {
@@ -78,7 +80,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [centerOnCity]);
 
-
     const combinedSlots = useMemo(() => {
         const slots = { ...visibleSlots };
         if (playerCity) {
@@ -86,7 +87,99 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         }
         return slots;
     }, [visibleSlots, playerCity]);
+    
+    const onCitySlotClick = (e, slotData) => {
+        closeModal('village');
+        if (isPlacingDummyCity && !slotData.ownerId) {
+            handleCreateDummyCity(slotData.id, slotData).then(() => {
+                setIsPlacingDummyCity(false);
+            });
+            return;
+        }
 
+        if (slotData.ownerId === currentUser.uid) {
+            showCity();
+        } else if (slotData.ownerId) {
+            if (playerCity) {
+                const distance = calculateDistance(playerCity, slotData);
+                setTravelTimeInfo({ distance });
+            }
+            openModal('city', slotData)
+        } else {
+            setMessage('This plot is empty. Future updates will allow colonization!');
+        }
+    };
+    
+    const getVillageTroopsOrDefault = useCallback((villageData) => {
+        if (villageData.troops && Object.keys(villageData.troops).length > 0) {
+            return villageData.troops;
+        }
+
+        const level = villageData.level || 1; // Default to level 1 if not specified
+        let troops = {};
+        switch (level) {
+            case 1:
+                troops = { swordsman: 15, archer: 10 };
+                break;
+            case 2:
+                troops = { swordsman: 25, archer: 15, slinger: 5 };
+                break;
+            case 3:
+                troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
+                break;
+            case 4:
+                troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
+                break;
+            case 5:
+                troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
+                break;
+            default:
+                // Handle any other cases by defaulting to level 1 troops
+                troops = { swordsman: 15, archer: 10 };
+                break;
+        }
+        return troops;
+    }, []);
+
+        const onVillageClick = (e, villageData) => {
+        closeModal('city');
+        if (playerCity.islandId !== villageData.islandId) {
+            setMessage("You can only interact with villages on islands where you have a city.");
+            return;
+        }
+        if (villageData.ownerId === currentUser.uid) {
+            openModal('village', villageData);
+        } else {
+            const distance = playerCity ? calculateDistance(playerCity, villageData) : Infinity;
+            setTravelTimeInfo({ distance });
+            const targetData = {
+                id: villageData.id,
+                name: villageData.name,
+                cityName: villageData.name,
+                ownerId: villageData.ownerId,
+                ownerUsername: villageData.ownerUsername || 'Neutral',
+                x: villageData.x,
+                y: villageData.y,
+                islandId: villageData.islandId,
+                isVillageTarget: true,
+                troops: getVillageTroopsOrDefault(villageData), // Use the helper function
+                level: villageData.level || 1 // Ensure level is passed
+            };
+            openModal('city', targetData);
+        }
+    };
+
+    const handleRushMovement = useCallback(async (movementId) => {
+        if (!userProfile?.is_admin) return;
+        const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
+        await updateDoc(movementRef, { arrivalTime: new Date() });
+    }, [userProfile, worldId]);
+
+    const handleToggleDummyCityPlacement = () => {
+        setIsPlacingDummyCity(prevMode => !prevMode);
+        setMessage(isPlacingDummyCity ? 'Dummy city placement OFF.' : 'Dummy city placement ON. Click an empty slot.');
+    };
+    
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -128,308 +221,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         return grid;
     }, [worldState, combinedSlots, villages]);
 
-
-    const onCitySlotClick = (e, slotData) => {
-        setSelectedVillage(null);
-        if (isPlacingDummyCity && !slotData.ownerId) {
-            handleCreateDummyCity(slotData.id, slotData);
-            return;
-        }
-
-        if (slotData.ownerId === currentUser.uid) {
-            showCity();
-        } else if (slotData.ownerId) {
-            if (playerCity) {
-                const distance = calculateDistance(playerCity, slotData);
-                setTravelTimeInfo({ distance });
-            }
-            setSelectedCity(slotData);
-        } else {
-            setMessage('This plot is empty. Future updates will allow colonization!');
-        }
-    };
-
-    // Helper function to generate troops for a farming village based on its level
-    const getVillageTroopsOrDefault = useCallback((villageData) => {
-        if (villageData.troops && Object.keys(villageData.troops).length > 0) {
-            return villageData.troops;
-        }
-
-        const level = villageData.level || 1; // Default to level 1 if not specified
-        let troops = {};
-        switch (level) {
-            case 1:
-                troops = { swordsman: 15, archer: 10 };
-                break;
-            case 2:
-                troops = { swordsman: 25, archer: 15, slinger: 5 };
-                break;
-            case 3:
-                troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
-                break;
-            case 4:
-                troops = { swordsman: 60, archer: 40, slinger: 15, hoplite: 10, cavalry: 5 };
-                break;
-            case 5:
-                troops = { swordsman: 80, archer: 50, slinger: 20, hoplite: 15, cavalry: 10 };
-                break;
-            default:
-                troops = { swordsman: 10, archer: 5 }; // Default for levels outside 1-5
-                break;
-        }
-        return troops;
-    }, []);
-
-    const onVillageClick = (e, villageData) => {
-        setSelectedCity(null);
-        if (villageData.ownerId === currentUser.uid) {
-            setSelectedVillage(villageData);
-        } else {
-            const distance = playerCity ? calculateDistance(playerCity, villageData) : Infinity;
-            setTravelTimeInfo({ distance });
-            const targetData = {
-                id: villageData.id,
-                name: villageData.name,
-                cityName: villageData.name,
-                ownerId: villageData.ownerId,
-                ownerUsername: villageData.ownerUsername || 'Neutral',
-                x: villageData.x,
-                y: villageData.y,
-                islandId: villageData.islandId,
-                isVillageTarget: true,
-                troops: getVillageTroopsOrDefault(villageData), // Use the helper function
-                level: villageData.level || 1 // Ensure level is passed
-            };
-            setSelectedCity(targetData);
-        }
-    };
-
-
-    // Function to handle various actions (attack, reinforce, scout, trade, information, rally)
-    const handleActionClick = useCallback((mode, targetCity) => {
-        if (['attack', 'reinforce', 'scout', 'trade'].includes(mode)) {
-            setActionDetails({ mode, city: targetCity });
-            setSelectedCity(null); // Close other city modal
-            setSelectedVillage(null); // Close farming village modal
-        } else if (['information', 'rally'].includes(mode)) {
-            setMessage(`${mode.charAt(0).toUpperCase() + mode.slice(1)} is not yet implemented.`);
-        }
-    }, []);
-
-    const handleSendMovement = async (movementDetails) => {
-        const { mode, targetCity, units, resources, attackFormation } = movementDetails;
-        // Only restrict village interactions to same island
-        if (targetCity.isVillageTarget && playerCity.islandId !== targetCity.islandId) {
-            setMessage("You can only interact with villages on your own island.");
-            return;
-        }
-
-        // Cross-island checks for land units (require transport ships)
-        const isCrossIsland = playerCity.islandId !== targetCity.islandId;
-        let hasLandUnits = false, hasNavalUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
-        for (const unitId in units) {
-            if (units[unitId] > 0) {
-                const config = unitConfig[unitId];
-                if (config.type === 'land') { hasLandUnits = true; totalLandUnitsToSend += units[unitId]; }
-                else if (config.type === 'naval') { hasNavalUnits = true; totalTransportCapacity += (config.capacity || 0) * units[unitId]; }
-            }
-        }
-        if (isCrossIsland && hasLandUnits && !hasNavalUnits) { setMessage("Ground troops cannot travel across the sea without transport ships."); return; }
-        if (isCrossIsland && hasLandUnits && totalTransportCapacity < totalLandUnitsToSend) { setMessage(`Not enough transport ship capacity. Need ${totalLandUnitsToSend - totalTransportCapacity} more capacity.`); return; }
-
-        const batch = writeBatch(db);
-        const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
-        const distance = calculateDistance(playerCity, targetCity);
-        const unitsBeingSent = Object.entries(units || {}).filter(([, count]) => count > 0);
-
-        if (unitsBeingSent.length === 0 && !['trade', 'scout'].includes(mode)) {
-            setMessage("No units selected for movement.");
-            return;
-        }
-
-        const slowestSpeed = unitsBeingSent.length > 0
-            ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
-            : 10;
-
-        const travelSeconds = calculateTravelTime(distance, slowestSpeed);
-        const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
-
-        // --- Correct movement type and fields for village attacks ---
-        let movementData;
-        if (mode === 'attack' && targetCity.isVillageTarget) {
-            movementData = {
-                type: 'attack_village',
-                targetVillageId: targetCity.id,
-                originCityId: playerCity.id,
-                originOwnerId: currentUser.uid,
-                originCityName: playerCity.cityName,
-                units,
-                resources: resources || {},
-                departureTime: serverTimestamp(),
-                arrivalTime,
-                status: 'moving',
-                attackFormation: attackFormation || {},
-                involvedParties: [currentUser.uid],
-                isVillageTarget: true,
-            };
-        } else {
-            movementData = {
-                type: mode,
-                originCityId: playerCity.id,
-                originOwnerId: currentUser.uid,
-                originCityName: playerCity.cityName,
-                targetCityId: targetCity.id,
-                targetOwnerId: targetCity.ownerId,
-                ownerUsername: targetCity.ownerUsername,
-                targetCityName: targetCity.cityName,
-                units,
-                resources: resources || {},
-                departureTime: serverTimestamp(),
-                arrivalTime,
-                status: 'moving',
-                attackFormation: attackFormation || {},
-                involvedParties: [currentUser.uid, targetCity.ownerId].filter(id => id),
-                isVillageTarget: !!targetCity.isVillageTarget,
-            };
-        }
-
-        batch.set(newMovementRef, movementData);
-
-        const newGameState = JSON.parse(JSON.stringify(gameState));
-        for (const unitId in units) { newGameState.units[unitId] = (newGameState.units[unitId] || 0) - units[unitId]; }
-        if (resources) { for (const resource in resources) { newGameState.resources[resource] -= resources[resource]; } }
-
-        try {
-            await batch.commit();
-            setGameState(newGameState);
-            setMessage(`Movement sent to ${targetCity.cityName || targetCity.name}!`);
-        } catch (error) {
-            console.error("Error sending movement:", error);
-            setMessage(`Failed to send movement: ${error.message}`);
-        }
-    };
-
-    const handleRushMovement = useCallback(async (movementId) => {
-        if (!userProfile?.is_admin) return;
-        const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
-        await updateDoc(movementRef, { arrivalTime: new Date() });
-    }, [userProfile, worldId]);
-
-    const handleToggleDummyCityPlacement = () => {
-        setIsPlacingDummyCity(prevMode => !prevMode);
-        setMessage(isPlacingDummyCity ? 'Dummy city placement OFF.' : 'Dummy city placement ON. Click an empty slot.');
-    };
-
-    const handleCreateDummyCity = async (citySlotId, slotData) => {
-        if (!userProfile?.is_admin) {
-            setMessage("You are not authorized to perform this action.");
-            return;
-        }
-        setIsPlacingDummyCity(false);
-        setMessage("Creating dummy city...");
-
-        const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
-        const dummyUserId = `dummy_${uuidv4()}`;
-        const dummyUsername = `DummyPlayer_${Math.floor(Math.random() * 10000)}`;
-        const dummyGameDocRef = doc(db, `users/${dummyUserId}/games`, worldId);
-
-        try {
-            const slotSnap = await getDoc(citySlotRef);
-            if (!slotSnap.exists() || slotSnap.data().ownerId !== null) {
-                throw new Error("Slot is already taken.");
-            }
-
-            const batch = writeBatch(db);
-            const dummyCityName = `${dummyUsername}'s Outpost`;
-
-            batch.update(citySlotRef, {
-                ownerId: dummyUserId,
-                ownerUsername: dummyUsername,
-                cityName: dummyCityName,
-            });
-
-            const initialBuildings = {};
-            Object.keys(buildingConfig).forEach(key => {
-                initialBuildings[key] = { level: 0 };
-            });
-            initialBuildings.senate = { level: 1 };
-
-            batch.set(dummyGameDocRef, {
-                id: citySlotId,
-                cityName: dummyCityName,
-                playerInfo: { religion: 'Dummy', nation: 'Dummy' },
-                resources: { wood: 500, stone: 500, silver: 100 },
-                buildings: initialBuildings,
-                units: { swordsman: 5 },
-                lastUpdated: Date.now(),
-            });
-
-            await batch.commit();
-            setMessage(`Dummy city "${dummyCityName}" created successfully!`);
-
-            invalidateChunkCache(slotData.x, slotData.y);
-
-        } catch (error) {
-            console.error("Error creating dummy city:", error);
-            setMessage(`Failed to create dummy city: ${error.message}`);
-        }
-    };
-
-    const renderVisibleTiles = () => {
-        if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
-
-        const visibleTiles = [];
-        const scaledTileSize = TILE_SIZE * zoom;
-        const startCol = Math.max(0, Math.floor(-pan.x / scaledTileSize));
-        const endCol = Math.min(worldState.width, Math.ceil((-pan.x + viewportSize.width) / scaledTileSize));
-        const startRow = Math.max(0, Math.floor(-pan.y / scaledTileSize));
-        const endRow = Math.min(worldState.height, Math.ceil((-pan.y + viewportSize.height) / scaledTileSize));
-
-        for (let y = startRow; y < endRow; y++) {
-            for (let x = startCol; x < endCol; x++) {
-                const tile = mapGrid[y][x];
-                let tileContent;
-                switch (tile.type) {
-                    case 'city_slot':
-                        tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} />;
-                        break;
-                    case 'village':
-                        tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} />;
-                        break;
-                    case 'land':
-                        tileContent = <LandTile />;
-                        break;
-                    default:
-                        tileContent = <WaterTile />;
-                        break;
-                }
-                visibleTiles.push(
-                    <div
-                        key={`tile-${x}-${y}`}
-                        className="map-tile"
-                        style={{ position: 'absolute', left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }}
-                    >
-                        {tileContent}
-                    </div>
-                );
-            }
-        }
-
-        movements.forEach(movement => {
-            visibleTiles.push(
-                <MovementIndicator
-                    key={`movement-${movement.id}`}
-                    movement={movement}
-                    citySlots={{...combinedSlots, ...villages}}
-                    allMovements={movements}
-                />
-            );
-        });
-
-        return visibleTiles;
-    };
-
-
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900">
             <Modal message={message} onClose={() => setMessage('')} />
@@ -445,8 +236,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             <div className="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
                 <SidebarNav
                     onGoToCity={showCity}
-                    onOpenMovements={() => setIsMovementsPanelOpen(true)}
-                    onOpenReports={() => setIsReportsPanelOpen(true)}
+                    onOpenMovements={() => openModal('movements')}
+                    onOpenReports={() => openModal('reports')}
                     isAdmin={userProfile?.is_admin}
                     onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
                 />
@@ -467,59 +258,52 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                         <div
                             ref={mapContainerRef}
                             style={{
-                                width: worldState?.islands ? worldState.width * TILE_SIZE : 0,
-                                height: worldState?.islands ? worldState.height * TILE_SIZE : 0,
+                                width: worldState?.islands ? worldState.width * 32 : 0,
+                                height: worldState?.islands ? worldState.height * 32 : 0,
                                 transformOrigin: '0 0',
                             }}
                         >
-                            {renderVisibleTiles()}
+                            <MapGrid
+                                mapGrid={mapGrid}
+                                worldState={worldState}
+                                pan={pan}
+                                zoom={zoom}
+                                viewportSize={viewportSize}
+                                onCitySlotClick={onCitySlotClick}
+                                onVillageClick={onVillageClick}
+                                isPlacingDummyCity={isPlacingDummyCity}
+                                movements={movements}
+                                combinedSlots={combinedSlots}
+                                villages={villages}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
-
-            {selectedCity && (
-                <OtherCityModal
-                    city={selectedCity}
-                    onClose={() => { setSelectedCity(null); setTravelTimeInfo(null); }}
-                    onAction={handleActionClick}
-                    onGoTo={goToCoordinates}
-                    isVillageTarget={selectedCity.isVillageTarget}
-                />
-            )}
-            {selectedVillage && (
-                <FarmingVillageModal
-                    village={selectedVillage}
-                    onClose={() => setSelectedVillage(null)}
-                    worldId={worldId}
-                    cityId={playerCity.id}
-                />
-            )}
-            {actionDetails && (
-                <MovementModal
-                    mode={actionDetails.mode}
-                    targetCity={actionDetails.city}
-                    playerCity={playerCity}
-                    playerUnits={gameState?.units}
-                    playerResources={gameState?.resources}
-                    travelTimeInfo={travelTimeInfo}
-                    onSend={handleSendMovement}
-                    onClose={() => setActionDetails(null)}
-                    setMessage={setMessage}
-                />
-            )}
-            {isMovementsPanelOpen && (
-                <MovementsPanel
-                    movements={movements}
-                    onClose={() => setIsMovementsPanelOpen(false)}
-                    citySlots={{...combinedSlots, ...villages}}
-                    onRush={handleRushMovement}
-                    isAdmin={userProfile?.is_admin}
-                />
-            )}
-            {isReportsPanelOpen && (
-                <ReportsView onClose={() => setIsReportsPanelOpen(false)} />
-            )}
+            
+            <MapModals
+                modalState={{
+                    selectedCity,
+                    selectedVillage,
+                    actionDetails,
+                    isMovementsPanelOpen,
+                    isReportsPanelOpen,
+                }}
+                closeModal={closeModal}
+                gameState={gameState}
+                playerCity={playerCity}
+                travelTimeInfo={travelTimeInfo}
+                handleSendMovement={handleSendMovement}
+                setMessage={setMessage}
+                goToCoordinates={goToCoordinates}
+                handleActionClick={handleActionClick}
+                worldId={worldId}
+                movements={movements}
+                combinedSlots={combinedSlots}
+                villages={villages}
+                handleRushMovement={handleRushMovement}
+                userProfile={userProfile}
+            />
         </div>
     );
 };

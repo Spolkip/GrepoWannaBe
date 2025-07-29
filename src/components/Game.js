@@ -39,11 +39,79 @@ const Game = ({ onBackToWorlds }) => {
             }
             batch.update(originOwnerRef, { units: newUnits });
             batch.delete(movementDoc.ref);
-        } else if (movement.status === 'moving') {
+    } else if (movement.status === 'moving') {
             switch (movement.type) {
+                case 'attack_village': {
+                    const villageRef = doc(db, 'worlds', worldId, 'villages', movement.targetVillageId);
+                    const villageSnap = await getDoc(villageRef);
+
+                    if (!villageSnap.exists()) {
+                        batch.delete(movementDoc.ref);
+                        const report = {
+                            type: 'attack_village',
+                            title: `Attack on missing village`,
+                            timestamp: serverTimestamp(),
+                            outcome: { message: 'The village was no longer there.' },
+                        };
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
+                        break;
+                    }
+
+                    const villageData = villageSnap.data();
+                    const result = resolveCombat(movement.units, villageData.troops, villageData.resources, false);
+                    
+                    const newVillageTroops = { ...villageData.troops };
+                    for (const unitId in result.defenderLosses) {
+                        newVillageTroops[unitId] = Math.max(0, (newVillageTroops[unitId] || 0) - result.defenderLosses[unitId]);
+                    }
+
+                    if (result.attackerWon) {
+                        batch.update(villageRef, {
+                            troops: newVillageTroops,
+                            ownerId: movement.originOwnerId,
+                            ownerUsername: movement.originOwnerUsername,
+                            lastCollected: serverTimestamp()
+                        });
+                    } else {
+                        batch.update(villageRef, { troops: newVillageTroops });
+                    }
+
+                    const attackerReport = {
+                        type: 'attack_village',
+                        title: `Attack on ${villageData.name}`,
+                        timestamp: serverTimestamp(),
+                        outcome: result,
+                        attacker: { cityName: originGameState.cityName, units: movement.units, losses: result.attackerLosses },
+                        defender: { villageName: villageData.name, troops: villageData.troops, losses: result.defenderLosses }
+                    };
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
+
+                    const survivingAttackers = {};
+                    let anySurvivors = false;
+                    for (const unitId in movement.units) {
+                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0);
+                        if (survivors > 0) {
+                            survivingAttackers[unitId] = survivors;
+                            anySurvivors = true;
+                        }
+                    }
+
+                    if (anySurvivors) {
+                        const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
+                        const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
+                        batch.update(movementDoc.ref, {
+                            status: 'returning',
+                            units: survivingAttackers,
+                            resources: result.plunder,
+                            type: 'return',
+                        });
+                    } else {
+                        batch.delete(movementDoc.ref);
+                    }
+                    break;
+                }
                 case 'attack': {
                     const result = resolveCombat(movement.units, targetGameState.units, targetGameState.resources);
-
                     const newDefenderUnits = { ...targetGameState.units };
                     for (const unitId in result.defenderLosses) {
                         newDefenderUnits[unitId] = Math.max(0, (newDefenderUnits[unitId] || 0) - result.defenderLosses[unitId]);
@@ -104,22 +172,33 @@ const Game = ({ onBackToWorlds }) => {
                             type: 'scout',
                             title: `Scout report of ${targetGameState.cityName}`,
                             timestamp: serverTimestamp(),
-                            outcome: result,
-                            targetCityName: targetGameState.cityName,
+                            scoutSucceeded: true, // Explicitly set success
+                            ...result // Spread the rest of the result
                         };
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), scoutReport);
                     } else {
+                        // Report for the attacker (failure)
+                        const failedScoutAttackerReport = {
+                            type: 'scout',
+                            title: `Scouting ${targetGameState.cityName} failed`,
+                            timestamp: serverTimestamp(),
+                            scoutSucceeded: false, // Explicitly set failure
+                            message: result.message,
+                        };
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), failedScoutAttackerReport);
+
+                        // Report for the defender (spy caught)
                         const newDefenderCave = { ...targetGameState.cave, silver: (targetGameState.cave?.silver || 0) + result.silverGained };
                         batch.update(targetOwnerRef, { cave: newDefenderCave });
 
-                        const failedScoutReport = {
-                            type: 'scout_failed',
+                        const spyCaughtReport = {
+                            type: 'spy_caught',
                             title: `Caught a spy from ${originGameState.cityName}!`,
                             timestamp: serverTimestamp(),
-                            outcome: result,
                             originCity: originGameState.cityName,
+                            silverGained: result.silverGained,
                         };
-                        batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), failedScoutReport);
+                        batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), spyCaughtReport);
                     }
                     batch.delete(movementDoc.ref);
                     break;

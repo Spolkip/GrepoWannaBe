@@ -232,7 +232,7 @@ export function resolveScouting(targetGameState, attackingSilver) {
             success: true,
             message: 'Scouting successful! Detailed report obtained.',
             targetCityName: targetGameState.cityName,
-            targetOwnerUsername: targetGameState.playerInfo.username, // Assuming username is in playerInfo
+            targetOwnerUsername: targetGameState.playerInfo?.username || 'Unknown', // Safely access username
             resources: { ...targetGameState.resources },
             units: { ...targetGameState.units },
             buildings: { ...targetGameState.buildings },
