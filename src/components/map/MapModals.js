@@ -4,6 +4,7 @@ import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
 import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
+import MessagesView from '../messaging/MessagesView';
 
 const MapModals = ({
     modalState,
@@ -65,6 +66,13 @@ const MapModals = ({
             )}
             {modalState.isReportsPanelOpen && (
                 <ReportsView onClose={() => closeModal('reports')} />
+            )}
+            {modalState.isMessagesPanelOpen && (
+                <MessagesView 
+                    onClose={() => closeModal('messages')} 
+                    initialRecipientId={modalState.actionDetails?.city?.ownerId}
+                    initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername}
+                />
             )}
         </>
     );

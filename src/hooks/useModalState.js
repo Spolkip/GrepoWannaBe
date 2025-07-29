@@ -1,4 +1,3 @@
-// src/hooks/useModalState.js
 import { useState } from 'react';
 
 export const useModalState = () => {
@@ -9,6 +8,7 @@ export const useModalState = () => {
         isMovementsPanelOpen: false,
         isReportsPanelOpen: false,
         isAllianceModalOpen: false,
+        isMessagesPanelOpen: false,
     });
 
     const openModal = (type, data) => {
@@ -20,6 +20,7 @@ export const useModalState = () => {
                 case 'movements': return { ...prevState, isMovementsPanelOpen: true };
                 case 'reports': return { ...prevState, isReportsPanelOpen: true };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: true };
+                case 'messages': return { ...prevState, isMessagesPanelOpen: true };
                 default: return prevState;
             }
         });
@@ -34,6 +35,7 @@ export const useModalState = () => {
                 case 'movements': return { ...prevState, isMovementsPanelOpen: false };
                 case 'reports': return { ...prevState, isReportsPanelOpen: false };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: false };
+                case 'messages': return { ...prevState, isMessagesPanelOpen: false };
                 default: return prevState;
             }
         });

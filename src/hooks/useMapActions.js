@@ -19,6 +19,9 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             openModal('action', { mode, city: targetCity });
             closeModal('city');
             closeModal('village');
+        } else if (mode === 'message') {
+            openModal('messages', { city: targetCity });
+            closeModal('city');
         } else if (['information', 'rally'].includes(mode)) {
             setMessage(`${mode.charAt(0).toUpperCase() + mode.slice(1)} is not yet implemented.`);
         }

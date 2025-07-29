@@ -1,4 +1,3 @@
-// src/components/MapView.js
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -30,7 +29,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const { worldState, gameState, worldId, playerCity, playerAlliance } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
-    const [unreadReportsCount, setUnreadReportsCount] = useState(0); // New state for unread reports
+    const [unreadReportsCount, setUnreadReportsCount] = useState(0);
+    const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
@@ -69,15 +69,33 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
-    // Effect to listen for unread reports
     useEffect(() => {
         if (!currentUser) return;
         const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), where('read', '==', false));
-        const unsubscribe = onSnapshot(reportsQuery, (snapshot) => {
+        const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
             setUnreadReportsCount(snapshot.size);
         });
-        return () => unsubscribe();
-    }, [currentUser]);
+
+        const conversationsQuery = query(
+            collection(db, 'worlds', worldId, 'conversations'),
+            where('participants', 'array-contains', currentUser.uid)
+        );
+        const unsubscribeMessages = onSnapshot(conversationsQuery, (snapshot) => {
+            let unreadCount = 0;
+            snapshot.forEach(doc => {
+                const convo = doc.data();
+                if (convo.lastMessage && convo.lastMessage.senderId !== currentUser.uid && !convo.readBy.includes(currentUser.uid)) {
+                    unreadCount++;
+                }
+            });
+            setUnreadMessagesCount(unreadCount);
+        });
+
+        return () => {
+            unsubscribeReports();
+            unsubscribeMessages();
+        };
+    }, [currentUser, worldId]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -220,7 +238,9 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenMovements={() => openModal('movements')}
                     onOpenReports={() => openModal('reports')}
                     onOpenAlliance={() => openModal('alliance')}
-                    unreadReportsCount={unreadReportsCount} // Pass the count to the sidebar
+                    onOpenMessages={() => openModal('messages')}
+                    unreadReportsCount={unreadReportsCount}
+                    unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
                     onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
                 />

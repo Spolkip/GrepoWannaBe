@@ -64,16 +64,16 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                                 Scout
                             </button>
                             <button 
-                                onClick={() => onAction('information', city)}
-                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Information
-                            </button>
-                            <button 
                                 onClick={() => onAction('trade', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Trade
+                            </button>
+                            <button 
+                                onClick={() => onAction('message', city)}
+                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                            >
+                                Message
                             </button>
                             <button 
                                 onClick={handleGoTo}

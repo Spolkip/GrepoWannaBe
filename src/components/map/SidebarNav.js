@@ -1,7 +1,6 @@
-// src/components/map/SidebarNav.js
 import React from 'react';
 
-const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, unreadReportsCount, isAdmin, onToggleDummyCityPlacement }) => {
+const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement }) => {
     return (
         <div className="sidebar">
             <h2 className="font-title text-2xl text-gray-200 mb-6 text-center">Menu</h2>
@@ -19,8 +18,18 @@ const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance
                 )}
             </button>
             <button onClick={onOpenAlliance} className="sidebar-button">Alliance</button>
+            <button 
+                onClick={onOpenMessages} 
+                className={`sidebar-button relative ${unreadMessagesCount > 0 ? 'glowing-border' : ''}`}
+            >
+                Messages
+                {unreadMessagesCount > 0 && (
+                    <span className="absolute top-1 right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadMessagesCount}
+                    </span>
+                )}
+            </button>
             <button className="sidebar-button">Leaderboard</button>
-            <button className="sidebar-button">Messages</button>
             <button className="sidebar-button">Settings</button>
             {isAdmin && (
                 <button onClick={onToggleDummyCityPlacement} className="sidebar-button bg-yellow-700 hover:bg-yellow-600">

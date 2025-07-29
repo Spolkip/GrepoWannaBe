@@ -81,14 +81,23 @@ body {
 
 /* --- Glowing Effect for Reports Button --- */
 .glowing-border {
-    animation: glowing 2s infinite;
-    box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a, 0 0 15px #fde047;
+    animation: glowing-border-animation 2s infinite;
+    border: 1px solid transparent; /* Base border */
 }
 
-@keyframes glowing {
-    0% { box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a; }
-    50% { box-shadow: 0 0 20px #fde047, 0 0 30px #fde047; }
-    100% { box-shadow: 0 0 5px #fef08a, 0 0 10px #fef08a; }
+@keyframes glowing-border-animation {
+    0% {
+        border-color: #fde047;
+        box-shadow: 0 0 3px #fde047;
+    }
+    50% {
+        border-color: #fef08a;
+        box-shadow: 0 0 15px #fef08a, 0 0 5px #fef08a inset;
+    }
+    100% {
+        border-color: #fde047;
+        box-shadow: 0 0 3px #fde047;
+    }
 }
 
 
