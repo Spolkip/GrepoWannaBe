@@ -1,5 +1,3 @@
-// src/components/Game.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
@@ -7,7 +5,7 @@ import MapView from './MapView';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { resolveCombat, resolveScouting } from '../utils/combat';
-import LoadingScreen from './shared/LoadingScreen'; // Corrected import path
+import LoadingScreen from './shared/LoadingScreen';
 
 const Game = ({ onBackToWorlds }) => {
     const { worldId, gameState } = useGame();
@@ -20,7 +18,6 @@ const Game = ({ onBackToWorlds }) => {
 
         const originOwnerRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
         
-        // Target owner might not exist for villages
         let targetOwnerRef;
         if (movement.targetOwnerId) {
             targetOwnerRef = doc(db, `users/${movement.targetOwnerId}/games`, worldId);
@@ -44,13 +41,11 @@ const Game = ({ onBackToWorlds }) => {
             console.log(`Movement ${movement.id} is returning.`);
             const newGameState = { ...originGameState };
 
-            // Return units
             const newUnits = { ...newGameState.units };
             for (const unitId in movement.units) {
                 newUnits[unitId] = (newUnits[unitId] || 0) + movement.units[unitId];
             }
             
-            // Return plundered resources
             const newResources = { ...newGameState.resources };
             if (movement.resources) {
                 for (const resourceId in movement.resources) {
@@ -144,6 +139,7 @@ const Game = ({ onBackToWorlds }) => {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
+                            arrivalTime: returnArrivalTime,
                         });
                     } else {
                         console.log('No survivors. Deleting movement.');
@@ -157,7 +153,14 @@ const Game = ({ onBackToWorlds }) => {
                         batch.delete(movementDoc.ref);
                         break;
                     }
-                    const result = resolveCombat(movement.units, targetGameState.units, targetGameState.resources);
+                    const result = resolveCombat(
+                        movement.units, 
+                        targetGameState.units, 
+                        targetGameState.resources, 
+                        !!movement.isCrossIsland,
+                        movement.attackFormation?.front,
+                        movement.attackFormation?.mid
+                    );
 
                     const newDefenderUnits = { ...targetGameState.units };
                     for (const unitId in result.defenderLosses) {
@@ -203,6 +206,7 @@ const Game = ({ onBackToWorlds }) => {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
+                            arrivalTime: returnArrivalTime,
                         });
                     } else {
                         batch.delete(movementDoc.ref);
@@ -223,22 +227,20 @@ const Game = ({ onBackToWorlds }) => {
                             type: 'scout',
                             title: `Scout report of ${targetGameState.cityName}`,
                             timestamp: serverTimestamp(),
-                            scoutSucceeded: true, // Explicitly set success
-                            ...result // Spread the rest of the result
+                            scoutSucceeded: true, 
+                            ...result 
                         };
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), scoutReport);
                     } else {
-                        // Report for the attacker (failure)
                         const failedScoutAttackerReport = {
                             type: 'scout',
                             title: `Scouting ${targetGameState.cityName} failed`,
                             timestamp: serverTimestamp(),
-                            scoutSucceeded: false, // Explicitly set failure
+                            scoutSucceeded: false, 
                             message: result.message,
                         };
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), failedScoutAttackerReport);
 
-                        // Report for the defender (spy caught)
                         const newDefenderCave = { ...targetGameState.cave, silver: (targetGameState.cave?.silver || 0) + result.silverGained };
                         batch.update(targetOwnerRef, { cave: newDefenderCave });
 

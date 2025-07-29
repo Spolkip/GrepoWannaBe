@@ -80,6 +80,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid],
                 isVillageTarget: true,
+                isCrossIsland: false, // Village attacks are always same-island
             };
         } else {
             movementData = {
@@ -99,6 +100,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid, targetCity.ownerId].filter(id => id),
                 isVillageTarget: !!targetCity.isVillageTarget,
+                isCrossIsland, // Add the flag here
             };
         }
 
@@ -166,7 +168,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 playerInfo: { religion: 'Dummy', nation: 'Dummy' },
                 resources: { wood: 500, stone: 500, silver: 100 },
                 buildings: initialBuildings,
-                units: { swordsman: 5 },
+                units: {},
                 lastUpdated: Date.now(),
             });
 

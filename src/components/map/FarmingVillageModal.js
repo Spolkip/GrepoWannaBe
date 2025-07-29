@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../shared/Modal';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
-import woodImage from '../../images/resources/wood.png';
-import stoneImage from '../../images/resources/stone.png';
-import silverImage from '../../images/resources/silver.png';
+import resourceImage from '../../images/resources/resources.png';
 
-const FarmingVillageModal = ({ village, onClose, worldId }) => {
+const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
     const { currentUser } = useAuth();
     const { gameState, setGameState } = useGame();
+    const [village, setVillage] = useState(initialVillage);
     const [isProcessing, setIsProcessing] = useState(false);
     const [message, setMessage] = useState('');
     const [timeSinceCollection, setTimeSinceCollection] = useState(Infinity);
+
+    // Listen for real-time updates on the selected village
+    useEffect(() => {
+        if (!worldId || !village?.id) return;
+
+        const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+        const unsubscribe = onSnapshot(villageRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setVillage({ id: docSnap.id, ...docSnap.data() });
+            }
+        });
+
+        return () => unsubscribe(); // Cleanup listener when the modal closes
+    }, [worldId, initialVillage.id]);
 
     const demandOptions = [
         { name: '5 minutes', duration: 300, multiplier: 0.125 },
@@ -150,77 +162,90 @@ const FarmingVillageModal = ({ village, onClose, worldId }) => {
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
 
     return (
-        <Modal onClose={onClose} title={`Farming Village: ${village.name} (Level ${village.level})`}>
-            <div className="p-4 text-white">
-                <div className="mb-6">
-                    <h4 className="font-bold text-lg text-center mb-2">Demand Resources</h4>
-                    <p className="text-center text-gray-400 text-sm mb-4">Choose an option to demand resources. Shorter times yield fewer resources.</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {demandOptions.map(option => {
-                            const isAvailable = timeSinceCollection >= option.duration;
-                            const currentYield = {
-                                wood: Math.floor((village.demandYield?.wood || 0) * option.multiplier),
-                                stone: Math.floor((village.demandYield?.stone || 0) * option.multiplier),
-                                silver: Math.floor((village.demandYield?.silver || 0) * option.multiplier)
-                            };
-                            return (
-                                <div key={option.name} className="bg-gray-900 border border-gray-700 p-2 rounded-lg text-center flex flex-col justify-between shadow-md">
-                                    <div className="relative h-16 mb-2 flex justify-center items-center">
-                                        <img src={woodImage} alt="wood" className="w-8 h-8 absolute top-0 left-2 transform -rotate-15"/>
-                                        <img src={stoneImage} alt="stone" className="w-10 h-10 absolute bottom-0"/>
-                                        <img src={silverImage} alt="silver" className="w-8 h-8 absolute top-0 right-2 transform rotate-15"/>
-                                    </div>
-                                    <div className="text-xs space-y-1 mb-2 text-left">
-                                        <p className="flex justify-between px-1"><span>Wood:</span> <span className="font-bold text-yellow-300">{currentYield.wood}</span></p>
-                                        <p className="flex justify-between px-1"><span>Stone:</span> <span className="font-bold text-gray-300">{currentYield.stone}</span></p>
-                                        <p className="flex justify-between px-1"><span>Silver:</span> <span className="font-bold text-blue-300">{currentYield.silver}</span></p>
-                                    </div>
-                                    <div className="mt-auto">
-                                        {isAvailable ? (
-                                            <button
-                                                onClick={() => handleDemand(option)}
-                                                disabled={isProcessing}
-                                                className="btn btn-confirm w-full text-sm py-1"
-                                            >
-                                                Demand ({option.name})
-                                            </button>
-                                        ) : (
-                                            <div className="text-center text-sm py-1 px-2 bg-gray-800 rounded">
-                                                <div className="font-mono text-red-400">
-                                                    <Countdown arrivalTime={{ toDate: () => new Date(village.lastCollected.toDate().getTime() + option.duration * 1000) }} />
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            onClick={onClose}
+        >
+            <div
+                className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl text-center border border-gray-600 pointer-events-auto"
+                onClick={e => e.stopPropagation()}
+            >
+                <h2 className="text-2xl font-bold mb-4 text-center text-yellow-400">{`Farming Village: ${village.name} (Level ${village.level})`}</h2>
+                <div className="p-4 text-white">
+                    <div className="mb-6">
+                        <h4 className="font-bold text-lg text-center mb-2">Demand Resources</h4>
+                        <p className="text-center text-gray-400 text-sm mb-4">Choose an option to demand resources. Shorter times yield fewer resources.</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {demandOptions.map(option => {
+                                const isAvailable = timeSinceCollection >= option.duration;
+                                const currentYield = {
+                                    wood: Math.floor((village.demandYield?.wood || 0) * option.multiplier),
+                                    stone: Math.floor((village.demandYield?.stone || 0) * option.multiplier),
+                                    silver: Math.floor((village.demandYield?.silver || 0) * option.multiplier)
+                                };
+                                return (
+                                    <div key={option.name} className="bg-gray-900 border border-gray-700 p-2 rounded-lg text-center flex flex-col justify-between shadow-md">
+                                        <div className="relative h-16 mb-2 flex justify-center items-center">
+                                            <img src={resourceImage} alt="resources" className="w-16 h-16"/>
+                                        </div>
+                                        <div className="text-xs space-y-1 mb-2 text-left">
+                                            <p className="flex justify-between px-1"><span>Wood:</span> <span className="font-bold text-yellow-300">{currentYield.wood}</span></p>
+                                            <p className="flex justify-between px-1"><span>Stone:</span> <span className="font-bold text-gray-300">{currentYield.stone}</span></p>
+                                            <p className="flex justify-between px-1"><span>Silver:</span> <span className="font-bold text-blue-300">{currentYield.silver}</span></p>
+                                        </div>
+                                        <div className="mt-auto">
+                                            {isAvailable ? (
+                                                <button
+                                                    onClick={() => handleDemand(option)}
+                                                    disabled={isProcessing}
+                                                    className="btn btn-confirm w-full text-sm py-1"
+                                                >
+                                                    Demand ({option.name})
+                                                </button>
+                                            ) : (
+                                                <div className="text-center text-sm py-1 px-2 bg-gray-800 rounded">
+                                                    <div className="font-mono text-red-400">
+                                                        <Countdown arrivalTime={{ toDate: () => new Date(village.lastCollected.toDate().getTime() + option.duration * 1000) }} />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <hr className="border-gray-600 my-4" />
-
-                <div className="mb-2">
-                    <p className="mb-4 text-center">Invest resources to upgrade this village for better yields.</p>
-                    <div className="bg-gray-700 p-3 rounded-lg mb-4">
-                        <h4 className="font-bold text-lg">Cost to Upgrade to Level {village.level + 1}:</h4>
-                        <div className="flex justify-center space-x-4 mt-2 text-yellow-300">
-                            <span>🪵 {cost.wood}</span>
-                            <span>🪨 {cost.stone}</span>
-                            <span>⚪️ {cost.silver}</span>
+                                )
+                            })}
                         </div>
                     </div>
-                    <button 
-                        onClick={handleUpgrade}
-                        disabled={isProcessing || !canAffordUpgrade}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded w-40 transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                    >
-                        {isProcessing ? 'Processing...' : 'Upgrade Village'}
-                    </button>
+
+                    <hr className="border-gray-600 my-4" />
+
+                    <div className="mb-2">
+                        <p className="mb-4 text-center">Invest resources to upgrade this village for better yields.</p>
+                        <div className="bg-gray-700 p-3 rounded-lg mb-4">
+                            <h4 className="font-bold text-lg">Cost to Upgrade to Level {village.level + 1}:</h4>
+                            <div className="flex justify-center space-x-4 mt-2 text-yellow-300">
+                                <span>🪵 {cost.wood}</span>
+                                <span>🪨 {cost.stone}</span>
+                                <span>⚪️ {cost.silver}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleUpgrade}
+                            disabled={isProcessing || !canAffordUpgrade}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded w-40 transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                        >
+                            {isProcessing ? 'Processing...' : 'Upgrade Village'}
+                        </button>
+                    </div>
+                    {message && <p className="text-green-400 mt-4 text-center">{message}</p>}
                 </div>
-                {message && <p className="text-green-400 mt-4 text-center">{message}</p>}
+                 <button
+                    onClick={onClose}
+                    className="btn btn-primary px-6 py-2 mt-4"
+                >
+                    Close
+                </button>
             </div>
-        </Modal>
+        </div>
     );
 };
 

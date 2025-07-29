@@ -14,6 +14,32 @@ import unitConfig from '../gameData/units.json';
  * @returns {object} Battle results including attackerWon, attackerLosses, defenderLosses.
  */
 const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) => {
+    // Check if either side has units of the required type
+    const hasAttackingUnits = Object.entries(attackingUnits || {}).some(
+        ([unitId, count]) => count > 0 && unitConfig[unitId]?.type === unitType && unitConfig[unitId]?.attack > 0
+    );
+    const hasDefendingUnits = Object.entries(defendingUnits || {}).some(
+        ([unitId, count]) => count > 0 && unitConfig[unitId]?.type === unitType
+    );
+
+    // If the defender has no relevant units, the attacker automatically wins this phase.
+    if (!hasDefendingUnits) {
+        return {
+            attackerWon: true,
+            attackerLosses: {},
+            defenderLosses: {},
+        };
+    }
+    
+    // If the attacker has no relevant combat units, but the defender does, the attacker loses.
+    if (!hasAttackingUnits) {
+        return {
+            attackerWon: false,
+            attackerLosses: {},
+            defenderLosses: {},
+        };
+    }
+
     let currentAttackingUnits = { ...attackingUnits };
     let currentDefendingUnits = { ...defendingUnits };
 
@@ -139,11 +165,12 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
     }
 
     // Recalculate power with remaining units to determine winner
-    const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true).totalPower;
-    const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false).totalPower;
-
+    const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, null, null).totalPower;
+    const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, null, null).totalPower;
+    
+    // Attacker wins on a tie (e.g., 0 vs 0 power)
     return {
-        attackerWon: finalAttackerPower > finalDefenderPower,
+        attackerWon: finalAttackerPower >= finalDefenderPower,
         attackerLosses: finalAttackerLosses,
         defenderLosses: finalDefenderLosses,
     };
