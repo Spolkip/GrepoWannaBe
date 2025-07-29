@@ -1,7 +1,7 @@
 // src/contexts/GameContext.js
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, onSnapshot, getDoc, deleteDoc, collection } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -17,7 +17,8 @@ export const GameProvider = ({ children, worldId }) => {
     const [playerHasChosenFaction, setPlayerHasChosenFaction] = useState(false);
     const [loading, setLoading] = useState(true);
     const [playerGod, setPlayerGod] = useState(null);
-    const [playerAlliance, setPlayerAlliance] = useState(null); // Added alliance state
+    const [playerAlliance, setPlayerAlliance] = useState(null);
+    const [conqueredVillages, setConqueredVillages] = useState({});
 
     useEffect(() => {
         if (!currentUser || !worldId) {
@@ -30,6 +31,7 @@ export const GameProvider = ({ children, worldId }) => {
         let worldMetaLoaded = false;
         let playerCityLoaded = false;
         let cityListenerUnsubscribe = () => {};
+        let conqueredVillagesUnsubscribe = () => {};
 
         const checkAllLoaded = () => {
             if (playerStateLoaded && worldMetaLoaded && playerCityLoaded) {
@@ -55,10 +57,20 @@ export const GameProvider = ({ children, worldId }) => {
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribePlayer = onSnapshot(gameDocRef, async (docSnap) => {
             cityListenerUnsubscribe();
+            conqueredVillagesUnsubscribe();
 
             if (docSnap.exists() && docSnap.data().playerInfo) {
                 const gameData = docSnap.data();
                 const citySlotId = gameData.cityLocation?.slotId;
+
+                const conqueredVillagesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredVillages');
+                conqueredVillagesUnsubscribe = onSnapshot(conqueredVillagesRef, (snapshot) => {
+                    const villagesData = {};
+                    snapshot.docs.forEach(doc => {
+                        villagesData[doc.id] = { id: doc.id, ...doc.data() };
+                    });
+                    setConqueredVillages(villagesData);
+                });
 
                 if (citySlotId) {
                     const cityDocRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
@@ -68,7 +80,7 @@ export const GameProvider = ({ children, worldId }) => {
                         setGameState(gameData);
                         setPlayerHasChosenFaction(true);
                         setPlayerGod(gameData.god || null);
-                        setPlayerAlliance(gameData.alliance || null); // Set alliance from game data
+                        setPlayerAlliance(gameData.alliance || null);
 
                         cityListenerUnsubscribe = onSnapshot(cityDocRef, (cityDataSnap) => {
                             if (cityDataSnap.exists()) {
@@ -90,7 +102,8 @@ export const GameProvider = ({ children, worldId }) => {
                 setPlayerCity(null);
                 setPlayerHasChosenFaction(false);
                 setPlayerGod(null);
-                setPlayerAlliance(null); // Reset alliance
+                setPlayerAlliance(null);
+                setConqueredVillages({});
                 playerCityLoaded = true; 
             }
             playerStateLoaded = true;
@@ -106,9 +119,10 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribePlayer();
             unsubscribeWorldMeta();
             cityListenerUnsubscribe();
+            conqueredVillagesUnsubscribe();
         };
     }, [currentUser, worldId]);
 
-    const value = { gameState, setGameState, worldState, playerCity, playerHasChosenFaction, loading, worldId, playerGod, setPlayerGod, playerAlliance, setPlayerAlliance };
+    const value = { gameState, setGameState, worldState, playerCity, playerHasChosenFaction, loading, worldId, playerGod, setPlayerGod, playerAlliance, setPlayerAlliance, conqueredVillages };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

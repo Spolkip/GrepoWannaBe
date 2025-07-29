@@ -178,9 +178,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
                 maxResources: 1000 + level * 200,
                 lastDemandTime: 0,
                 demandCooldown: randomCooldown,
-                troops: generateVillageTroops(level),
-                ownerId: null,
-                ownerUsername: null
+                troops: generateVillageTroops(level)
             };
         }
     });

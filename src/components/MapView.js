@@ -1,3 +1,5 @@
+// src/components/MapView.js
+
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -26,7 +28,7 @@ import { getVillageTroops } from '../utils/combat';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, worldId, playerCity, playerAlliance } = useGame();
+    const { worldState, gameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame(); // <-- Added conqueredVillages
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
@@ -139,6 +141,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         }
     };
     
+    // --- THIS IS THE KEY CHANGE ---
     const onVillageClick = (e, villageData) => {
         closeModal('city');
         if (playerCity.islandId !== villageData.islandId) {
@@ -146,17 +149,21 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             return;
         }
 
-        if (villageData.ownerId === currentUser.uid) {
-            openModal('village', villageData);
+        const isConqueredByPlayer = conqueredVillages && conqueredVillages[villageData.id];
+
+        if (isConqueredByPlayer) {
+            // Player owns this village, show their specific info
+            openModal('village', { ...villageData, ...conqueredVillages[villageData.id] });
         } else {
+            // Village is not owned by the player, show attack options
             const distance = playerCity ? calculateDistance(playerCity, villageData) : Infinity;
             setTravelTimeInfo({ distance });
             const targetData = {
                 id: villageData.id,
                 name: villageData.name,
                 cityName: villageData.name,
-                ownerId: villageData.ownerId,
-                ownerUsername: villageData.ownerUsername || 'Neutral',
+                ownerId: null, // It's not owned by anyone in a way that matters for an attack
+                ownerUsername: 'Neutral',
                 x: villageData.x,
                 y: villageData.y,
                 islandId: villageData.islandId,
@@ -279,6 +286,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                                 combinedSlots={combinedSlots}
                                 villages={villages}
                                 playerAlliance={playerAlliance}
+                                conqueredVillages={conqueredVillages} // <-- Pass this down
                             />
                         </div>
                     </div>

@@ -13,44 +13,40 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let unsubscribeProfile = () => {}; // Initialize with an empty function
+
         const unsubscribeAuth = onAuthStateChanged(auth, user => {
             setCurrentUser(user);
-            // Always start in a loading state when auth changes
-            setLoading(true);
+            unsubscribeProfile(); // Always unsubscribe from the previous user's profile listener
 
             if (user) {
-                // Only set up the snapshot listener if a user is logged in
+                setLoading(true);
                 const userDocRef = doc(db, "users", user.uid);
-                const unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
+                unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
                     if (docSnap.exists()) {
-                        // We have the profile, set it and stop loading
                         setUserProfile(docSnap.data());
-                        setLoading(false);
                     } else {
-                        // The user is authenticated, but the profile document doesn't exist yet.
-                        // This happens during signup. We'll keep loading and wait for the
-                        // document to be created, which will trigger this listener again.
                         setUserProfile(null);
                     }
+                    setLoading(false);
                 }, (error) => {
                     console.error("Error fetching user profile:", error);
                     setUserProfile(null);
-                    setLoading(false); // Stop loading on error to prevent getting stuck
+                    setLoading(false);
                 });
-
-                return () => unsubscribeProfile(); // Clean up the profile listener when auth state changes
             } else {
-                // User is signed out, clear profile and stop loading
                 setUserProfile(null);
                 setLoading(false);
             }
         });
 
-        return () => unsubscribeAuth(); // Clean up the auth listener when component unmounts
+        return () => {
+            unsubscribeAuth();
+            unsubscribeProfile(); // Also unsubscribe on component unmount
+        };
     }, []);
 
     const value = { currentUser, userProfile, loading };
 
-    // Render children only when not in the initial loading state
     return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };

@@ -1,7 +1,7 @@
 // src/components/ReportsView.js
 
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import unitConfig from '../gameData/units.json';
@@ -37,14 +37,15 @@ const ReportsView = ({ onClose }) => {
         const unreadReports = reports.filter(report => !report.read);
     
         if (unreadReports.length > 0) {
-            const batch = writeBatch(db);
-            unreadReports.forEach(report => {
-                const reportRef = doc(db, 'users', currentUser.uid, 'reports', report.id);
-                batch.update(reportRef, { read: true });
-            });
-    
-            batch.commit().catch(error => {
-                console.error("Error marking reports as read: ", error);
+            unreadReports.forEach(async (report) => {
+                if (report.id) {
+                    try {
+                        const reportRef = doc(db, 'users', currentUser.uid, 'reports', report.id);
+                        await updateDoc(reportRef, { read: true });
+                    } catch (error) {
+                        console.error(`Failed to mark report ${report.id} as read:`, error);
+                    }
+                }
             });
         }
     }, [reports, currentUser]);

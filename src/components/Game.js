@@ -1,12 +1,10 @@
-// src/components/Game.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
 import MapView from './MapView';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { resolveCombat, resolveScouting } from '../utils/combat';
+import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
 
 const Game = ({ onBackToWorlds }) => {
@@ -94,25 +92,20 @@ const Game = ({ onBackToWorlds }) => {
                     }
 
                     const villageData = villageSnap.data();
-                    const result = resolveCombat(movement.units, villageData.troops, villageData.resources, false);
+                    const villageTroops = getVillageTroops(villageData);
+                    const result = resolveCombat(movement.units, villageTroops, villageData.resources, false);
                     console.log('Village combat resolved:', result);
                     
-                    const newVillageTroops = { ...villageData.troops };
-                    for (const unitId in result.defenderLosses) {
-                        newVillageTroops[unitId] = Math.max(0, (newVillageTroops[unitId] || 0) - result.defenderLosses[unitId]);
-                    }
-
                     if (result.attackerWon) {
-                        console.log('Attacker won. Conquering village.');
-                        batch.update(villageRef, {
-                            troops: newVillageTroops,
-                            ownerId: movement.originOwnerId,
-                            ownerUsername: movement.originOwnerUsername,
-                            lastCollected: serverTimestamp()
-                        });
-                    } else {
-                        console.log('Attacker lost. Updating village troops.');
-                        batch.update(villageRef, { troops: newVillageTroops });
+                        console.log('Attacker won. Conquering/farming village.');
+                        const playerVillageRef = doc(db, `users/${movement.originOwnerId}/games/${worldId}/conqueredVillages`, movement.targetVillageId);
+                        
+                        // Set/update the player's personal record for this village.
+                        // This only writes to the user's private subcollection.
+                        batch.set(playerVillageRef, { 
+                            level: villageData.level, // Set initial level on first conquer
+                            lastCollected: serverTimestamp() 
+                        }, { merge: true });
                     }
 
                     const attackerReport = {
@@ -121,7 +114,7 @@ const Game = ({ onBackToWorlds }) => {
                         timestamp: serverTimestamp(),
                         outcome: result,
                         attacker: { cityName: originGameState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { villageName: villageData.name, troops: villageData.troops || {}, losses: result.defenderLosses },
+                        defender: { villageName: villageData.name, troops: villageTroops, losses: result.defenderLosses },
                         read: false,
                     };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
