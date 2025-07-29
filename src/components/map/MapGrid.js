@@ -1,3 +1,4 @@
+// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/MapGrid.js
 // src/components/map/MapGrid.js
 import React from 'react';
 import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile } from './Tiles';
@@ -5,7 +6,7 @@ import MovementIndicator from './MovementIndicator';
 
 const TILE_SIZE = 32;
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages }) => {
     if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
 
     const scaledTileSize = TILE_SIZE * zoom;
@@ -25,7 +26,7 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} />;
                     break;
                 case 'village':
-                    tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} />;
+                    tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} />;
                     break;
                 case 'land':
                     tileContent = <LandTile />;

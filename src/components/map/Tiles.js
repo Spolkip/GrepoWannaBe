@@ -1,4 +1,4 @@
-// src/components/map/Tiles.js
+// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -44,20 +44,16 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
     );
 });
 
-export const FarmingVillageTile = React.memo(({ villageData, onClick }) => {
+export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredVillages }) => {
     const { currentUser } = useAuth();
     let villageClass = 'neutral-village';
     let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
 
-    if (villageData.ownerId) {
-        const ownerName = villageData.ownerUsername || 'Unknown';
-        if (villageData.ownerId === currentUser.uid) {
-            villageClass = 'my-village';
-            tooltipText = `Your Village: ${villageData.name}`;
-        } else {
-            villageClass = 'other-village-plot';
-            tooltipText = `Village: ${villageData.name}<br>Owner: ${ownerName}`;
-        }
+    const isConqueredByPlayer = conqueredVillages && conqueredVillages[villageData.id];
+
+    if (isConqueredByPlayer) {
+        villageClass = 'my-village';
+        tooltipText = `Your Village: ${villageData.name}`;
     }
 
     return (

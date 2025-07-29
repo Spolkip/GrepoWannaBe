@@ -1,5 +1,4 @@
-// src/components/CityView.js
-
+// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/CityView.js
 import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc, writeBatch } from 'firebase/firestore'; // Import writeBatch
@@ -8,6 +7,7 @@ import { auth, db } from '../firebase/config';
 import Modal from './shared/Modal';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
+import researchConfig from '../gameData/research.json'; // Import research config
 import SideInfoPanel from './SideInfoPanel';
 import AdminCheatMenu from './city/AdminCheatMenu';
 import BarracksMenu from './city/BarracksMenu';
@@ -17,6 +17,7 @@ import SenateView from './city/SenateView';
 import TempleMenu from './city/TempleMenu';
 import CaveMenu from './city/CaveMenu';
 import Cityscape from './city/Cityscape';
+import AcademyMenu from './city/AcademyMenu'; // Import AcademyMenu
 
 // Import resource images
 import woodImage from '../images/resources/wood.png';
@@ -38,6 +39,7 @@ const CityView = ({ showMap, worldId }) => {
   const [isShipyardMenuOpen, setIsShipyardMenuOpen] = useState(false);
   const [isTempleMenuOpen, setIsTempleMenuOpen] = useState(false);
   const [isCaveMenuOpen, setIsCaveMenuOpen] = useState(false);
+  const [isAcademyMenuOpen, setIsAcademyMenuOpen] = useState(false); // New state
   const [isCheatMenuOpen, setIsCheatMenuOpen] = useState(false);
   
   // New state for renaming city
@@ -169,7 +171,6 @@ const CityView = ({ showMap, worldId }) => {
     }
   }, [currentUser, worldId]);
   
-  // --- New function to handle city name change ---
   const handleCityNameSave = async () => {
     if (!newCityName.trim() || newCityName.trim() === cityGameState.cityName) {
         setIsEditingCityName(false);
@@ -229,6 +230,7 @@ const CityView = ({ showMap, worldId }) => {
         if (!data.units) data.units = {};
         if (!data.worship) data.worship = {};
         if (!data.cave) data.cave = { silver: 0 }; 
+        if (!data.research) data.research = {}; // Initialize research object
         if (!data.buildings.cave) {
             data.buildings.cave = { level: 1 };
         }
@@ -306,7 +308,6 @@ const CityView = ({ showMap, worldId }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [saveGameState]);
   
-  // --- Keep all existing handlers like handleUpgrade, handleTrainTroops, etc. ---
   const handleUpgrade = async (buildingId) => {
     if (!cityGameState || !worldId) return;
     const building = cityGameState.buildings[buildingId] || { level: 0 };
@@ -333,6 +334,48 @@ const CityView = ({ showMap, worldId }) => {
     } else {
       setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
     }
+  };
+
+  const handleStartResearch = async (researchId) => {
+    if (!cityGameState || !researchConfig[researchId]) return;
+
+    const research = researchConfig[researchId];
+    const { cost, requirements } = research;
+
+    // Check requirements
+    if (requirements.academy && cityGameState.buildings.academy.level < requirements.academy) {
+        setMessage(`Requires Academy Level ${requirements.academy}.`);
+        return;
+    }
+    if (requirements.research && !cityGameState.research[requirements.research]) {
+        setMessage(`Requires ${researchConfig[requirements.research].name} research first.`);
+        return;
+    }
+    if (cityGameState.research[researchId]) {
+        setMessage("Already researched.");
+        return;
+    }
+
+    // Check cost
+    if (
+        cityGameState.resources.wood < cost.wood ||
+        cityGameState.resources.stone < cost.stone ||
+        cityGameState.resources.silver < cost.silver
+    ) {
+        setMessage("Not enough resources to start research.");
+        return;
+    }
+
+    // TODO: Implement a research queue instead of instant completion
+    const newGameState = { ...cityGameState };
+    newGameState.resources.wood -= cost.wood;
+    newGameState.resources.stone -= cost.stone;
+    newGameState.resources.silver -= cost.silver;
+    newGameState.research[researchId] = true; // Mark as completed
+
+    await saveGameState(newGameState);
+    setCityGameState(newGameState);
+    setMessage(`Research for ${research.name} completed!`);
   };
 
   const handleTrainTroops = async (unitId, amount) => {
@@ -425,6 +468,7 @@ const CityView = ({ showMap, worldId }) => {
       case 'shipyard': setIsShipyardMenuOpen(true); break;
       case 'temple': setIsTempleMenuOpen(true); break;
       case 'cave': setIsCaveMenuOpen(true); break;
+      case 'academy': setIsAcademyMenuOpen(true); break; // New case for academy
       default: setSelectedBuildingId(buildingId); break;
     }
   };
@@ -583,6 +627,13 @@ const CityView = ({ showMap, worldId }) => {
           onWorship={(godName) => handleWorshipGod(godName)}
           onClose={() => setIsTempleMenuOpen(false)}
           favorData={cityGameState.worship || {}}
+        />
+      )}
+       {isAcademyMenuOpen && (
+        <AcademyMenu
+            cityGameState={cityGameState}
+            onResearch={handleStartResearch}
+            onClose={() => setIsAcademyMenuOpen(false)}
         />
       )}
       {isCaveMenuOpen && (

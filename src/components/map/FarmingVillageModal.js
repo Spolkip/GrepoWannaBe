@@ -1,9 +1,8 @@
-// src/components/map/FarmingVillageModal.js
-
+// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/FarmingVillageModal.js
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore'; // Added getDoc
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import resourceImage from '../../images/resources/resources.png';
@@ -12,23 +11,35 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
     const { currentUser } = useAuth();
     const { gameState, setGameState } = useGame();
     const [village, setVillage] = useState(initialVillage);
+    const [baseVillageData, setBaseVillageData] = useState(null); // State for global village data
     const [isProcessing, setIsProcessing] = useState(false);
     const [message, setMessage] = useState('');
     const [timeSinceCollection, setTimeSinceCollection] = useState(Infinity);
 
-    // Listen for real-time updates on the selected village
+    // Listen for real-time updates on the player's conquered village
     useEffect(() => {
-        if (!worldId || !village?.id) return;
+        if (!worldId || !village?.id || !currentUser) return;
 
-        const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
-        const unsubscribe = onSnapshot(villageRef, (docSnap) => {
+        const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
+        const unsubscribe = onSnapshot(playerVillageRef, (docSnap) => {
             if (docSnap.exists()) {
                 setVillage({ id: docSnap.id, ...docSnap.data() });
             }
         });
 
-        return () => unsubscribe(); // Cleanup listener when the modal closes
-    }, [worldId, village.id]); // Corrected dependency
+        // Fetch the base village data once
+        const fetchBaseVillageData = async () => {
+            const baseVillageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+            const baseVillageSnap = await getDoc(baseVillageRef);
+            if (baseVillageSnap.exists()) {
+                setBaseVillageData(baseVillageSnap.data());
+            }
+        };
+
+        fetchBaseVillageData();
+
+        return () => unsubscribe();
+    }, [worldId, village.id, currentUser]);
 
     const demandOptions = [
         { name: '5 minutes', duration: 300, multiplier: 0.125 },
@@ -59,71 +70,71 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
     };
 
     const handleDemand = async (option) => {
-        if (isProcessing) return;
+        if (isProcessing || !baseVillageData) return;
         setIsProcessing(true);
         setMessage('');
 
-        const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+        const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
         const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
 
         try {
             await runTransaction(db, async (transaction) => {
-                const villageDoc = await transaction.get(villageRef);
+                const playerVillageDoc = await transaction.get(playerVillageRef);
                 const gameDoc = await transaction.get(gameDocRef);
 
-                if (!villageDoc.exists() || !gameDoc.exists()) throw new Error("Village or game state not found.");
-                
-                const villageData = villageDoc.data();
+                if (!playerVillageDoc.exists() || !gameDoc.exists()) throw new Error("Your village or game state not found.");
+
+                const villageData = playerVillageDoc.data();
                 const gameData = gameDoc.data();
-                
+
                 const lastCollectedTime = villageData.lastCollected?.toDate().getTime() || 0;
                 if (Date.now() < lastCollectedTime + option.duration * 1000) {
                     throw new Error('Not enough time has passed for this demand option.');
                 }
-                
+
                 const newResources = { ...gameData.resources };
                 const warehouseCapacity = 1000 * Math.pow(1.5, gameData.buildings.warehouse.level - 1);
-                
+
                 const yieldAmount = {
-                    wood: Math.floor((villageData.demandYield.wood || 0) * option.multiplier),
-                    stone: Math.floor((villageData.demandYield.stone || 0) * option.multiplier),
-                    silver: Math.floor((villageData.demandYield.silver || 0) * option.multiplier),
+                    wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level),
+                    stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * villageData.level),
+                    silver: Math.floor((baseVillageData.demandYield.silver || 0) * option.multiplier * villageData.level),
                 }
 
                 for (const [resource, amount] of Object.entries(yieldAmount)) {
                     newResources[resource] = Math.min(warehouseCapacity, (newResources[resource] || 0) + amount);
                 }
-                
+
                 transaction.update(gameDocRef, { resources: newResources });
-                transaction.update(villageRef, { lastCollected: serverTimestamp() });
+                transaction.update(playerVillageRef, { lastCollected: serverTimestamp() });
             });
 
             setMessage(`Successfully demanded resources!`);
-            
+
         } catch (error) {
             setMessage(`Failed to demand resources: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }
     };
-    
+
     const handleUpgrade = async () => {
         if (isProcessing) return;
         setIsProcessing(true);
         setMessage('');
 
-        const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+        const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
         const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
         const nextLevel = village.level + 1;
         const cost = getUpgradeCost(nextLevel);
 
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
-                const villageDoc = await transaction.get(villageRef);
+                const playerVillageDoc = await transaction.get(playerVillageRef);
                 const gameDoc = await transaction.get(gameDocRef);
 
-                if (!villageDoc.exists() || !gameDoc.exists()) {
-                    throw new Error("Village or your game state could not be found.");
+                if (!playerVillageDoc.exists() || !gameDoc.exists()) {
+                    throw new Error("Your village or game state could not be found.");
                 }
 
                 const gameData = gameDoc.data();
@@ -136,19 +147,13 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                     stone: gameData.resources.stone - cost.stone,
                     silver: gameData.resources.silver - cost.silver,
                 };
-                
-                const newDemandYield = {
-                    wood: nextLevel * 50,
-                    stone: nextLevel * 50,
-                    silver: nextLevel * 20,
-                };
 
                 transaction.update(gameDocRef, { resources: newResources });
-                transaction.update(villageRef, { level: nextLevel, demandYield: newDemandYield });
-                
+                transaction.update(playerVillageRef, { level: nextLevel });
+
                 return { ...gameData, resources: newResources };
             });
-            
+
             setGameState(newGameState);
             setMessage(`Successfully upgraded village to level ${nextLevel}!`);
 
@@ -159,7 +164,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
             setIsProcessing(false);
         }
     };
-    
+
     const cost = getUpgradeCost(village.level + 1);
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
 
@@ -172,7 +177,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                 className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl text-center border border-gray-600 pointer-events-auto"
                 onClick={e => e.stopPropagation()}
             >
-                <h2 className="text-2xl font-bold mb-4 text-center text-yellow-400">{`Farming Village: ${village.name} (Level ${village.level})`}</h2>
+                <h2 className="text-2xl font-bold mb-4 text-center text-yellow-400">{`Farming Village: ${baseVillageData?.name || village.name} (Level ${village.level})`}</h2>
                 <div className="p-4 text-white">
                     <div className="mb-6">
                         <h4 className="font-bold text-lg text-center mb-2">Demand Resources</h4>
@@ -181,9 +186,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                             {demandOptions.map(option => {
                                 const isAvailable = timeSinceCollection >= option.duration;
                                 const currentYield = {
-                                    wood: Math.floor((village.demandYield?.wood || 0) * option.multiplier),
-                                    stone: Math.floor((village.demandYield?.stone || 0) * option.multiplier),
-                                    silver: Math.floor((village.demandYield?.silver || 0) * option.multiplier)
+                                    wood: baseVillageData ? Math.floor((baseVillageData.demandYield?.wood || 0) * option.multiplier * village.level) : 0,
+                                    stone: baseVillageData ? Math.floor((baseVillageData.demandYield?.stone || 0) * option.multiplier * village.level) : 0,
+                                    silver: baseVillageData ? Math.floor((baseVillageData.demandYield?.silver || 0) * option.multiplier * village.level) : 0
                                 };
                                 return (
                                     <div key={option.name} className="bg-gray-900 border border-gray-700 p-2 rounded-lg text-center flex flex-col justify-between shadow-md">
