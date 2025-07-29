@@ -12,6 +12,7 @@ import TopBar from './map/TopBar';
 import MapGrid from './map/MapGrid';
 import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
+import FarmingVillageModal from './map/FarmingVillageModal';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -21,6 +22,7 @@ import { useMapActions } from '../hooks/useMapActions';
 
 // Utilities
 import { calculateDistance } from '../utils/travel';
+import { getVillageTroops } from '../utils/combat'; // Import the shared function
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
@@ -110,43 +112,13 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         }
     };
     
-    const getVillageTroopsOrDefault = useCallback((villageData) => {
-        if (villageData.troops && Object.keys(villageData.troops).length > 0) {
-            return villageData.troops;
-        }
-
-        const level = villageData.level || 1; // Default to level 1 if not specified
-        let troops = {};
-        switch (level) {
-            case 1:
-                troops = { swordsman: 15, archer: 10 };
-                break;
-            case 2:
-                troops = { swordsman: 25, archer: 15, slinger: 5 };
-                break;
-            case 3:
-                troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
-                break;
-            case 4:
-                troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
-                break;
-            case 5:
-                troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
-                break;
-            default:
-                // Handle any other cases by defaulting to level 1 troops
-                troops = { swordsman: 15, archer: 10 };
-                break;
-        }
-        return troops;
-    }, []);
-
-        const onVillageClick = (e, villageData) => {
+    const onVillageClick = (e, villageData) => {
         closeModal('city');
         if (playerCity.islandId !== villageData.islandId) {
             setMessage("You can only interact with villages on islands where you have a city.");
             return;
         }
+
         if (villageData.ownerId === currentUser.uid) {
             openModal('village', villageData);
         } else {
@@ -162,8 +134,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 y: villageData.y,
                 islandId: villageData.islandId,
                 isVillageTarget: true,
-                troops: getVillageTroopsOrDefault(villageData), // Use the helper function
-                level: villageData.level || 1 // Ensure level is passed
+                troops: getVillageTroops(villageData), // Use the shared function
+                level: villageData.level || 1
             };
             openModal('city', targetData);
         }

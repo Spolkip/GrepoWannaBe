@@ -47,8 +47,46 @@ const ReportsView = ({ onClose }) => {
     };
 
     // Renders the specific outcome details based on the report's type
-    const renderReportOutcome = (report) => {
+     const renderReportOutcome = (report) => {
         switch (report.type) {
+            case 'return':
+                return (
+                    <>
+                        <p className="font-bold text-blue-400">Troops Returned</p>
+                        <p className="text-sm text-gray-300">Surviving Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unitConfig[unit]?.name || unit}`).join(', ') || 'None'}</p>
+                        <p className="text-sm text-gray-300">Loot: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                    </>
+                );
+            case 'attack_village': {
+                const outcome = report.outcome || {};
+                const attacker = report.attacker || {};
+                const defender = report.defender || {};
+
+                return (
+                    <>
+                        <p className={`font-bold ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
+                            {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
+                        </p>
+                        <div className="text-sm mt-2 space-y-2">
+                            <div>
+                                <h4 className="font-semibold">Your Attack</h4>
+                                <p>From: {attacker.cityName}</p>
+                                <p>Units Sent: {Object.entries(attacker.units || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ')}</p>
+                                <p>Losses: {Object.entries(attacker.losses || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ') || 'None'}</p>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold">Village Defence</h4>
+                                <p>At: {defender.villageName}</p>
+                                <p>Defending Troops: {Object.entries(defender.troops || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ')}</p>
+                                <p>Losses: {Object.entries(defender.losses || {}).map(([id, count]) => `${count} ${unitConfig[id]?.name}`).join(', ') || 'None'}</p>
+                            </div>
+                            {outcome.attackerWon && (
+                                <p className="text-green-400">You have conquered the village!</p>
+                            )}
+                        </div>
+                    </>
+                );
+            }
             case 'attack':
                 const outcome = report.outcome || {};
                 const survivingAttackers = outcome.survivingAttackers || {};

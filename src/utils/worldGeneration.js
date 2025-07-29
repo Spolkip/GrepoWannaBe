@@ -108,31 +108,11 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
     return citySlots;
 };
 
-const generateVillageTroops = (level) => {
-    let troops = {};
-    switch (level) {
-        case 1:
-            troops = { swordsman: 15, archer: 10 };
-            break;
-        case 2:
-            troops = { swordsman: 25, archer: 15, slinger: 5 };
-            break;
-        case 3:
-            troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
-            break;
-        case 4:
-            troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
-            break;
-        case 5:
-            troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
-            break;
-        default:
-            // Handle any other cases by defaulting to level 1 troops
-            troops = { swordsman: 15, archer: 10 };
-            break;
-    }
-    return troops;
-};
+function generateVillageTroops(level) {
+    // All villages start at level 1, so we only need level 1 troop logic here.
+    // The shared getVillageTroops function in combat.js handles higher levels for upgrades.
+    return { swordsman: 15, archer: 10 };
+}
 
 export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHeight) => {
     const villages = {};
@@ -166,7 +146,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
 
     landTilesByIsland.forEach((tiles, islandId) => {
         const availableTiles = tiles.filter(tile => !occupiedSlots.has(`${tile.x},${tile.y}`));
-        const numVillages = Math.min(availableTiles.length, Math.floor(Math.random() * 3) + 2); // 2-4 villages per island
+        const numVillages = Math.min(availableTiles.length, 5); // Set to a fixed 5 villages per island
 
         for (let i = 0; i < numVillages; i++) {
             if (availableTiles.length === 0) break;
@@ -177,7 +157,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
             occupiedSlots.add(`${tile.x},${tile.y}`);
 
             const villageId = `v${islandId}-${i}`;
-            const level = Math.ceil(Math.random() * 5);
+            const level = 1; // All villages start at level 1
             
             // Select a random cooldown from the array
             const randomCooldown = demandCooldowns[Math.floor(Math.random() * demandCooldowns.length)];
@@ -189,10 +169,15 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
                 islandId: islandId,
                 name: `Farming Village ${villageId}`,
                 level: level,
+                demandYield: {
+                    wood: level * 50,
+                    stone: level * 50,
+                    silver: level * 20,
+                },
                 resources: { wood: 500, stone: 500, silver: 500 },
                 maxResources: 1000 + level * 200,
                 lastDemandTime: 0,
-                demandCooldown: randomCooldown, // Assign the random cooldown
+                demandCooldown: randomCooldown,
                 troops: generateVillageTroops(level),
                 ownerId: null,
                 ownerUsername: null

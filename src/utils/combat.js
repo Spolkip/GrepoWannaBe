@@ -148,7 +148,35 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
         defenderLosses: finalDefenderLosses,
     };
 };
+export function getVillageTroops(villageData) {
+    if (villageData.troops && Object.keys(villageData.troops).length > 0) {
+        return villageData.troops;
+    }
 
+    const level = villageData.level || 1;
+    let troops = {};
+    switch (level) {
+        case 1:
+            troops = { swordsman: 15, archer: 10 };
+            break;
+        case 2:
+            troops = { swordsman: 25, archer: 15, slinger: 5 };
+            break;
+        case 3:
+            troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
+            break;
+        case 4:
+            troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
+            break;
+        case 5:
+            troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
+            break;
+        default:
+            troops = { swordsman: 15, archer: 10 };
+            break;
+    }
+    return troops;
+}
 export function resolveCombat(attackingUnits, defendingUnits, defendingResources, isNavalAttack, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) {
     let totalAttackerLosses = {};
     let totalDefenderLosses = {};

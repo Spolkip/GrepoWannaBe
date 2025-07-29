@@ -1,3 +1,5 @@
+// src/components/Game.js
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
@@ -120,7 +122,7 @@ const Game = ({ onBackToWorlds }) => {
                         timestamp: serverTimestamp(),
                         outcome: result,
                         attacker: { cityName: originGameState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { villageName: villageData.name, troops: villageData.troops, losses: result.defenderLosses }
+                        defender: { villageName: villageData.name, troops: villageData.troops || {}, losses: result.defenderLosses }
                     };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
 
