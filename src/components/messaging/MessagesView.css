@@ -1,0 +1,79 @@
+/* src/components/messaging/MessagesView.css */
+
+.papyrus-bg {
+    /* Add a background image with a color overlay for readability */
+    background-image: linear-gradient(rgba(245, 222, 179, 0.9), rgba(245, 222, 179, 0.9)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3; /* wheat */
+    border: 4px double #8B4513; /* saddlebrown */
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+.papyrus-text {
+    color: #4a2c2a; /* A dark, ink-like brown */
+    font-family: 'Kalam', cursive;
+}
+
+.papyrus-header {
+    font-family: 'IM Fell English SC', serif;
+    font-size: 1.5rem; /* 24px */
+    color: #5D4037; /* A darker, more official-looking brown */
+}
+
+.papyrus-input {
+    background-color: transparent;
+    border-bottom: 2px solid #8B4513; /* saddlebrown */
+    color: #4a2c2a;
+}
+
+.papyrus-input:focus {
+    outline: none;
+    border-color: #5D4037;
+}
+
+.papyrus-input::placeholder {
+    color: #856a69;
+}
+
+.papyrus-btn {
+    background-color: #8B4513; /* saddlebrown */
+    color: #F5DEB3; /* wheat */
+    font-weight: bold;
+    border-radius: 2px;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.papyrus-btn:hover {
+    background-color: #A0522D; /* sienna */
+}
+
+.papyrus-list-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #D2B48C; /* tan */
+}
+
+.papyrus-list-item:hover {
+    background-color: #E6CBA8; /* A lighter tan */
+}
+
+.papyrus-list-item.selected {
+    background-color: #D2B48C; /* tan */
+}
+
+.papyrus-message-sent {
+    background-color: #d3b890;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-width: 20rem; /* 320px */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.papyrus-message-received {
+    background-color: #e6cba8;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    max-width: 20rem; /* 320px */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}

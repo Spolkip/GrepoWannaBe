@@ -1,8 +1,11 @@
+// src/components/messaging/MessagesView.js
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
+import './MessagesView.css'; // Import the new CSS file
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null }) => {
     const { currentUser, userProfile } = useAuth();
@@ -147,28 +150,28 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-gray-800 border-2 border-gray-600 rounded-lg text-white w-full max-w-4xl h-3/4 flex flex-col">
-                <div className="p-4 border-b border-gray-600 flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Messages</h2>
-                    <button onClick={onClose} className="text-white text-2xl">&times;</button>
+            <div className="papyrus-bg papyrus-text w-full max-w-4xl h-3/4 flex flex-col rounded-lg">
+                <div className="p-4 border-b-2 border-[#8B4513] flex justify-between items-center">
+                    <h2 className="papyrus-header">Missives & Scrolls</h2>
+                    <button onClick={onClose} className="papyrus-text text-3xl font-bold hover:text-red-700">&times;</button>
                 </div>
 
                 <div className="flex flex-grow overflow-hidden">
-                    <div className="w-1/3 border-r border-gray-600 flex flex-col">
-                        <div className="p-2 border-b border-gray-600">
-                            <button onClick={() => handleCompose()} className="w-full btn btn-primary py-2">
-                                New Message
+                    <div className="w-1/3 border-r-2 border-[#8B4513] flex flex-col">
+                        <div className="p-2 border-b-2 border-[#8B4513]">
+                            <button onClick={() => handleCompose()} className="w-full papyrus-btn">
+                                New Scroll
                             </button>
                         </div>
                         <ul className="overflow-y-auto">
                             {conversations.map(convo => (
                                 <li
                                     key={convo.id}
-                                    className={`p-3 cursor-pointer ${selectedConversation?.id === convo.id ? 'bg-gray-700' : ''} hover:bg-gray-700`}
+                                    className={`papyrus-list-item ${selectedConversation?.id === convo.id ? 'selected' : ''}`}
                                     onClick={() => handleSelectConversation(convo)}
                                 >
-                                    <p className="font-bold">{getOtherParticipant(convo)}</p>
-                                    <p className="text-sm text-gray-400 truncate">{convo.lastMessage?.text}</p>
+                                    <p className="font-bold font-title text-lg">{getOtherParticipant(convo)}</p>
+                                    <p className="text-sm truncate">{convo.lastMessage?.text}</p>
                                 </li>
                             ))}
                         </ul>
@@ -177,48 +180,48 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                     <div className="w-2/3 flex flex-col">
                         {selectedConversation || isComposing ? (
                             <>
-                                <div className="p-4 border-b border-gray-600">
+                                <div className="p-4 border-b-2 border-[#8B4513]">
                                     {isComposing ? (
                                         <input
                                             type="text"
                                             value={newRecipient}
                                             onChange={(e) => setNewRecipient(e.target.value)}
-                                            placeholder="Recipient's username"
-                                            className="w-full bg-gray-700 p-2 rounded"
+                                            placeholder="Scribe the recipient's name..."
+                                            className="w-full papyrus-input text-lg"
                                         />
                                     ) : (
-                                        <h3 className="font-bold text-lg">{getOtherParticipant(selectedConversation)}</h3>
+                                        <h3 className="font-bold text-lg font-title">{getOtherParticipant(selectedConversation)}</h3>
                                     )}
                                 </div>
                                 <div className="flex-grow overflow-y-auto p-4 space-y-4">
                                     {messages.map(msg => (
                                         <div key={msg.id} className={`flex ${msg.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`p-3 rounded-lg max-w-xs ${msg.senderId === currentUser.uid ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                                                <p className="font-bold text-sm">{msg.senderUsername}</p>
+                                            <div className={`${msg.senderId === currentUser.uid ? 'papyrus-message-sent' : 'papyrus-message-received'}`}>
+                                                <p className="font-bold text-sm font-title">{msg.senderUsername}</p>
                                                 <p>{msg.text}</p>
-                                                <p className="text-xs text-gray-400 mt-1 text-right">{msg.timestamp?.toDate().toLocaleTimeString()}</p>
+                                                <p className="text-xs text-gray-700/70 mt-1 text-right">{msg.timestamp?.toDate().toLocaleTimeString()}</p>
                                             </div>
                                         </div>
                                     ))}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                <div className="p-4 border-t border-gray-600">
+                                <div className="p-4 border-t-2 border-[#8B4513]">
                                     <div className="flex">
                                         <input
                                             type="text"
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                            className="flex-grow bg-gray-700 p-2 rounded-l"
-                                            placeholder="Type a message..."
+                                            className="flex-grow papyrus-input"
+                                            placeholder="Write your message..."
                                         />
-                                        <button onClick={handleSendMessage} className="btn btn-primary rounded-l-none">Send</button>
+                                        <button onClick={handleSendMessage} className="papyrus-btn ml-2">Send</button>
                                     </div>
                                 </div>
                             </>
                         ) : (
                             <div className="flex items-center justify-center h-full">
-                                <p className="text-gray-400">Select a conversation or start a new one.</p>
+                                <p className="text-gray-500 italic">Select a conversation or start a new one.</p>
                             </div>
                         )}
                     </div>
