@@ -1,0 +1,203 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import buildingConfig from '../gameData/buildings.json';
+import unitConfig from '../gameData/units.json';
+
+const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
+
+export const useCityState = (worldId, isInstantBuild) => {
+    const { currentUser } = useAuth();
+    const [cityGameState, setCityGameState] = useState(null);
+    const gameStateRef = useRef(cityGameState);
+
+    useEffect(() => {
+        gameStateRef.current = cityGameState;
+    }, [cityGameState]);
+
+    const getProductionRates = useCallback((buildings) => {
+        if (!buildings) return { wood: 0, stone: 0, silver: 0 };
+        return {
+            wood: Math.floor(30 * Math.pow(1.2, (buildings.timber_camp?.level || 1) - 1)),
+            stone: Math.floor(30 * Math.pow(1.2, (buildings.quarry?.level || 1) - 1)),
+            silver: Math.floor(15 * Math.pow(1.15, (buildings.silver_mine?.level || 1) - 1)),
+        };
+    }, []);
+
+    const getWarehouseCapacity = useCallback((level) => {
+        if (!level) return 0;
+        return Math.floor(1000 * Math.pow(1.5, level - 1));
+    }, []);
+
+    const getFarmCapacity = useCallback((level) => {
+        if (!level) return 0;
+        return Math.floor(100 * Math.pow(1.3, level - 1));
+    }, []);
+
+    const getUpgradeCost = useCallback((buildingId, level) => {
+        const building = buildingConfig[buildingId];
+        if (!building || level < 1) return { wood: 0, stone: 0, silver: 0, population: 0, time: 0 };
+        
+        const cost = building.baseCost;
+        let populationCost = Math.floor(cost.population * Math.pow(1.1, level - 1));
+        const initialBuildings = ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'];
+        if (level === 1 && initialBuildings.includes(buildingId)) {
+          populationCost = 0;
+        }
+
+        const calculatedTime = Math.floor(cost.time * Math.pow(1.5, level - 1));
+
+        return {
+            wood: Math.floor(cost.wood * Math.pow(1.6, level - 1)),
+            stone: Math.floor(cost.stone * Math.pow(1.6, level - 1)),
+            silver: Math.floor(cost.silver * Math.pow(1.8, level - 1)),
+            population: populationCost,
+            time: isInstantBuild ? 1 : calculatedTime,
+        };
+    }, [isInstantBuild]);
+    
+    const calculateUsedPopulation = useCallback((buildings, units) => {
+        let used = 0;
+        if (buildings) {
+          for (const buildingId in buildings) {
+            const buildingData = buildings[buildingId];
+            const startLevel = ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].includes(buildingId) ? 1 : 0;
+            for (let i = startLevel; i <= buildingData.level; i++) {
+              if (i > 0) {
+                used += getUpgradeCost(buildingId, i).population;
+              }
+            }
+          }
+        }
+        if (units) {
+          for (const unitId in units) {
+            used += (unitConfig[unitId]?.cost.population || 0) * units[unitId];
+          }
+        }
+        return used;
+    }, [getUpgradeCost]);
+
+    const saveGameState = useCallback(async (stateToSave) => {
+        if (!currentUser || !worldId || !stateToSave) return;
+        try {
+            const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+            const dataToSave = { ...stateToSave, lastUpdated: Date.now() };
+            if (dataToSave.buildQueue) {
+                dataToSave.buildQueue = dataToSave.buildQueue.map(task => ({
+                    ...task,
+                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
+                }));
+            }
+            await setDoc(gameDocRef, dataToSave, { merge: true });
+        } catch (error) {
+            console.error('Failed to save game state:', error);
+        }
+    }, [currentUser, worldId]);
+
+    useEffect(() => {
+        if (!currentUser || !worldId) return;
+        const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+        const unsubscribe = onSnapshot(gameDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (!data.units) data.units = {};
+                if (!data.worship) data.worship = {};
+                if (!data.cave) data.cave = { silver: 0 }; 
+                if (!data.research) data.research = {};
+                if (!data.buildings.cave) data.buildings.cave = { level: 1 };
+                if (!data.buildQueue) data.buildQueue = [];
+
+                setCityGameState(data);
+            }
+        });
+        return () => unsubscribe();
+    }, [currentUser, worldId]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCityGameState(prevState => {
+                if (!prevState) return null;
+                const now = Date.now();
+                const lastUpdate = prevState.lastUpdated || now;
+                const elapsedSeconds = (now - lastUpdate) / 1000;
+                
+                const newState = JSON.parse(JSON.stringify(prevState));
+                
+                const productionRates = getProductionRates(newState.buildings);
+                const capacity = getWarehouseCapacity(newState.buildings?.warehouse?.level);
+                newState.resources.wood = Math.min(capacity, prevState.resources.wood + (productionRates.wood / 3600) * elapsedSeconds);
+                newState.resources.stone = Math.min(capacity, prevState.resources.stone + (productionRates.stone / 3600) * elapsedSeconds);
+                newState.resources.silver = Math.min(capacity, prevState.resources.silver + (productionRates.silver / 3600) * elapsedSeconds);
+
+                const templeLevel = newState.buildings.temple?.level || 0;
+                if (newState.god && templeLevel > 0) {
+                    const favorPerSecond = templeLevel / 3600;
+                    const maxFavor = 100 + (templeLevel * 20);
+                    newState.worship[newState.god] = Math.min(maxFavor, (prevState.worship[newState.god] || 0) + favorPerSecond * elapsedSeconds);
+                }
+                
+                newState.lastUpdated = now;
+                return newState;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [getProductionRates, getWarehouseCapacity]);
+
+    useEffect(() => {
+        const processQueue = async () => {
+            const currentState = gameStateRef.current;
+            if (!currentUser || !worldId || !currentState?.buildQueue?.length) return;
+
+            const now = Date.now();
+            const completedTasks = [];
+            const remainingQueue = [];
+
+            currentState.buildQueue.forEach(task => {
+                const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
+                if (endTime > 0 && now >= endTime) {
+                    completedTasks.push(task);
+                } else {
+                    remainingQueue.push(task);
+                }
+            });
+
+            if (completedTasks.length > 0) {
+                const newBuildings = { ...currentState.buildings };
+                completedTasks.forEach(task => {
+                    newBuildings[task.buildingId].level = task.level;
+                });
+                try {
+                    await setDoc(getGameDocRef(currentUser.uid, worldId), {
+                        buildings: newBuildings,
+                        buildQueue: remainingQueue,
+                        lastUpdated: now
+                    }, { merge: true });
+                } catch (error) {
+                    console.error("Error completing build task(s):", error);
+                }
+            }
+        };
+        const interval = setInterval(processQueue, 1000);
+        return () => clearInterval(interval);
+    }, [currentUser, worldId]);
+
+    useEffect(() => {
+        const saveInterval = setInterval(() => {
+            if (gameStateRef.current) saveGameState(gameStateRef.current);
+        }, 30000);
+        return () => clearInterval(saveInterval);
+    }, [saveGameState]);
+
+    // FIX: Added getProductionRates and getWarehouseCapacity to the return object
+    return { 
+        cityGameState, 
+        setCityGameState, 
+        getUpgradeCost, 
+        getFarmCapacity,
+        getWarehouseCapacity,
+        getProductionRates,
+        calculateUsedPopulation,
+        saveGameState 
+    };
+};

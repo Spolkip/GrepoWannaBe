@@ -12,7 +12,8 @@ const formatTime = (seconds) => {
     return `${hours}h ${remainingMinutes}m`;
 }
 
-const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [] }) => {
+// FIX: Add onCancelBuild to the list of props being received
+const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild }) => {
     
     const isBuildingInQueue = (buildingId) => {
         return buildQueue.some(task => task.buildingId === buildingId);
@@ -26,7 +27,8 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
 
-                <BuildQueue buildQueue={buildQueue} />
+                {/* FIX: Pass the function down to BuildQueue as the 'onCancel' prop */}
+                <BuildQueue buildQueue={buildQueue} onCancel={onCancelBuild} />
                 
                 <div className='flex justify-between items-center mb-4 p-3 bg-gray-900 rounded-lg'>
                     <p className="text-lg">Population: <span className="font-bold text-green-400">{maxPopulation - usedPopulation}</span> / {maxPopulation}</p>

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import unitConfig from '../../gameData/units.json';
 
-const AdminCheatMenu = ({ onCheat, onClose }) => {
+const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
     const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0, population: 0 });
     const [troop, setTroop] = useState({ unit: 'swordsman', amount: 0 });
     const [warehouseLevels, setWarehouseLevels] = useState(0);
+    const [instantBuild, setInstantBuild] = useState(isInstantBuildActive);
 
     const handleCheat = () => {
-        onCheat(amounts, troop, warehouseLevels);
+        onCheat(amounts, troop, warehouseLevels, instantBuild);
         onClose();
     };
 
@@ -52,6 +53,17 @@ const AdminCheatMenu = ({ onCheat, onClose }) => {
                             value={warehouseLevels}
                             onChange={(e) => setWarehouseLevels(parseInt(e.target.value, 10) || 0)}
                             className="bg-gray-700 text-white rounded p-2 w-32"
+                        />
+                    </div>
+                    {/* New Checkbox for Instant Build */}
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-600">
+                        <label htmlFor="instantBuild" className="text-white capitalize">1-Second Builds</label>
+                        <input
+                            id="instantBuild"
+                            type="checkbox"
+                            checked={instantBuild}
+                            onChange={(e) => setInstantBuild(e.target.checked)}
+                            className="w-6 h-6 rounded"
                         />
                     </div>
                 </div>

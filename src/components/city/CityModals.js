@@ -1,0 +1,131 @@
+import React from 'react';
+
+import AdminCheatMenu from './AdminCheatMenu';
+import BarracksMenu from './BarracksMenu';
+import ShipyardMenu from './ShipyardMenu';
+import BuildingDetailsModal from './BuildingDetailsModal';
+import SenateView from './SenateView';
+import TempleMenu from './TempleMenu';
+import CaveMenu from './CaveMenu';
+import AcademyMenu from './AcademyMenu';
+
+const CityModals = ({
+  cityGameState,
+  worldId,
+  currentUser,
+  userProfile,
+  isInstantBuild,
+  getUpgradeCost,
+  getFarmCapacity,
+  getWarehouseCapacity,
+  getProductionRates,
+  calculateUsedPopulation,
+  saveGameState,
+  handleUpgrade,
+  handleCancelBuild,
+  handleTrainTroops,
+  handleStartResearch,
+  handleWorshipGod,
+  handleCheat,
+  modalState,
+  openModal,
+  closeModal
+}) => {
+  const {
+    selectedBuildingId,
+    isSenateViewOpen,
+    isBarracksMenuOpen,
+    isShipyardMenuOpen,
+    isTempleMenuOpen,
+    isCaveMenuOpen,
+    isAcademyMenuOpen,
+    isCheatMenuOpen
+  } = modalState;
+
+  if (!cityGameState) return null;
+
+  const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
+  const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
+  const availablePopulation = maxPopulation - usedPopulation;
+
+  return (
+    <>
+      {selectedBuildingId && (
+        <BuildingDetailsModal
+          buildingId={selectedBuildingId}
+          buildingData={cityGameState.buildings[selectedBuildingId]}
+          onClose={() => closeModal('selectedBuildingId')}
+          getProductionRates={getProductionRates}
+          getWarehouseCapacity={getWarehouseCapacity}
+          getFarmCapacity={getFarmCapacity}
+          onOpenBarracks={() => { closeModal('selectedBuildingId'); openModal('isBarracksMenuOpen'); }}
+          onOpenShipyard={() => { closeModal('selectedBuildingId'); openModal('isShipyardMenuOpen'); }}
+        />
+      )}
+      {isSenateViewOpen && (
+        <SenateView
+          buildings={cityGameState.buildings}
+          resources={cityGameState.resources}
+          onUpgrade={handleUpgrade}
+          getUpgradeCost={getUpgradeCost}
+          onClose={() => closeModal('isSenateViewOpen')}
+          usedPopulation={usedPopulation}
+          maxPopulation={maxPopulation}
+          buildQueue={cityGameState.buildQueue}
+          onCancelBuild={handleCancelBuild}
+        />
+      )}
+      {isBarracksMenuOpen && (
+        <BarracksMenu
+          resources={cityGameState.resources}
+          availablePopulation={availablePopulation}
+          onTrain={handleTrainTroops}
+          onClose={() => closeModal('isBarracksMenuOpen')}
+          buildings={cityGameState.buildings}
+        />
+      )}
+      {isShipyardMenuOpen && (
+        <ShipyardMenu
+          resources={cityGameState.resources}
+          availablePopulation={availablePopulation}
+          onTrain={handleTrainTroops}
+          onClose={() => closeModal('isShipyardMenuOpen')}
+          buildings={cityGameState.buildings}
+        />
+      )}
+      {isTempleMenuOpen && (
+        <TempleMenu
+          city={cityGameState}
+          onWorship={handleWorshipGod}
+          onClose={() => closeModal('isTempleMenuOpen')}
+          favorData={cityGameState.worship || {}}
+        />
+      )}
+      {isAcademyMenuOpen && (
+        <AcademyMenu
+          cityGameState={cityGameState}
+          onResearch={handleStartResearch}
+          onClose={() => closeModal('isAcademyMenuOpen')}
+        />
+      )}
+      {isCaveMenuOpen && (
+        <CaveMenu
+          cityGameState={cityGameState}
+          onClose={() => closeModal('isCaveMenuOpen')}
+          saveGameState={saveGameState}
+          currentUser={currentUser}
+          worldId={worldId}
+        />
+      )}
+      {isCheatMenuOpen && userProfile?.is_admin && (
+        <AdminCheatMenu
+          onCheat={handleCheat}
+          onClose={() => closeModal('isCheatMenuOpen')}
+          isInstantBuildActive={isInstantBuild}
+        />
+      )}
+    </>
+  );
+};
+
+export default CityModals;
