@@ -1,0 +1,70 @@
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+
+// WaterTile component represents a water tile on the map.
+export const WaterTile = React.memo(() => (
+    <div className="w-full h-full bg-blue-800 border-r border-b border-blue-900" />
+));
+
+// LandTile component represents a land tile on the map.
+export const LandTile = React.memo(() => (
+    <div className="w-full h-full bg-green-600 border-r border-b border-green-700" />
+));
+
+// CitySlotTile component represents a city slot on the map.
+export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity }) => {
+    const { currentUser } = useAuth();
+    let slotClass = 'empty-slot';
+    let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
+
+    if (slotData.ownerId) {
+        const ownerName = slotData.ownerUsername || 'Unknown';
+        if (slotData.ownerId === currentUser.uid) {
+            slotClass = 'my-city';
+            tooltipText = `Your City: ${slotData.cityName}`;
+        } else if (slotData.ownerId.startsWith('dummy_')) {
+            slotClass = 'dummy-city-plot';
+            tooltipText = `Dummy City: ${slotData.cityName}<br>Owner: ${ownerName}`;
+        } else {
+            slotClass = 'other-city';
+            tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
+        }
+    } else if (isPlacingDummyCity) {
+        slotClass = 'dummy-placement-plot';
+        tooltipText = 'Click to place dummy city';
+    }
+
+    return (
+        <div className="w-full h-full bg-green-400 border-r border-b border-green-700 flex justify-center items-center">
+            <div onClick={(e) => onClick(e, slotData)} className={`city-slot ${slotClass}`}>
+                <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
+            </div>
+        </div>
+    );
+});
+
+// FarmingVillageTile component represents a conquerable village on the map.
+export const FarmingVillageTile = React.memo(({ villageData, onClick }) => {
+    const { currentUser } = useAuth();
+    let villageClass = 'neutral-village';
+    let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
+
+    if (villageData.ownerId) {
+        const ownerName = villageData.ownerUsername || 'Unknown';
+        if (villageData.ownerId === currentUser.uid) {
+            villageClass = 'my-village';
+            tooltipText = `Your Village: ${villageData.name}`;
+        } else {
+            villageClass = 'other-village-plot';
+            tooltipText = `Village: ${villageData.name}<br>Owner: ${ownerName}`;
+        }
+    }
+
+    return (
+        <div className="w-full h-full bg-green-500 border-r border-b border-green-700 flex justify-center items-center">
+            <div onClick={(e) => onClick(e, villageData)} className={`village-slot ${villageClass}`}>
+                <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
+            </div>
+        </div>
+    );
+});

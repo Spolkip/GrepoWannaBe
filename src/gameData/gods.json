@@ -1,0 +1,71 @@
+{
+    "greek": {
+        "Zeus": {
+            "name": "Zeus",
+            "description": "King of the Gods, master of lightning and the sky.",
+            "powers": ["Divine Sign", "Lightning Bolt"],
+            "mythical_units": ["Minotaur", "Manticore"],
+            "image": "zeus.png"
+        },
+        "Hera": {
+            "name": "Hera",
+            "description": "Queen of the Gods, protector of marriage and family.",
+            "powers": ["Wedding", "Satisfaction"],
+            "mythical_units": ["Harpy", "Medusa"],
+            "image": "hera.png"
+        },
+        "Athena": {
+            "name": "Athena",
+            "description": "Goddess of wisdom, courage, and strategic warfare.",
+            "powers": ["City Protection", "Wisdom"],
+            "mythical_units": ["Centaur", "Pegasus"],
+            "image": "athena.png"
+        }
+    },
+    "roman": {
+        "Jupiter": {
+            "name": "Jupiter",
+            "description": "The Roman equivalent of Zeus, god of the sky and thunder.",
+            "powers": ["Divine Sign", "Lightning Bolt"],
+            "mythical_units": ["Minotaur", "Manticore"],
+            "image": "jupiter.png"
+        },
+        "Juno": {
+            "name": "Juno",
+            "description": "The Roman equivalent of Hera, protector of the Roman people.",
+            "powers": ["Wedding", "Satisfaction"],
+            "mythical_units": ["Harpy", "Medusa"],
+            "image": "juno.png"
+        },
+        "Minerva": {
+            "name": "Minerva",
+            "description": "The Roman equivalent of Athena, goddess of wisdom and strategic warfare.",
+            "powers": ["City Protection", "Wisdom"],
+            "mythical_units": ["Centaur", "Pegasus"],
+            "image": "minerva.png"
+        }
+    },
+    "egyptian": {
+        "Anubis": {
+            "name": "Anubis",
+            "description": "God of the dead and the embalming process, protector of tombs.",
+            "powers": ["Plague of Locusts", "Underworld's Favor"],
+            "mythical_units": ["Sphinx", "Scarab"],
+            "image": "anubis.png"
+        },
+        "Horus": {
+            "name": "Horus",
+            "description": "God of the sky, kingship, and order.",
+            "powers": ["Favorable Winds", "Vision of the Sky"],
+            "mythical_units": ["Griffin", "Phoenix"],
+            "image": "horus.png"
+        },
+        "Osiris": {
+            "name": "Osiris",
+            "description": "God of the afterlife, the underworld, and rebirth.",
+            "powers": ["Resurrection", "Bountiful Harvest"],
+            "mythical_units": ["Mummy", "Serpopard"],
+            "image": "osiris.png"
+        }
+    }
+}
