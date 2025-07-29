@@ -12,40 +12,75 @@ const Game = ({ onBackToWorlds }) => {
     const [view, setView] = useState('city'); // 'city' or 'map'
 
     const processMovement = useCallback(async (movementDoc) => {
+        console.log(`Processing movement ID: ${movementDoc.id}`);
         const movement = { id: movementDoc.id, ...movementDoc.data() };
         const batch = writeBatch(db);
 
         const originOwnerRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
-        const targetOwnerRef = doc(db, `users/${movement.targetOwnerId}/games`, worldId);
+        
+        // Target owner might not exist for villages
+        let targetOwnerRef;
+        if (movement.targetOwnerId) {
+            targetOwnerRef = doc(db, `users/${movement.targetOwnerId}/games`, worldId);
+        }
 
         const [originOwnerSnap, targetOwnerSnap] = await Promise.all([
             getDoc(originOwnerRef),
-            getDoc(targetOwnerRef)
+            targetOwnerRef ? getDoc(targetOwnerRef) : Promise.resolve(null)
         ]);
-
-        if (!originOwnerSnap.exists() || !targetOwnerSnap.exists()) {
+        
+        if (!originOwnerSnap.exists()) {
+            console.log(`Origin owner ${movement.originOwnerId} not found. Deleting movement.`);
             batch.delete(movementDoc.ref);
             await batch.commit();
             return;
         }
-
+        
         const originGameState = originOwnerSnap.data();
-        const targetGameState = targetOwnerSnap.data();
 
         if (movement.status === 'returning') {
-            const newUnits = { ...originGameState.units };
+            console.log(`Movement ${movement.id} is returning.`);
+            const newGameState = { ...originGameState };
+
+            // Return units
+            const newUnits = { ...newGameState.units };
             for (const unitId in movement.units) {
                 newUnits[unitId] = (newUnits[unitId] || 0) + movement.units[unitId];
             }
-            batch.update(originOwnerRef, { units: newUnits });
+            
+            // Return plundered resources
+            const newResources = { ...newGameState.resources };
+            if (movement.resources) {
+                for (const resourceId in movement.resources) {
+                    newResources[resourceId] = (newResources[resourceId] || 0) + movement.resources[resourceId];
+                }
+            }
+
+             const returnReport = {
+                type: 'return',
+                title: `Troops returned to ${originGameState.cityName}`,
+                timestamp: serverTimestamp(),
+                units: movement.units,
+                resources: movement.resources || {},
+            };
+            batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), returnReport);
+
+            batch.update(originOwnerRef, { units: newUnits, resources: newResources });
             batch.delete(movementDoc.ref);
-    } else if (movement.status === 'moving') {
+            console.log(`Movement ${movement.id} processed and deleted.`);
+        
+        } else if (movement.status === 'moving') {
+            console.log(`Movement ${movement.id} is moving with type: ${movement.type}`);
+            const targetGameState = targetOwnerSnap?.exists() ? targetOwnerSnap.data() : null;
+
             switch (movement.type) {
                 case 'attack_village': {
+                    console.log(`Processing village attack: ${movement.id}`);
                     const villageRef = doc(db, 'worlds', worldId, 'villages', movement.targetVillageId);
                     const villageSnap = await getDoc(villageRef);
 
                     if (!villageSnap.exists()) {
+                        console.log(`Village ${movement.targetVillageId} not found.`);
                         batch.delete(movementDoc.ref);
                         const report = {
                             type: 'attack_village',
@@ -59,6 +94,7 @@ const Game = ({ onBackToWorlds }) => {
 
                     const villageData = villageSnap.data();
                     const result = resolveCombat(movement.units, villageData.troops, villageData.resources, false);
+                    console.log('Village combat resolved:', result);
                     
                     const newVillageTroops = { ...villageData.troops };
                     for (const unitId in result.defenderLosses) {
@@ -66,6 +102,7 @@ const Game = ({ onBackToWorlds }) => {
                     }
 
                     if (result.attackerWon) {
+                        console.log('Attacker won. Conquering village.');
                         batch.update(villageRef, {
                             troops: newVillageTroops,
                             ownerId: movement.originOwnerId,
@@ -73,6 +110,7 @@ const Game = ({ onBackToWorlds }) => {
                             lastCollected: serverTimestamp()
                         });
                     } else {
+                        console.log('Attacker lost. Updating village troops.');
                         batch.update(villageRef, { troops: newVillageTroops });
                     }
 
@@ -97,21 +135,28 @@ const Game = ({ onBackToWorlds }) => {
                     }
 
                     if (anySurvivors) {
+                        console.log('Survivors are returning.');
                         const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
                         const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
                         batch.update(movementDoc.ref, {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
-                            type: 'return',
                         });
                     } else {
+                        console.log('No survivors. Deleting movement.');
                         batch.delete(movementDoc.ref);
                     }
                     break;
                 }
                 case 'attack': {
+                    if (!targetGameState) {
+                        console.log(`Target game state not found for movement ${movement.id}. Deleting.`);
+                        batch.delete(movementDoc.ref);
+                        break;
+                    }
                     const result = resolveCombat(movement.units, targetGameState.units, targetGameState.resources);
+
                     const newDefenderUnits = { ...targetGameState.units };
                     for (const unitId in result.defenderLosses) {
                         newDefenderUnits[unitId] = Math.max(0, (newDefenderUnits[unitId] || 0) - result.defenderLosses[unitId]);
@@ -156,7 +201,6 @@ const Game = ({ onBackToWorlds }) => {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
-                            arrivalTime: returnArrivalTime
                         });
                     } else {
                         batch.delete(movementDoc.ref);
@@ -164,6 +208,11 @@ const Game = ({ onBackToWorlds }) => {
                     break;
                 }
                 case 'scout': {
+                    if (!targetGameState) {
+                        console.log(`Target game state not found for movement ${movement.id}. Deleting.`);
+                        batch.delete(movementDoc.ref);
+                        break;
+                    }
                     const attackingSilver = movement.resources?.silver || 0;
                     const result = resolveScouting(targetGameState, attackingSilver);
 
@@ -204,6 +253,11 @@ const Game = ({ onBackToWorlds }) => {
                     break;
                 }
                 case 'reinforce': {
+                    if (!targetGameState) {
+                        console.log(`Target game state not found for movement ${movement.id}. Deleting.`);
+                        batch.delete(movementDoc.ref);
+                        break;
+                    }
                     const newTargetUnits = { ...targetGameState.units };
                     for (const unitId in movement.units) {
                         newTargetUnits[unitId] = (newTargetUnits[unitId] || 0) + movement.units[unitId];
@@ -220,6 +274,11 @@ const Game = ({ onBackToWorlds }) => {
                     break;
                 }
                 case 'trade': {
+                    if (!targetGameState) {
+                        console.log(`Target game state not found for movement ${movement.id}. Deleting.`);
+                        batch.delete(movementDoc.ref);
+                        break;
+                    }
                     const newTargetResources = { ...targetGameState.resources };
                     for (const resource in movement.resources) {
                         newTargetResources[resource] = (newTargetResources[resource] || 0) + movement.resources[resource];
@@ -236,11 +295,13 @@ const Game = ({ onBackToWorlds }) => {
                     break;
                 }
                 default:
+                    console.log(`Unknown movement type: ${movement.type}. Deleting movement ${movement.id}`);
                     batch.delete(movementDoc.ref);
                     break;
             }
         }
         await batch.commit();
+        console.log(`Batch commit successful for movement ${movement.id}`);
     }, [worldId]);
 
     useEffect(() => {
@@ -253,6 +314,7 @@ const Game = ({ onBackToWorlds }) => {
             const arrivedMovementsSnapshot = await getDocs(q);
             if (arrivedMovementsSnapshot.empty) return;
 
+            console.log(`Found ${arrivedMovementsSnapshot.docs.length} arrived movements to process.`);
             for (const movementDoc of arrivedMovementsSnapshot.docs) {
                 try {
                     await processMovement(movementDoc);

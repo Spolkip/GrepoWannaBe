@@ -114,6 +114,14 @@ const ReportsView = ({ onClose }) => {
                         <p className="text-sm text-gray-300">Resources: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
                     </>
                 );
+                            case 'return':
+                return (
+                    <>
+                        <p className="font-bold text-blue-400">Troops Returned</p>
+                        <p className="text-sm text-gray-300">Surviving Units: {Object.entries(report.units || {}).map(([unit, count]) => `${count} ${unitConfig[unit]?.name || unit}`).join(', ') || 'None'}</p>
+                        <p className="text-sm text-gray-300">Loot: {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                    </>
+                );
             case 'spy_caught': //
                 return (
                     <>
