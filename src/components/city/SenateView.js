@@ -1,3 +1,4 @@
+// src/components/city/SenateView.js
 import React from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 import BuildQueue from './BuildQueue';
@@ -15,9 +16,7 @@ const formatTime = (seconds) => {
 // FIX: Add onCancelBuild to the list of props being received
 const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild }) => {
     
-    const isBuildingInQueue = (buildingId) => {
-        return buildQueue.some(task => task.buildingId === buildingId);
-    };
+    // Removed isBuildingInQueue function as it's no longer needed to restrict multiple same-building queues
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
@@ -46,10 +45,10 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                             const level = buildings[id]?.level || 0;
                             const cost = getUpgradeCost(id, level + 1);
                             const canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && (maxPopulation-usedPopulation >= cost.population);
-                            const inQueue = isBuildingInQueue(id);
+                            // Removed 'inQueue' variable as it's no longer needed for this specific restriction.
                             
                             return (
-                                <div key={id} className={`bg-gray-700 p-4 rounded-lg flex flex-col justify-between shadow-md border border-gray-600 transition-opacity ${buildQueue.length >= 5 && !inQueue ? 'opacity-50' : ''}`}>
+                                <div key={id} className={`bg-gray-700 p-4 rounded-lg flex flex-col justify-between shadow-md border border-gray-600 transition-opacity ${buildQueue.length >= 5 ? 'opacity-50' : ''}`}>
                                     <div>
                                         <h3 className="text-xl font-semibold text-yellow-400">{config.name}</h3>
                                         <p className="text-sm text-gray-300 mb-2">Level: {level}</p>
@@ -64,16 +63,16 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                                     </div>
                                     <button
                                         onClick={() => onUpgrade(id)}
-                                        disabled={!canAfford || inQueue || buildQueue.length >= 5}
+                                        // Modified disabled check to only consider affordability and overall queue limit
+                                        disabled={!canAfford || buildQueue.length >= 5}
                                         className={`w-full py-2 rounded font-bold transition-colors ${
-                                            inQueue
-                                                ? 'bg-gray-500 cursor-not-allowed'
-                                                : canAfford
-                                                ? 'bg-green-600 hover:bg-green-500'
-                                                : 'bg-red-800 opacity-50 cursor-not-allowed'
+                                            !canAfford || buildQueue.length >= 5
+                                                ? 'bg-gray-600 cursor-not-allowed opacity-60' // General disabled style
+                                                : 'bg-green-600 hover:bg-green-500' // Enabled style
                                         }`}
                                     >
-                                        {inQueue ? 'Queued' : (buildQueue.length >= 5 ? 'Queue Full' : (level === 0 ? 'Build' : `Upgrade to ${level + 1}`))}
+                                        {/* Adjusted button text logic */}
+                                        {buildQueue.length >= 5 ? 'Queue Full' : (level === 0 ? 'Build' : `Upgrade to ${level + 1}`)}
                                     </button>
                                 </div>
                             );

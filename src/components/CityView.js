@@ -1,3 +1,4 @@
+// src/components/CityView.js
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
@@ -15,20 +16,20 @@ const CITYSCAPE_SIZE = 2000;
 const CityView = ({ showMap, worldId }) => {
     const { currentUser, userProfile } = useAuth();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
-    
-    const { 
-        cityGameState, 
+
+    const {
+        cityGameState,
         setCityGameState,
         getUpgradeCost,
         getFarmCapacity,
         calculateUsedPopulation,
         getProductionRates,
         getWarehouseCapacity,
-        saveGameState 
+        saveGameState
     } = useCityState(worldId, isInstantBuild);
-    
+
     const [message, setMessage] = useState('');
-    
+
     // Simplified modal state management
     const [modalState, setModalState] = useState({
         selectedBuildingId: null,
@@ -96,26 +97,36 @@ const CityView = ({ showMap, worldId }) => {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isPanning, startPos, clampPan]);
-    
+
     // Action Handlers (no changes here)
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
-    
+
         const currentQueue = currentState.buildQueue || [];
-    
+
         if (currentQueue.length >= 5) {
             setMessage("Build queue is full (max 5).");
             return;
         }
-    
+
         const building = currentState.buildings[buildingId] || { level: 0 };
-        const nextLevel = building.level + 1;
-        const cost = getUpgradeCost(buildingId, nextLevel);
+
+        // Determine the effective current level for queuing purposes
+        // This finds the highest level currently built or already in the queue for this building type
+        let effectiveCurrentLevel = building.level;
+        currentQueue.forEach(task => {
+            if (task.buildingId === buildingId && task.level > effectiveCurrentLevel) {
+                effectiveCurrentLevel = task.level;
+            }
+        });
+        const nextLevelToQueue = effectiveCurrentLevel + 1; // This is the level for the new queue item
+
+        const cost = getUpgradeCost(buildingId, nextLevelToQueue);
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const newTotalPopulation = currentUsedPopulation + cost.population;
-    
+
         if (
             currentState.resources.wood >= cost.wood &&
             currentState.resources.stone >= cost.stone &&
@@ -123,27 +134,31 @@ const CityView = ({ showMap, worldId }) => {
             newTotalPopulation <= maxPopulation
         ) {
             const newGameState = JSON.parse(JSON.stringify(currentState));
-    
+
             newGameState.resources.wood -= cost.wood;
             newGameState.resources.stone -= cost.stone;
             newGameState.resources.silver -= cost.silver;
-            
-            const lastEndTime = currentQueue.length > 0
-                ? (currentQueue[currentQueue.length - 1].endTime.toDate 
-                    ? currentQueue[currentQueue.length - 1].endTime.toDate().getTime() 
-                    : new Date(currentQueue[currentQueue.length - 1].endTime).getTime())
-                : Date.now();
-    
+
+            let lastEndTime = Date.now();
+            if (currentQueue.length > 0) {
+                const lastQueueItem = currentQueue[currentQueue.length - 1];
+                if (lastQueueItem.endTime) { // Ensure endTime exists before accessing properties
+                    lastEndTime = lastQueueItem.endTime.toDate
+                        ? lastQueueItem.endTime.toDate().getTime()
+                        : new Date(lastQueueItem.endTime).getTime();
+                }
+            }
+
             const endTime = new Date(lastEndTime + cost.time * 1000);
-    
+
             const newQueueItem = {
                 buildingId,
-                level: nextLevel,
+                level: nextLevelToQueue, // Use the calculated next level
                 endTime: endTime,
             };
-    
+
             newGameState.buildQueue = [...currentQueue, newQueueItem];
-    
+
             try {
                 await saveGameState(newGameState);
                 setCityGameState(newGameState);
@@ -154,9 +169,9 @@ const CityView = ({ showMap, worldId }) => {
         } else {
             setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
         }
-      };
+    };
 
-      const handleCancelBuild = async (itemIndex) => {
+    const handleCancelBuild = async (itemIndex) => {
         const currentState = cityGameState;
         if (!currentState || !currentState.buildQueue || itemIndex < 0 || itemIndex >= currentState.buildQueue.length) {
             return;
@@ -183,7 +198,7 @@ const CityView = ({ showMap, worldId }) => {
             const newEndTime = new Date(previousTaskEndTime + taskCost.time * 1000);
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
-        
+
         const newGameState = { ...currentState, resources: newResources, buildQueue: newQueue };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
@@ -191,10 +206,10 @@ const CityView = ({ showMap, worldId }) => {
 
     const handleStartResearch = async (researchId) => {
         if (!cityGameState || !researchConfig[researchId]) return;
-    
+
         const research = researchConfig[researchId];
         const { cost, requirements } = research;
-    
+
         if (requirements.academy && cityGameState.buildings.academy.level < requirements.academy) {
             setMessage(`Requires Academy Level ${requirements.academy}.`);
             return;
@@ -207,7 +222,7 @@ const CityView = ({ showMap, worldId }) => {
             setMessage("Already researched.");
             return;
         }
-    
+
         if (
             cityGameState.resources.wood < cost.wood ||
             cityGameState.resources.stone < cost.stone ||
@@ -216,73 +231,73 @@ const CityView = ({ showMap, worldId }) => {
             setMessage("Not enough resources to start research.");
             return;
         }
-    
+
         const newGameState = { ...cityGameState };
         newGameState.resources.wood -= cost.wood;
         newGameState.resources.stone -= cost.stone;
         newGameState.resources.silver -= cost.silver;
         newGameState.research[researchId] = true;
-    
+
         await saveGameState(newGameState);
         setCityGameState(newGameState);
-      };
-    
-      const handleTrainTroops = async (unitId, amount) => {
+    };
+
+    const handleTrainTroops = async (unitId, amount) => {
         if (!cityGameState || !worldId || amount <= 0) return;
         const unit = unitConfig[unitId];
         const totalCost = {
-          wood: unit.cost.wood * amount,
-          stone: unit.cost.stone * amount,
-          silver: unit.cost.silver * amount,
-          population: unit.cost.population * amount,
+            wood: unit.cost.wood * amount,
+            stone: unit.cost.stone * amount,
+            silver: unit.cost.silver * amount,
+            population: unit.cost.population * amount,
         };
         const currentUsedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
         const maxPopulation = getFarmCapacity(cityGameState.buildings.farm.level);
         const availablePopulation = maxPopulation - currentUsedPopulation;
-    
+
         if (unit.type === 'naval' && (!cityGameState.buildings.shipyard || cityGameState.buildings.shipyard.level === 0)) {
-          setMessage("Naval units can only be built in the Shipyard.");
-          return;
+            setMessage("Naval units can only be built in the Shipyard.");
+            return;
         }
         if (unit.type === 'land' && (!cityGameState.buildings.barracks || cityGameState.buildings.barracks.level === 0)) {
-          setMessage("Land units can only be trained in the Barracks.");
-          return;
+            setMessage("Land units can only be trained in the Barracks.");
+            return;
         }
-    
-        if (
-          cityGameState.resources.wood >= totalCost.wood &&
-          cityGameState.resources.stone >= totalCost.stone &&
-          cityGameState.resources.silver >= totalCost.silver &&
-          availablePopulation >= totalCost.population
-        ) {
-          const newGameState = { ...cityGameState };
-          newGameState.resources.wood -= totalCost.wood;
-          newGameState.resources.stone -= totalCost.stone;
-          newGameState.resources.silver -= totalCost.silver;
-          if (!newGameState.units) newGameState.units = {};
-          newGameState.units[unitId] = (newGameState.units[unitId] || 0) + amount;
-          await saveGameState(newGameState);
-          setCityGameState(newGameState);
-        } else {
-          setMessage(availablePopulation < totalCost.population ? 'Not enough available population!' : 'Not enough resources to train troops!');
-        }
-      };
 
-      const handleWorshipGod = async (godName) => {
+        if (
+            cityGameState.resources.wood >= totalCost.wood &&
+            cityGameState.resources.stone >= totalCost.stone &&
+            cityGameState.resources.silver >= totalCost.silver &&
+            availablePopulation >= totalCost.population
+        ) {
+            const newGameState = { ...cityGameState };
+            newGameState.resources.wood -= totalCost.wood;
+            newGameState.resources.stone -= totalCost.stone;
+            newGameState.resources.silver -= totalCost.silver;
+            if (!newGameState.units) newGameState.units = {};
+            newGameState.units[unitId] = (newGameState.units[unitId] || 0) + amount;
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+        } else {
+            setMessage(availablePopulation < totalCost.population ? 'Not enough available population!' : 'Not enough resources to train troops!');
+        }
+    };
+
+    const handleWorshipGod = async (godName) => {
         if (!cityGameState || !worldId || !godName) return;
         const newWorshipData = { ...(cityGameState.worship || {}) };
         if (newWorshipData[godName] === undefined) {
-          newWorshipData[godName] = 0;
+            newWorshipData[godName] = 0;
         }
         newWorshipData.lastFavorUpdate = Date.now();
-    
+
         const newGameState = { ...cityGameState, god: godName, worship: newWorshipData };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
         closeModal('isTempleMenuOpen');
-      };
+    };
 
-      const handleCheat = async (amounts, troop, warehouseLevels, instantBuild) => {
+    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild) => {
         if (!cityGameState || !userProfile?.is_admin) return;
         setIsInstantBuild(instantBuild);
         const newGameState = { ...cityGameState };
@@ -290,8 +305,8 @@ const CityView = ({ showMap, worldId }) => {
         newGameState.resources.stone += amounts.stone;
         newGameState.resources.silver += amounts.silver;
         if (amounts.population > 0) {
-          const farmLevel = newGameState.buildings.farm.level;
-          newGameState.buildings.farm.level = farmLevel + amounts.population;
+            const farmLevel = newGameState.buildings.farm.level;
+            newGameState.buildings.farm.level = farmLevel + amounts.population;
         }
         if (troop.amount > 0) {
             newGameState.units[troop.unit] = (newGameState.units[troop.unit] || 0) + troop.amount;
@@ -307,20 +322,20 @@ const CityView = ({ showMap, worldId }) => {
     const handlePlotClick = (buildingId) => {
         const buildingData = cityGameState.buildings[buildingId];
         if (!buildingData || buildingData.level === 0) {
-          openModal('isSenateViewOpen');
-          return;
+            openModal('isSenateViewOpen');
+            return;
         }
         switch (buildingId) {
-          case 'senate': openModal('isSenateViewOpen'); break;
-          case 'barracks': openModal('isBarracksMenuOpen'); break;
-          case 'shipyard': openModal('isShipyardMenuOpen'); break;
-          case 'temple': openModal('isTempleMenuOpen'); break;
-          case 'cave': openModal('isCaveMenuOpen'); break;
-          case 'academy': openModal('isAcademyMenuOpen'); break;
-          default: setModalState(prev => ({...prev, selectedBuildingId: buildingId })); break;
+            case 'senate': openModal('isSenateViewOpen'); break;
+            case 'barracks': openModal('isBarracksMenuOpen'); break;
+            case 'shipyard': openModal('isShipyardMenuOpen'); break;
+            case 'temple': openModal('isTempleMenuOpen'); break;
+            case 'cave': openModal('isCaveMenuOpen'); break;
+            case 'academy': openModal('isAcademyMenuOpen'); break;
+            default: setModalState(prev => ({ ...prev, selectedBuildingId: buildingId })); break;
         }
     };
-    
+
     if (!cityGameState) {
         return <div className="text-white text-center p-10">Loading City...</div>;
     }
@@ -334,16 +349,16 @@ const CityView = ({ showMap, worldId }) => {
         <div className="w-full h-screen flex flex-col bg-gray-900">
             <Modal message={message} onClose={() => setMessage('')} />
 
-            <CityHeader 
+            <CityHeader
                 cityGameState={cityGameState}
                 worldId={worldId}
                 showMap={showMap}
-                onCityNameChange={(newName) => setCityGameState(prev => ({...prev, cityName: newName}))}
+                onCityNameChange={(newName) => setCityGameState(prev => ({ ...prev, cityName: newName }))}
                 setMessage={setMessage}
                 onOpenCheats={() => openModal('isCheatMenuOpen')}
             />
 
-            <ResourceBar 
+            <ResourceBar
                 resources={cityGameState.resources}
                 productionRates={productionRates}
                 availablePopulation={availablePopulation}
@@ -356,7 +371,7 @@ const CityView = ({ showMap, worldId }) => {
             </main>
 
             <SideInfoPanel gameState={cityGameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" />
-            
+
             <CityModals
                 cityGameState={cityGameState}
                 worldId={worldId}
