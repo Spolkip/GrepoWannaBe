@@ -1,11 +1,38 @@
 // src/components/ReportsView.js
-
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
+
+// Import all images statically
+import swordmanImg from '../images/swordman.png';
+import woodImg from '../images/resources/wood.png';
+import stoneImg from '../images/resources/stone.png';
+import silverImg from '../images/resources/silver.png';
+import archersImg from '../images/archers.png';
+import cavalryImg from '../images/cavalry.png';
+import fastTransportShipImg from '../images/fast_transport_ship.png';
+import hospiteImg from '../images/hospite.png';
+import slingerImg from '../images/slinger.png';
+import transportShipImg from '../images/transport_ship.png';
+import tritemeImg from '../images/trireme.png';
+
+// Image map for easy reference
+const imageMap = {
+  'swordman.png': swordmanImg,
+  'resources/wood.png': woodImg,
+  'resources/stone.png': stoneImg,
+  'resources/silver.png': silverImg,
+  'archers.png': archersImg,
+  'cavalry.png': cavalryImg,
+  'fast_transport_ship.png': fastTransportShipImg,
+  'hospite.png': hospiteImg,
+  'slinger.png': slingerImg,
+  'transport_ship.png': transportShipImg,
+  'triteme.png': tritemeImg,
+};
 
 const ReportsView = ({ onClose }) => {
     const { currentUser } = useAuth();
@@ -68,7 +95,7 @@ const ReportsView = ({ onClose }) => {
 
     const handleTabClick = (tabName) => {
         setActiveTab(tabName);
-        setSelectedReport(null); // Clear selected report when changing tabs
+        setSelectedReport(null);
     };
     
     const getReportTitleColor = (report) => {
@@ -104,6 +131,57 @@ const ReportsView = ({ onClose }) => {
             .map(([id, count]) => `${count} ${unitConfig[id]?.name || id}`)
             .join(', ');
     };
+    
+    const getImageUrl = (imageName) => {
+        // Check if we have the image in our static imports
+        if (imageMap[imageName]) {
+            return imageMap[imageName];
+        }
+        
+        // Fallback for unit images from unitConfig
+        const unitImage = unitConfig[imageName]?.image;
+        if (unitImage && imageMap[unitImage]) {
+            return imageMap[unitImage];
+        }
+        
+        console.warn(`Image not found: ${imageName}`);
+        return '';
+    };
+
+    const renderTroopDisplay = (units) => {
+        if (!units || Object.keys(units).length === 0) return null;
+        
+        return (
+            <div className="flex items-center space-x-2">
+                {Object.entries(units).map(([unitId, count]) => {
+                    if (count > 0) {
+                        const unit = unitConfig[unitId];
+                        const imageSrc = getImageUrl(unit?.image || '');
+                        return (
+                            <div key={unitId} className="flex flex-col items-center">
+                                {imageSrc && <img src={imageSrc} alt={unit?.name || unitId} className="w-8 h-8"/>}
+                                <span className="text-sm">{count}</span>
+                            </div>
+                        );
+                    }
+                    return null;
+                })}
+            </div>
+        );
+    };
+
+    const renderResourceIcons = (resources) => {
+        return Object.entries(resources || {}).map(([res, amount]) => {
+            const imagePath = `resources/${res}.png`;
+            const imageSrc = getImageUrl(imagePath);
+            return (
+                <div key={res} className="flex flex-col items-center mx-2">
+                    {imageSrc && <img src={imageSrc} alt={res} className="w-8 h-8"/>}
+                    <span className="text-sm">{Math.floor(amount)}</span>
+                </div>
+            );
+        });
+    };
 
     const renderReportOutcome = (report) => {
         const outcome = report.outcome || {};
@@ -112,68 +190,88 @@ const ReportsView = ({ onClose }) => {
 
         switch (report.type) {
             case 'attack':
-                const survivingAttackers = {};
-                for (const unitId in attacker.units) {
-                    const survived = (attacker.units[unitId] || 0) - (outcome.attackerLosses?.[unitId] || 0);
-                    if (survived > 0) survivingAttackers[unitId] = survived;
-                }
-
-                const survivingDefenders = {};
-                for (const unitId in defender.units) {
-                    const survived = (defender.units[unitId] || 0) - (outcome.defenderLosses?.[unitId] || 0);
-                    if (survived > 0) survivingDefenders[unitId] = survived;
-                }
-
                 return (
-                    <>
+                    <div className="flex flex-col items-center">
                         <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
                             {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
                         </p>
-                        <div className="space-y-4 text-sm">
-                            <div className="p-2 bg-gray-700/50 rounded">
-                                <h4 className="font-semibold text-lg text-yellow-300">Attacker: {attacker.cityName}</h4>
-                                <p><strong>Units Sent:</strong> {renderUnitList(attacker.units)}</p>
-                                <p><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
-                                <p><strong>Survivors:</strong> {renderUnitList(survivingAttackers)}</p>
+                        <div className="flex items-center justify-between w-full mb-4">
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
+                                <p className="text-sm text-gray-400">{report.originOwnerUsername || 'You'}</p>
                             </div>
-                            <div className="p-2 bg-gray-700/50 rounded">
-                                <h4 className="font-semibold text-lg text-yellow-300">Defender: {defender.cityName}</h4>
-                                <p><strong>Units:</strong> {renderUnitList(defender.units)}</p>
-                                <p><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
-                                <p><strong>Survivors:</strong> {renderUnitList(survivingDefenders)}</p>
+                            <div className="w-1/3 text-center">
+                                <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
-                            {outcome.attackerWon && outcome.plunder && (
-                                <div className="p-2 bg-green-800/30 rounded">
-                                    <h4 className="font-semibold text-lg text-green-300">Loot</h4>
-                                    <p>{Object.entries(outcome.plunder).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                                </div>
-                            )}
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{defender.cityName || 'Unknown City'}</p>
+                                <p className="text-sm text-gray-400">{report.ownerUsername || 'Opponent'}</p>
+                            </div>
                         </div>
-                    </>
+
+                        <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Attacker Units</h4>
+                                {renderTroopDisplay(attacker.units)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                            </div>
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Defender Units</h4>
+                                {renderTroopDisplay(defender.units)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                            </div>
+                        </div>
+
+                        {outcome.attackerWon && outcome.plunder && (
+                            <div className="w-full p-3 bg-green-800/30 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-green-300 mb-2">Plundered Resources</h4>
+                                <div className="flex justify-center">
+                                    {renderResourceIcons(outcome.plunder)}
+                                </div>
+                            </div>
+                        )}
+                        <p className="text-gray-400 mt-4">No battle points received.</p>
+                    </div>
                 );
 
             case 'attack_village':
                 return (
-                    <>
-                        <p className={`font-bold ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className="flex flex-col items-center">
+                        <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
                             {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
                         </p>
-                        <div className="text-sm mt-2 space-y-2">
-                             <div className="p-2 bg-gray-700/50 rounded">
-                                <h4 className="font-semibold text-lg text-yellow-300">Your Attack on {defender.villageName}</h4>
-                                <p><strong>Units Sent:</strong> {renderUnitList(attacker.units)}</p>
-                                <p><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                        <div className="flex items-center justify-between w-full mb-4">
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
+                                <p className="text-sm text-gray-400">{report.originOwnerUsername || 'You'}</p>
                             </div>
-                             <div className="p-2 bg-gray-700/50 rounded">
-                                <h4 className="font-semibold text-lg text-yellow-300">Village Defence</h4>
-                                <p><strong>Defending Troops:</strong> {renderUnitList(defender.troops)}</p>
-                                <p><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                            <div className="w-1/3 text-center">
+                                <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
-                            {outcome.attackerWon && (
-                                <p className="text-green-400 font-bold">You have conquered the village!</p>
-                            )}
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{defender.villageName || 'Unknown Village'}</p>
+                                <p className="text-sm text-gray-400">Neutral</p>
+                            </div>
                         </div>
-                    </>
+
+                        <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Attacker Units</h4>
+                                {renderTroopDisplay(attacker.units)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                            </div>
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Village Troops</h4>
+                                {renderTroopDisplay(defender.troops)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                            </div>
+                        </div>
+
+                        {outcome.attackerWon && (
+                            <p className="text-green-400 font-bold mt-4">You have conquered the village!</p>
+                        )}
+                        <p className="text-gray-400 mt-4">No battle points received.</p>
+                    </div>
                 );
 
             case 'scout':
@@ -199,13 +297,17 @@ const ReportsView = ({ onClose }) => {
                     <div className="space-y-1">
                         <p className="font-bold text-blue-400">Troops Returned</p>
                         <p><strong>Surviving Units:</strong> {renderUnitList(report.units)}</p>
-                        <p><strong>Loot:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                        <p><strong>Loot:</strong> 
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {renderResourceIcons(report.resources)}
+                            </div>
+                        </p>
                     </div>
                 );
 
             case 'spy_caught':
                 return (
-                     <div className="space-y-1">
+                    <div className="space-y-1">
                         <p className="font-bold text-red-400">Spy Detected!</p>
                         <p>A spy from {report.originCityName || 'an unknown city'} was detected.</p>
                         {report.silverGained > 0 && (
@@ -230,7 +332,11 @@ const ReportsView = ({ onClose }) => {
                         <p className="font-bold text-yellow-400">Trade Complete</p>
                         <p><strong>From:</strong> {report.originCityName}</p>
                         <p><strong>To:</strong> {report.targetCityName}</p>
-                        <p><strong>Resources:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
+                        <p><strong>Resources:</strong> 
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {renderResourceIcons(report.resources)}
+                            </div>
+                        </p>
                     </div>
                 );
 
