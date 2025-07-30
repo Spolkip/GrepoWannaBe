@@ -1,21 +1,22 @@
 // src/components/CityView.js
-import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
-import SideInfoPanel from './SideInfoPanel';
-import Cityscape from './city/Cityscape';
 import CityHeader from './city/CityHeader';
 import ResourceBar from './city/ResourceBar';
 import CityModals from './city/CityModals';
+import CityViewContent from './city/CityViewContent';
 import { useCityState } from '../hooks/useCityState';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
 
-const CITYSCAPE_SIZE = 2000;
+// Removed: const CITYSCAPE_SIZE = 2000; (now only used in CityViewContent.js)
 
 const CityView = ({ showMap, worldId }) => {
     const { currentUser, userProfile } = useAuth();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
+    const [isInstantResearch, setIsInstantResearch] = useState(false);
+    const [isInstantUnits, setIsInstantUnits] = useState(false);
 
     const {
         cityGameState,
@@ -25,12 +26,12 @@ const CityView = ({ showMap, worldId }) => {
         calculateUsedPopulation,
         getProductionRates,
         getWarehouseCapacity,
-        saveGameState
-    } = useCityState(worldId, isInstantBuild);
+        saveGameState,
+        getResearchCost
+    } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
 
     const [message, setMessage] = useState('');
 
-    // Simplified modal state management
     const [modalState, setModalState] = useState({
         selectedBuildingId: null,
         isSenateViewOpen: false,
@@ -42,63 +43,10 @@ const CityView = ({ showMap, worldId }) => {
         isCheatMenuOpen: false,
     });
 
-    // FIX: Simplified and corrected modal open/close functions
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
     const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
 
-    // Panning Logic (no changes here)
-    const viewportRef = useRef(null);
-    const cityContainerRef = useRef(null);
-    const [pan, setPan] = useState({ x: 0, y: 0 });
-    const [isPanning, setIsPanning] = useState(false);
-    const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-
-    const clampPan = useCallback((newPan) => {
-        if (!viewportRef.current) return { x: 0, y: 0 };
-        const { clientWidth, clientHeight } = viewportRef.current;
-        const minX = clientWidth - CITYSCAPE_SIZE;
-        const minY = clientHeight - CITYSCAPE_SIZE;
-        return {
-            x: Math.max(minX, Math.min(0, newPan.x)),
-            y: Math.max(minY, Math.min(0, newPan.y)),
-        };
-    }, []);
-
-    useLayoutEffect(() => {
-        if (!viewportRef.current) return;
-        const { clientWidth, clientHeight } = viewportRef.current;
-        setPan(clampPan({ x: (clientWidth - CITYSCAPE_SIZE) / 2, y: (clientHeight - CITYSCAPE_SIZE) / 2 }));
-    }, [clampPan]);
-
-    useEffect(() => {
-        const container = cityContainerRef.current;
-        if (container) container.style.transform = `translate(${pan.x}px, ${pan.y}px)`;
-    }, [pan]);
-
-    const handleMouseDown = useCallback((e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        setStartPos({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-        setIsPanning(true);
-    }, [pan]);
-
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isPanning) return;
-            setPan(clampPan({ x: e.clientX - startPos.x, y: e.clientY - startPos.y }));
-        };
-        const handleMouseUp = () => setIsPanning(false);
-        if (isPanning) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isPanning, startPos, clampPan]);
-
-    // Action Handlers
+    // Action Handlers (these remain in CityView as they interact with overall game state)
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
@@ -112,15 +60,13 @@ const CityView = ({ showMap, worldId }) => {
 
         const building = currentState.buildings[buildingId] || { level: 0 };
 
-        // Determine the effective current level for queuing purposes
-        // This finds the highest level currently built or already in the queue for this building type
         let effectiveCurrentLevel = building.level;
         currentQueue.forEach(task => {
             if (task.buildingId === buildingId && task.level > effectiveCurrentLevel) {
                 effectiveCurrentLevel = task.level;
             }
         });
-        const nextLevelToQueue = effectiveCurrentLevel + 1; // This is the level for the new queue item
+        const nextLevelToQueue = effectiveCurrentLevel + 1;
 
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
@@ -142,7 +88,7 @@ const CityView = ({ showMap, worldId }) => {
             let lastEndTime = Date.now();
             if (currentQueue.length > 0) {
                 const lastQueueItem = currentQueue[currentQueue.length - 1];
-                if (lastQueueItem.endTime) { // Ensure endTime exists before accessing properties
+                if (lastQueueItem.endTime) {
                     lastEndTime = lastQueueItem.endTime.toDate
                         ? lastQueueItem.endTime.toDate().getTime()
                         : new Date(lastQueueItem.endTime).getTime();
@@ -153,7 +99,7 @@ const CityView = ({ showMap, worldId }) => {
 
             const newQueueItem = {
                 buildingId,
-                level: nextLevelToQueue, // Use the calculated next level
+                level: nextLevelToQueue,
                 endTime: endTime,
             };
 
@@ -162,11 +108,13 @@ const CityView = ({ showMap, worldId }) => {
             try {
                 await saveGameState(newGameState);
                 setCityGameState(newGameState);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Error adding to build queue:", error);
                 setMessage("Could not start upgrade. Please try again.");
             }
-        } else {
+        }
+        else {
             setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
         }
     };
@@ -215,22 +163,19 @@ const CityView = ({ showMap, worldId }) => {
             return;
         }
 
-        const research = researchConfig[researchId];
-        const { cost, requirements } = research;
+        const researchData = researchConfig[researchId];
+        const { cost, requirements } = researchData;
 
-        // Check if research is already completed
         if (currentState.research[researchId]) {
             setMessage("Research already completed.");
             return;
         }
 
-        // Check if research is already in queue
         if (currentQueue.some(item => item.researchId === researchId)) {
             setMessage("Research is already in the queue.");
             return;
         }
 
-        // Check requirements
         if (requirements.academy && currentState.buildings.academy.level < requirements.academy) {
             setMessage(`Requires Academy Level ${requirements.academy}.`);
             return;
@@ -240,7 +185,6 @@ const CityView = ({ showMap, worldId }) => {
             return;
         }
 
-        // Check resources
         if (
             currentState.resources.wood < cost.wood ||
             currentState.resources.stone < cost.stone ||
@@ -264,7 +208,8 @@ const CityView = ({ showMap, worldId }) => {
                     : new Date(lastQueueItem.endTime).getTime();
             }
         }
-        const endTime = new Date(lastEndTime + cost.time * 1000);
+        const researchTime = getResearchCost(researchId).time;
+        const endTime = new Date(lastEndTime + researchTime * 1000);
 
         const newQueueItem = {
             researchId,
@@ -276,8 +221,9 @@ const CityView = ({ showMap, worldId }) => {
         try {
             await saveGameState(newGameState);
             setCityGameState(newGameState);
-            setMessage(`Research for "${research.name}" started.`);
-        } catch (error) {
+            setMessage(`Research for "${researchData.name}" started.`);
+        }
+        catch (error) {
             console.error("Error starting research:", error);
             setMessage("Could not start research. Please try again.");
         }
@@ -291,49 +237,79 @@ const CityView = ({ showMap, worldId }) => {
 
         const newQueue = [...currentState.researchQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
-        const research = researchConfig[canceledTask.researchId];
+        const researchData = researchConfig[canceledTask.researchId];
 
-        // Refund resources for the canceled research
         const newResources = {
             ...currentState.resources,
-            wood: currentState.resources.wood + research.cost.wood,
-            stone: currentState.resources.stone + research.cost.stone,
-            silver: currentState.resources.silver + research.cost.silver,
+            wood: currentState.resources.wood + researchData.cost.wood,
+            stone: currentState.resources.stone + researchData.cost.stone,
+            silver: currentState.resources.silver + researchData.cost.silver,
         };
 
-        // Recalculate end times for remaining items in the queue
         for (let i = itemIndex; i < newQueue.length; i++) {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
 
             const taskToUpdate = newQueue[i];
-            const taskResearch = researchConfig[taskToUpdate.researchId];
-            const newEndTime = new Date(previousTaskEndTime + taskResearch.cost.time * 1000);
+            const taskResearchTime = getResearchCost(taskToUpdate.researchId).time;
+            const newEndTime = new Date(previousTaskEndTime + taskResearchTime * 1000);
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
 
         const newGameState = { ...currentState, resources: newResources, researchQueue: newQueue };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
-        setMessage(`Research for "${research.name}" canceled and resources refunded.`);
+        setMessage(`Research for "${researchData.name}" canceled and resources refunded.`);
     };
 
+    const handleCancelTrain = async (itemIndex) => {
+        const currentState = cityGameState;
+        if (!currentState || !currentState.unitQueue || itemIndex < 0 || itemIndex >= currentState.unitQueue.length) {
+            return;
+        }
+
+        const newQueue = [...currentState.unitQueue];
+        const canceledTask = newQueue.splice(itemIndex, 1)[0];
+        const unit = unitConfig[canceledTask.unitId];
+
+        const newResources = {
+            ...currentState.resources,
+            wood: currentState.resources.wood + (unit.cost.wood * canceledTask.amount),
+            stone: currentState.resources.stone + (unit.cost.stone * canceledTask.amount),
+            silver: currentState.resources.silver + (unit.cost.silver * canceledTask.amount),
+        };
+
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const newEndTime = new Date(previousTaskEndTime + (isInstantUnits ? 1 : taskUnit.cost.time * taskToUpdate.amount) * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+
+        const newGameState = { ...currentState, resources: newResources, unitQueue: newQueue };
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage(`Training for ${canceledTask.amount} ${unit.name}s canceled and resources refunded.`);
+    };
 
     const handleTrainTroops = async (unitId, amount) => {
-        const currentState = cityGameState; // Access directly from state or prop
+        const currentState = cityGameState;
         if (!currentState || !worldId || amount <= 0) return;
 
         const currentQueue = currentState.unitQueue || [];
 
         if (currentQueue.length >= 5) {
-            setMessage("Unit training queue is full (max 5)."); // Specific message for unit queue
+            setMessage("Unit training queue is full (max 5).");
             return;
         }
 
         const unit = unitConfig[unitId];
 
-        // Calculate total cost for the current training batch
         const totalCost = {
             wood: unit.cost.wood * amount,
             stone: unit.cost.stone * amount,
@@ -341,7 +317,6 @@ const CityView = ({ showMap, worldId }) => {
             population: unit.cost.population * amount,
         };
 
-        // Determine effective used population including units currently training
         let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
         currentQueue.forEach(task => {
             effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
@@ -381,8 +356,8 @@ const CityView = ({ showMap, worldId }) => {
                 }
             }
 
-            const trainingTime = unit.cost.time * amount; // Total time for this batch of units
-            const endTime = new Date(lastEndTime + trainingTime * 1000);
+            const trainingTime = unit.cost.time * amount;
+            const endTime = new Date(lastEndTime + (isInstantUnits ? 1 : trainingTime) * 1000);
 
             const newQueueItem = {
                 unitId,
@@ -394,9 +369,10 @@ const CityView = ({ showMap, worldId }) => {
 
             try {
                 await saveGameState(newGameState);
-                setCityGameState(newGameState); // Optimistically update UI
+                setCityGameState(newGameState);
                 setMessage(`Training ${amount} ${unit.name}s.`);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Error adding to unit queue:", error);
                 setMessage("Could not start training. Please try again.");
             }
@@ -419,9 +395,12 @@ const CityView = ({ showMap, worldId }) => {
         closeModal('isTempleMenuOpen');
     };
 
-    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild) => {
+    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits) => {
         if (!cityGameState || !userProfile?.is_admin) return;
         setIsInstantBuild(instantBuild);
+        setIsInstantResearch(instantResearch);
+        setIsInstantUnits(instantUnits);
+
         const newGameState = { ...cityGameState };
         newGameState.resources.wood += amounts.wood;
         newGameState.resources.stone += amounts.stone;
@@ -436,11 +415,18 @@ const CityView = ({ showMap, worldId }) => {
         if (warehouseLevels > 0) {
             newGameState.buildings.warehouse.level += warehouseLevels;
         }
+        // Handle unresearching
+        if (unresearchId && newGameState.research[unresearchId]) {
+            delete newGameState.research[unresearchId];
+            setMessage(`Research "${researchConfig[unresearchId]?.name}" unreasearched!`);
+        } else if (unresearchId) {
+            setMessage(`Research "${researchConfig[unresearchId]?.name}" is not researched.`);
+        }
+
         await saveGameState(newGameState);
         setMessage("Admin cheat applied!");
     };
 
-    // Updated to use the new modal functions with direct keys
     const handlePlotClick = (buildingId) => {
         const buildingData = cityGameState.buildings[buildingId];
         if (!buildingData || buildingData.level === 0) {
@@ -486,13 +472,10 @@ const CityView = ({ showMap, worldId }) => {
                 availablePopulation={availablePopulation}
             />
 
-            <main className="flex-grow w-full h-full relative overflow-hidden cursor-grab" ref={viewportRef} onMouseDown={handleMouseDown}>
-                <div ref={cityContainerRef} style={{ transformOrigin: '0 0' }}>
-                    <Cityscape buildings={cityGameState.buildings} onBuildingClick={handlePlotClick} />
-                </div>
-            </main>
-
-            <SideInfoPanel gameState={cityGameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" />
+            <CityViewContent
+                cityGameState={cityGameState}
+                handlePlotClick={handlePlotClick}
+            />
 
             <CityModals
                 cityGameState={cityGameState}
@@ -509,9 +492,9 @@ const CityView = ({ showMap, worldId }) => {
                 handleUpgrade={handleUpgrade}
                 handleCancelBuild={handleCancelBuild}
                 handleTrainTroops={handleTrainTroops}
-                handleCancelTrain={handleCancelTrain} // Pass new handler here
+                handleCancelTrain={handleCancelTrain}
                 handleStartResearch={handleStartResearch}
-                handleCancelResearch={handleCancelResearch} // Pass new handler here
+                handleCancelResearch={handleCancelResearch}
                 handleWorshipGod={handleWorshipGod}
                 handleCheat={handleCheat}
                 modalState={modalState}

@@ -2,9 +2,7 @@ Ruins around the world to give you hidden researches.
 
 Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
 
-Alliances with researches and stuff to give more teamwork
-
-Researches on the academy.
+Alliances with researches and stuff to give more teamwork, add research menu, allies, enemies etc
 
 Settings remove visuals and grid
 
@@ -33,3 +31,7 @@ add cities inside the island
 when you attack the villages remove the naval.
 
 add on villages trades as well
+
+do the spells and mythics troops of the gods
+
+make it so you can conquer other cities

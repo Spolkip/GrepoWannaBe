@@ -1,3 +1,5 @@
+// src/hooks/useCityState.js
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -8,7 +10,7 @@ import researchConfig from '../gameData/research.json'; // Import research confi
 
 const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
 
-export const useCityState = (worldId, isInstantBuild) => {
+export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => { // Added isInstantResearch, isInstantUnits
     const { currentUser } = useAuth();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
@@ -58,6 +60,18 @@ export const useCityState = (worldId, isInstantBuild) => {
         };
     }, [isInstantBuild]);
     
+    // New function to get research cost and time
+    const getResearchCost = useCallback((researchId) => {
+        const research = researchConfig[researchId];
+        if (!research) return null;
+        return {
+            wood: research.cost.wood,
+            stone: research.cost.stone,
+            silver: research.cost.silver,
+            time: isInstantResearch ? 1 : research.cost.time, // Apply instant research
+        };
+    }, [isInstantResearch]); // Dependency on the new prop
+
     const calculateUsedPopulation = useCallback((buildings, units) => {
         let used = 0;
         if (buildings) {
@@ -165,7 +179,7 @@ export const useCityState = (worldId, isInstantBuild) => {
             if (!currentUser || !worldId || (!currentState?.buildQueue?.length && !currentState?.unitQueue?.length && !currentState?.researchQueue?.length)) return; // Check all queues
 
             const now = Date.now();
-            let stateChanged = false;
+            // Removed stateChanged as it's no longer used.
 
             // Process Build Queue
             if (currentState.buildQueue && currentState.buildQueue.length > 0) {
@@ -192,7 +206,7 @@ export const useCityState = (worldId, isInstantBuild) => {
                             buildQueue: remainingBuildQueue,
                             lastUpdated: now
                         }, { merge: true });
-                        stateChanged = true;
+                        // Removed stateChanged = true;
                     } catch (error) {
                         console.error("Error completing build task(s):", error);
                     }
@@ -224,7 +238,7 @@ export const useCityState = (worldId, isInstantBuild) => {
                             unitQueue: remainingUnitQueue,
                             lastUpdated: now
                         }, { merge: true });
-                        stateChanged = true;
+                        // Removed stateChanged = true;
                     } catch (error) {
                         console.error("Error completing unit training task(s):", error);
                     }
@@ -256,7 +270,7 @@ export const useCityState = (worldId, isInstantBuild) => {
                             researchQueue: remainingResearchQueue,
                             lastUpdated: now
                         }, { merge: true });
-                        stateChanged = true;
+                        // Removed stateChanged = true;
                     } catch (error) {
                         console.error("Error completing research task(s):", error);
                     }
@@ -282,6 +296,7 @@ export const useCityState = (worldId, isInstantBuild) => {
         getWarehouseCapacity,
         getProductionRates,
         calculateUsedPopulation,
-        saveGameState 
+        saveGameState,
+        getResearchCost // Export the new function
     };
 };

@@ -1,3 +1,4 @@
+// src/components/city/CityModals.js
 import React from 'react';
 
 import AdminCheatMenu from './AdminCheatMenu';
@@ -7,7 +8,7 @@ import BuildingDetailsModal from './BuildingDetailsModal';
 import SenateView from './SenateView';
 import TempleMenu from './TempleMenu';
 import CaveMenu from './CaveMenu';
-import AcademyMenu from './AcademyMenu';
+import { AcademyMenu } from './AcademyMenu'; // Changed to named import
 
 const CityModals = ({
   cityGameState,

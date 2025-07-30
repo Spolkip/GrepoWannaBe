@@ -4,11 +4,11 @@ import researchConfig from '../../gameData/research.json';
 import ResearchQueue from './ResearchQueue'; // Import the new ResearchQueue
 
 const formatTime = (seconds) => {
-    if (seconds < 60) return `${Math.floor(seconds)}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ${Math.floor(seconds % 60)}s`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m`;
+    if (seconds < 0) seconds = 0;
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
 };
 
 const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCancelResearch }) => { // Add researchQueue and onCancelResearch to props
@@ -81,7 +81,7 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
                                 </div>
                                 <div className="w-1/4 ml-4">
                                     {button}
-                                </div>
+                                </div> {/* Closing div tag added here, the extra '}' was removed */}
                             </div>
                         );
                     })}
@@ -91,4 +91,4 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
     );
 };
 
-export default AcademyMenu;
+export { AcademyMenu };

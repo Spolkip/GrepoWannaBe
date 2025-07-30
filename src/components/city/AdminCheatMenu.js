@@ -1,14 +1,20 @@
+// src/components/city/AdminCheatMenu.js
 import React, { useState } from 'react';
 import unitConfig from '../../gameData/units.json';
+import researchConfig from '../../gameData/research.json'; // Import research config
 
 const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
     const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0, population: 0 });
     const [troop, setTroop] = useState({ unit: 'swordsman', amount: 0 });
     const [warehouseLevels, setWarehouseLevels] = useState(0);
     const [instantBuild, setInstantBuild] = useState(isInstantBuildActive);
+    const [unresearchId, setUnresearchId] = useState(''); // New state for unresearch
+    const [isInstantResearch, setIsInstantResearch] = useState(false); // New state for instant research
+    const [isInstantUnits, setIsInstantUnits] = useState(false); // New state for instant units
+
 
     const handleCheat = () => {
-        onCheat(amounts, troop, warehouseLevels, instantBuild);
+        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits); // Pass new values
         onClose();
     };
 
@@ -55,6 +61,23 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
                             className="bg-gray-700 text-white rounded p-2 w-32"
                         />
                     </div>
+                    {/* New Cheat: Unresearch Option */}
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-600">
+                        <label htmlFor="unresearch" className="text-white">Unresearch:</label>
+                        <select
+                            id="unresearch"
+                            value={unresearchId}
+                            onChange={(e) => setUnresearchId(e.target.value)}
+                            className="bg-gray-700 text-white rounded p-2 w-40"
+                        >
+                            <option value="">Select Research</option>
+                            {Object.keys(researchConfig).map(researchKey => (
+                                <option key={researchKey} value={researchKey}>
+                                    {researchConfig[researchKey].name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     {/* New Checkbox for Instant Build */}
                     <div className="flex justify-between items-center pt-4 border-t border-gray-600">
                         <label htmlFor="instantBuild" className="text-white capitalize">1-Second Builds</label>
@@ -63,6 +86,28 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
                             type="checkbox"
                             checked={instantBuild}
                             onChange={(e) => setInstantBuild(e.target.checked)}
+                            className="w-6 h-6 rounded"
+                        />
+                    </div>
+                    {/* New Checkbox for Instant Research */}
+                    <div className="flex justify-between items-center">
+                        <label htmlFor="instantResearch" className="text-white capitalize">1-Second Research</label>
+                        <input
+                            id="instantResearch"
+                            type="checkbox"
+                            checked={isInstantResearch}
+                            onChange={(e) => setIsInstantResearch(e.target.checked)}
+                            className="w-6 h-6 rounded"
+                        />
+                    </div>
+                    {/* New Checkbox for Instant Units */}
+                    <div className="flex justify-between items-center">
+                        <label htmlFor="instantUnits" className="text-white capitalize">1-Second Units</label>
+                        <input
+                            id="instantUnits"
+                            type="checkbox"
+                            checked={isInstantUnits}
+                            onChange={(e) => setIsInstantUnits(e.target.checked)}
                             className="w-6 h-6 rounded"
                         />
                     </div>
