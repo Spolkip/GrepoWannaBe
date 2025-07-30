@@ -4,6 +4,7 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
+import researchConfig from '../gameData/research.json'; // Import research config
 
 const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
 
@@ -89,6 +90,18 @@ export const useCityState = (worldId, isInstantBuild) => {
                     endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
                 }));
             }
+            if (dataToSave.unitQueue) {
+                dataToSave.unitQueue = dataToSave.unitQueue.map(task => ({
+                    ...task,
+                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
+                }));
+            }
+            if (dataToSave.researchQueue) { // Add researchQueue to save logic
+                dataToSave.researchQueue = dataToSave.researchQueue.map(task => ({
+                    ...task,
+                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
+                }));
+            }
             await setDoc(gameDocRef, dataToSave, { merge: true });
         } catch (error) {
             console.error('Failed to save game state:', error);
@@ -107,6 +120,8 @@ export const useCityState = (worldId, isInstantBuild) => {
                 if (!data.research) data.research = {};
                 if (!data.buildings.cave) data.buildings.cave = { level: 1 };
                 if (!data.buildQueue) data.buildQueue = [];
+                if (!data.unitQueue) data.unitQueue = [];
+                if (!data.researchQueue) data.researchQueue = []; // Initialize researchQueue
 
                 setCityGameState(data);
             }
@@ -147,34 +162,104 @@ export const useCityState = (worldId, isInstantBuild) => {
     useEffect(() => {
         const processQueue = async () => {
             const currentState = gameStateRef.current;
-            if (!currentUser || !worldId || !currentState?.buildQueue?.length) return;
+            if (!currentUser || !worldId || (!currentState?.buildQueue?.length && !currentState?.unitQueue?.length && !currentState?.researchQueue?.length)) return; // Check all queues
 
             const now = Date.now();
-            const completedTasks = [];
-            const remainingQueue = [];
+            let stateChanged = false;
 
-            currentState.buildQueue.forEach(task => {
-                const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
-                if (endTime > 0 && now >= endTime) {
-                    completedTasks.push(task);
-                } else {
-                    remainingQueue.push(task);
-                }
-            });
+            // Process Build Queue
+            if (currentState.buildQueue && currentState.buildQueue.length > 0) {
+                const completedBuildTasks = [];
+                const remainingBuildQueue = [];
 
-            if (completedTasks.length > 0) {
-                const newBuildings = { ...currentState.buildings };
-                completedTasks.forEach(task => {
-                    newBuildings[task.buildingId].level = task.level;
+                currentState.buildQueue.forEach(task => {
+                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
+                    if (endTime > 0 && now >= endTime) {
+                        completedBuildTasks.push(task);
+                    } else {
+                        remainingBuildQueue.push(task);
+                    }
                 });
-                try {
-                    await setDoc(getGameDocRef(currentUser.uid, worldId), {
-                        buildings: newBuildings,
-                        buildQueue: remainingQueue,
-                        lastUpdated: now
-                    }, { merge: true });
-                } catch (error) {
-                    console.error("Error completing build task(s):", error);
+
+                if (completedBuildTasks.length > 0) {
+                    const newBuildings = { ...currentState.buildings };
+                    completedBuildTasks.forEach(task => {
+                        newBuildings[task.buildingId].level = task.level;
+                    });
+                    try {
+                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
+                            buildings: newBuildings,
+                            buildQueue: remainingBuildQueue,
+                            lastUpdated: now
+                        }, { merge: true });
+                        stateChanged = true;
+                    } catch (error) {
+                        console.error("Error completing build task(s):", error);
+                    }
+                }
+            }
+
+            // Process Unit Queue
+            if (currentState.unitQueue && currentState.unitQueue.length > 0) {
+                const completedUnitTasks = [];
+                const remainingUnitQueue = [];
+
+                currentState.unitQueue.forEach(task => {
+                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
+                    if (endTime > 0 && now >= endTime) {
+                        completedUnitTasks.push(task);
+                    } else {
+                        remainingUnitQueue.push(task);
+                    }
+                });
+
+                if (completedUnitTasks.length > 0) {
+                    const newUnits = { ...currentState.units };
+                    completedUnitTasks.forEach(task => {
+                        newUnits[task.unitId] = (newUnits[task.unitId] || 0) + task.amount;
+                    });
+                    try {
+                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
+                            units: newUnits,
+                            unitQueue: remainingUnitQueue,
+                            lastUpdated: now
+                        }, { merge: true });
+                        stateChanged = true;
+                    } catch (error) {
+                        console.error("Error completing unit training task(s):", error);
+                    }
+                }
+            }
+
+            // Process Research Queue (NEW)
+            if (currentState.researchQueue && currentState.researchQueue.length > 0) {
+                const completedResearchTasks = [];
+                const remainingResearchQueue = [];
+
+                currentState.researchQueue.forEach(task => {
+                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
+                    if (endTime > 0 && now >= endTime) {
+                        completedResearchTasks.push(task);
+                    } else {
+                        remainingResearchQueue.push(task);
+                    }
+                });
+
+                if (completedResearchTasks.length > 0) {
+                    const newResearch = { ...currentState.research };
+                    completedResearchTasks.forEach(task => {
+                        newResearch[task.researchId] = true; // Mark research as completed
+                    });
+                    try {
+                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
+                            research: newResearch,
+                            researchQueue: remainingResearchQueue,
+                            lastUpdated: now
+                        }, { merge: true });
+                        stateChanged = true;
+                    } catch (error) {
+                        console.error("Error completing research task(s):", error);
+                    }
                 }
             }
         };
@@ -189,7 +274,6 @@ export const useCityState = (worldId, isInstantBuild) => {
         return () => clearInterval(saveInterval);
     }, [saveGameState]);
 
-    // FIX: Added getProductionRates and getWarehouseCapacity to the return object
     return { 
         cityGameState, 
         setCityGameState, 

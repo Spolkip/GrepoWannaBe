@@ -25,3 +25,11 @@ Remake movement tab
 Remake movement and report window report
 
 Add population to resource buildings to produce more resources
+
+Make the travel time smaller, a lot smaller for scouting and trading
+
+add cities inside the island
+
+when you attack the villages remove the naval.
+
+add on villages trades as well

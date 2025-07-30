@@ -1,8 +1,17 @@
+// src/components/city/BarracksMenu.js
 import React, { useState } from 'react';
 import unitConfig from '../../gameData/units.json';
+import UnitQueue from './UnitQueue'; // Import the new UnitQueue component
 
-const BarracksMenu = ({ resources, availablePopulation, onTrain, onClose, buildings }) => {
+const BarracksMenu = ({ resources, availablePopulation, onTrain, onClose, buildings, unitQueue, onCancelTrain }) => { // Add unitQueue and onCancelTrain to props
     const [trainAmount, setTrainAmount] = useState({});
+
+    // Add this helper function to calculate currently queued population for a unit type
+    const getPopulationInQueue = (unitId) => {
+        return (unitQueue || []).reduce((sum, item) => {
+            return item.unitId === unitId ? sum + (unitConfig[item.unitId]?.cost.population || 0) * item.amount : sum;
+        }, 0);
+    };
 
     const handleAmountChange = (unitId, amount) => {
         const newAmount = Math.max(0, parseInt(amount, 10) || 0);
@@ -16,6 +25,8 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onClose, buildi
                     <h3 className="font-title text-3xl text-white">Train Land Troops</h3>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
+                {/* Render the UnitQueue here */}
+                <UnitQueue unitQueue={unitQueue} onCancel={onCancelTrain} /> 
                 <div className="space-y-4">
                     {Object.keys(unitConfig).filter(unitId => unitConfig[unitId].type === 'land').map(unitId => {
                         const unit = unitConfig[unitId];
@@ -26,10 +37,13 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onClose, buildi
                             silver: unit.cost.silver * amount,
                             population: unit.cost.population * amount,
                         };
+                        // Also consider units already in training when checking available population
+                        const currentUnitPopulationInQueue = getPopulationInQueue(unitId);
                         const canAfford = resources.wood >= totalCost.wood &&
                                         resources.stone >= totalCost.stone &&
                                         resources.silver >= totalCost.silver &&
-                                        availablePopulation >= totalCost.population;
+                                        (availablePopulation - currentUnitPopulationInQueue) >= totalCost.population;
+
                         return (
                             <div key={unitId} className="bg-gray-700 p-4 rounded-lg">
                                 <p className="font-bold text-lg text-white">{unit.name}</p>
@@ -44,10 +58,10 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onClose, buildi
                                     />
                                     <button
                                         onClick={() => onTrain(unitId, amount)}
-                                        disabled={!canAfford || amount === 0}
-                                        className={`py-2 px-4 text-sm rounded-lg btn ${canAfford && amount > 0 ? 'btn-upgrade' : 'btn-disabled'}`}
+                                        disabled={!canAfford || amount === 0 || unitQueue.length >= 5} // Disable if queue is full
+                                        className={`py-2 px-4 text-sm rounded-lg btn ${canAfford && amount > 0 && unitQueue.length < 5 ? 'btn-upgrade' : 'btn-disabled'}`}
                                     >
-                                        Train
+                                        {unitQueue.length >= 5 ? 'Queue Full' : 'Train'}
                                     </button>
                                 </div>
                             </div>

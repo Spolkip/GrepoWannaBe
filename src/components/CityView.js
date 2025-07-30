@@ -98,7 +98,7 @@ const CityView = ({ showMap, worldId }) => {
         };
     }, [isPanning, startPos, clampPan]);
 
-    // Action Handlers (no changes here)
+    // Action Handlers
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
@@ -205,79 +205,201 @@ const CityView = ({ showMap, worldId }) => {
     };
 
     const handleStartResearch = async (researchId) => {
-        if (!cityGameState || !researchConfig[researchId]) return;
+        const currentState = cityGameState;
+        if (!currentState || !researchConfig[researchId]) return;
+
+        const currentQueue = currentState.researchQueue || [];
+
+        if (currentQueue.length >= 5) {
+            setMessage("Research queue is full (max 5).");
+            return;
+        }
 
         const research = researchConfig[researchId];
         const { cost, requirements } = research;
 
-        if (requirements.academy && cityGameState.buildings.academy.level < requirements.academy) {
-            setMessage(`Requires Academy Level ${requirements.academy}.`);
-            return;
-        }
-        if (requirements.research && !cityGameState.research[requirements.research]) {
-            setMessage(`Requires ${researchConfig[requirements.research].name} research first.`);
-            return;
-        }
-        if (cityGameState.research[researchId]) {
-            setMessage("Already researched.");
+        // Check if research is already completed
+        if (currentState.research[researchId]) {
+            setMessage("Research already completed.");
             return;
         }
 
+        // Check if research is already in queue
+        if (currentQueue.some(item => item.researchId === researchId)) {
+            setMessage("Research is already in the queue.");
+            return;
+        }
+
+        // Check requirements
+        if (requirements.academy && currentState.buildings.academy.level < requirements.academy) {
+            setMessage(`Requires Academy Level ${requirements.academy}.`);
+            return;
+        }
+        if (requirements.research && !currentState.research[requirements.research]) {
+            setMessage(`Requires "${researchConfig[requirements.research].name}" research first.`);
+            return;
+        }
+
+        // Check resources
         if (
-            cityGameState.resources.wood < cost.wood ||
-            cityGameState.resources.stone < cost.stone ||
-            cityGameState.resources.silver < cost.silver
+            currentState.resources.wood < cost.wood ||
+            currentState.resources.stone < cost.stone ||
+            currentState.resources.silver < cost.silver
         ) {
             setMessage("Not enough resources to start research.");
             return;
         }
 
-        const newGameState = { ...cityGameState };
+        const newGameState = JSON.parse(JSON.stringify(currentState));
         newGameState.resources.wood -= cost.wood;
         newGameState.resources.stone -= cost.stone;
         newGameState.resources.silver -= cost.silver;
-        newGameState.research[researchId] = true;
 
-        await saveGameState(newGameState);
-        setCityGameState(newGameState);
+        let lastEndTime = Date.now();
+        if (currentQueue.length > 0) {
+            const lastQueueItem = currentQueue[currentQueue.length - 1];
+            if (lastQueueItem.endTime) {
+                lastEndTime = lastQueueItem.endTime.toDate
+                    ? lastQueueItem.endTime.toDate().getTime()
+                    : new Date(lastQueueItem.endTime).getTime();
+            }
+        }
+        const endTime = new Date(lastEndTime + cost.time * 1000);
+
+        const newQueueItem = {
+            researchId,
+            endTime: endTime,
+        };
+
+        newGameState.researchQueue = [...currentQueue, newQueueItem];
+
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+            setMessage(`Research for "${research.name}" started.`);
+        } catch (error) {
+            console.error("Error starting research:", error);
+            setMessage("Could not start research. Please try again.");
+        }
     };
 
+    const handleCancelResearch = async (itemIndex) => {
+        const currentState = cityGameState;
+        if (!currentState || !currentState.researchQueue || itemIndex < 0 || itemIndex >= currentState.researchQueue.length) {
+            return;
+        }
+
+        const newQueue = [...currentState.researchQueue];
+        const canceledTask = newQueue.splice(itemIndex, 1)[0];
+        const research = researchConfig[canceledTask.researchId];
+
+        // Refund resources for the canceled research
+        const newResources = {
+            ...currentState.resources,
+            wood: currentState.resources.wood + research.cost.wood,
+            stone: currentState.resources.stone + research.cost.stone,
+            silver: currentState.resources.silver + research.cost.silver,
+        };
+
+        // Recalculate end times for remaining items in the queue
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+
+            const taskToUpdate = newQueue[i];
+            const taskResearch = researchConfig[taskToUpdate.researchId];
+            const newEndTime = new Date(previousTaskEndTime + taskResearch.cost.time * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+
+        const newGameState = { ...currentState, resources: newResources, researchQueue: newQueue };
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage(`Research for "${research.name}" canceled and resources refunded.`);
+    };
+
+
     const handleTrainTroops = async (unitId, amount) => {
-        if (!cityGameState || !worldId || amount <= 0) return;
+        const currentState = cityGameState; // Access directly from state or prop
+        if (!currentState || !worldId || amount <= 0) return;
+
+        const currentQueue = currentState.unitQueue || [];
+
+        if (currentQueue.length >= 5) {
+            setMessage("Unit training queue is full (max 5)."); // Specific message for unit queue
+            return;
+        }
+
         const unit = unitConfig[unitId];
+
+        // Calculate total cost for the current training batch
         const totalCost = {
             wood: unit.cost.wood * amount,
             stone: unit.cost.stone * amount,
             silver: unit.cost.silver * amount,
             population: unit.cost.population * amount,
         };
-        const currentUsedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
-        const maxPopulation = getFarmCapacity(cityGameState.buildings.farm.level);
-        const availablePopulation = maxPopulation - currentUsedPopulation;
 
-        if (unit.type === 'naval' && (!cityGameState.buildings.shipyard || cityGameState.buildings.shipyard.level === 0)) {
+        // Determine effective used population including units currently training
+        let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+        currentQueue.forEach(task => {
+            effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
+        });
+
+        const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
+        const availablePopulation = maxPopulation - effectiveUsedPopulation;
+
+        if (unit.type === 'naval' && (!currentState.buildings.shipyard || currentState.buildings.shipyard.level === 0)) {
             setMessage("Naval units can only be built in the Shipyard.");
             return;
         }
-        if (unit.type === 'land' && (!cityGameState.buildings.barracks || cityGameState.buildings.barracks.level === 0)) {
+        if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0)) {
             setMessage("Land units can only be trained in the Barracks.");
             return;
         }
 
         if (
-            cityGameState.resources.wood >= totalCost.wood &&
-            cityGameState.resources.stone >= totalCost.stone &&
-            cityGameState.resources.silver >= totalCost.silver &&
+            currentState.resources.wood >= totalCost.wood &&
+            currentState.resources.stone >= totalCost.stone &&
+            currentState.resources.silver >= totalCost.silver &&
             availablePopulation >= totalCost.population
         ) {
-            const newGameState = { ...cityGameState };
+            const newGameState = JSON.parse(JSON.stringify(currentState));
+
             newGameState.resources.wood -= totalCost.wood;
             newGameState.resources.stone -= totalCost.stone;
             newGameState.resources.silver -= totalCost.silver;
-            if (!newGameState.units) newGameState.units = {};
-            newGameState.units[unitId] = (newGameState.units[unitId] || 0) + amount;
-            await saveGameState(newGameState);
-            setCityGameState(newGameState);
+
+            let lastEndTime = Date.now();
+            if (currentQueue.length > 0) {
+                const lastQueueItem = currentQueue[currentQueue.length - 1];
+                if (lastQueueItem.endTime) {
+                    lastEndTime = lastQueueItem.endTime.toDate
+                        ? lastQueueItem.endTime.toDate().getTime()
+                        : new Date(lastQueueItem.endTime).getTime();
+                }
+            }
+
+            const trainingTime = unit.cost.time * amount; // Total time for this batch of units
+            const endTime = new Date(lastEndTime + trainingTime * 1000);
+
+            const newQueueItem = {
+                unitId,
+                amount,
+                endTime: endTime,
+            };
+
+            newGameState.unitQueue = [...currentQueue, newQueueItem];
+
+            try {
+                await saveGameState(newGameState);
+                setCityGameState(newGameState); // Optimistically update UI
+                setMessage(`Training ${amount} ${unit.name}s.`);
+            } catch (error) {
+                console.error("Error adding to unit queue:", error);
+                setMessage("Could not start training. Please try again.");
+            }
         } else {
             setMessage(availablePopulation < totalCost.population ? 'Not enough available population!' : 'Not enough resources to train troops!');
         }
@@ -318,7 +440,7 @@ const CityView = ({ showMap, worldId }) => {
         setMessage("Admin cheat applied!");
     };
 
-    // FIX: Updated to use the new modal functions with direct keys
+    // Updated to use the new modal functions with direct keys
     const handlePlotClick = (buildingId) => {
         const buildingData = cityGameState.buildings[buildingId];
         if (!buildingData || buildingData.level === 0) {
@@ -387,7 +509,9 @@ const CityView = ({ showMap, worldId }) => {
                 handleUpgrade={handleUpgrade}
                 handleCancelBuild={handleCancelBuild}
                 handleTrainTroops={handleTrainTroops}
+                handleCancelTrain={handleCancelTrain} // Pass new handler here
                 handleStartResearch={handleStartResearch}
+                handleCancelResearch={handleCancelResearch} // Pass new handler here
                 handleWorshipGod={handleWorshipGod}
                 handleCheat={handleCheat}
                 modalState={modalState}

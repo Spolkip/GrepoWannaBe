@@ -24,7 +24,9 @@ const CityModals = ({
   handleUpgrade,
   handleCancelBuild,
   handleTrainTroops,
+  handleCancelTrain, // Added here
   handleStartResearch,
+  handleCancelResearch, // Added here
   handleWorshipGod,
   handleCheat,
   modalState,
@@ -82,6 +84,8 @@ const CityModals = ({
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isBarracksMenuOpen')}
           buildings={cityGameState.buildings}
+          unitQueue={cityGameState.unitQueue}
+          onCancelTrain={handleCancelTrain}
         />
       )}
       {isShipyardMenuOpen && (
@@ -91,6 +95,8 @@ const CityModals = ({
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isShipyardMenuOpen')}
           buildings={cityGameState.buildings}
+          unitQueue={cityGameState.unitQueue}
+          onCancelTrain={handleCancelTrain}
         />
       )}
       {isTempleMenuOpen && (
@@ -106,6 +112,8 @@ const CityModals = ({
           cityGameState={cityGameState}
           onResearch={handleStartResearch}
           onClose={() => closeModal('isAcademyMenuOpen')}
+          researchQueue={cityGameState.researchQueue} // Pass researchQueue
+          onCancelResearch={handleCancelResearch} // Pass cancel handler
         />
       )}
       {isCaveMenuOpen && (
