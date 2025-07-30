@@ -15,6 +15,7 @@ import MapGrid from './map/MapGrid';
 import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import AllianceModal from './map/AllianceModal';
+import SettingsModal from './shared/SettingsModal'; // Import SettingsModal
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -28,11 +29,13 @@ import { getVillageTroops } from '../utils/combat';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame(); // <-- Added conqueredVillages
+    const { worldState, gameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for settings modal
+    const [gameSettings, setGameSettings] = useState({ animations: true, confirmActions: true }); // New state for game settings
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
@@ -141,7 +144,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         }
     };
     
-    // --- THIS IS THE KEY CHANGE ---
     const onVillageClick = (e, villageData) => {
         closeModal('city');
         if (playerCity.islandId !== villageData.islandId) {
@@ -152,17 +154,15 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         const isConqueredByPlayer = conqueredVillages && conqueredVillages[villageData.id];
 
         if (isConqueredByPlayer) {
-            // Player owns this village, show their specific info
             openModal('village', { ...villageData, ...conqueredVillages[villageData.id] });
         } else {
-            // Village is not owned by the player, show attack options
             const distance = playerCity ? calculateDistance(playerCity, villageData) : Infinity;
             setTravelTimeInfo({ distance });
             const targetData = {
                 id: villageData.id,
                 name: villageData.name,
                 cityName: villageData.name,
-                ownerId: null, // It's not owned by anyone in a way that matters for an attack
+                ownerId: null,
                 ownerUsername: 'Neutral',
                 x: villageData.x,
                 y: villageData.y,
@@ -184,6 +184,13 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const handleToggleDummyCityPlacement = () => {
         setIsPlacingDummyCity(prevMode => !prevMode);
         setMessage(isPlacingDummyCity ? 'Dummy city placement OFF.' : 'Dummy city placement ON. Click an empty slot.');
+    };
+
+    const handleSaveSettings = (newSettings) => {
+        setGameSettings(newSettings);
+        // Here you would typically save settings to Firestore
+        // For example: updateDoc(doc(db, 'users', currentUser.uid, 'settings', 'game'), newSettings);
+        console.log("Settings saved:", newSettings);
     };
     
     const mapGrid = useMemo(() => {
@@ -246,6 +253,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenReports={() => openModal('reports')}
                     onOpenAlliance={() => openModal('alliance')}
                     onOpenMessages={() => openModal('messages')}
+                    onOpenSettings={() => setIsSettingsModalOpen(true)} // Open settings modal
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
@@ -286,7 +294,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                                 combinedSlots={combinedSlots}
                                 villages={villages}
                                 playerAlliance={playerAlliance}
-                                conqueredVillages={conqueredVillages} // <-- Pass this down
+                                conqueredVillages={conqueredVillages}
                             />
                         </div>
                     </div>
@@ -313,6 +321,14 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             
             {modalState.isAllianceModalOpen && (
                 <AllianceModal onClose={() => closeModal('alliance')} />
+            )}
+
+            {isSettingsModalOpen && (
+                <SettingsModal
+                    onClose={() => setIsSettingsModalOpen(false)}
+                    onSaveSettings={handleSaveSettings}
+                    initialSettings={gameSettings}
+                />
             )}
         </div>
     );

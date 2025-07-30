@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement }) => {
+const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement }) => { // Added onOpenSettings
     return (
         <div className="sidebar">
             <h2 className="font-title text-2xl text-gray-200 mb-6 text-center">Menu</h2>
@@ -30,7 +30,7 @@ const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance
                 )}
             </button>
             <button className="sidebar-button">Leaderboard</button>
-            <button className="sidebar-button">Settings</button>
+            <button onClick={onOpenSettings} className="sidebar-button">Settings</button> {/* Added onClick handler */}
             {isAdmin && (
                 <button onClick={onToggleDummyCityPlacement} className="sidebar-button bg-yellow-700 hover:bg-yellow-600">
                     Admin: Place Dummy City
