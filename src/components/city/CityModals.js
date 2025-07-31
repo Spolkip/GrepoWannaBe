@@ -8,6 +8,7 @@ import BuildingDetailsModal from './BuildingDetailsModal';
 import SenateView from './SenateView';
 import TempleMenu from './TempleMenu';
 import CaveMenu from './CaveMenu';
+import HospitalMenu from './HospitalMenu';
 import { AcademyMenu } from './AcademyMenu'; // Changed to named import
 
 const CityModals = ({
@@ -19,17 +20,19 @@ const CityModals = ({
   getUpgradeCost,
   getFarmCapacity,
   getWarehouseCapacity,
+  getHospitalCapacity,
   getProductionRates,
   calculateUsedPopulation,
   saveGameState,
   handleUpgrade,
   handleCancelBuild,
   handleTrainTroops,
-  handleCancelTrain, // Added here
+  handleCancelTrain,
   handleStartResearch,
-  handleCancelResearch, // Added here
+  handleCancelResearch,
   handleWorshipGod,
   handleCheat,
+  handleHealTroops,
   modalState,
   openModal,
   closeModal
@@ -42,6 +45,7 @@ const CityModals = ({
     isTempleMenuOpen,
     isCaveMenuOpen,
     isAcademyMenuOpen,
+    isHospitalMenuOpen,
     isCheatMenuOpen
   } = modalState;
 
@@ -115,8 +119,8 @@ const CityModals = ({
           cityGameState={cityGameState}
           onResearch={handleStartResearch}
           onClose={() => closeModal('isAcademyMenuOpen')}
-          researchQueue={cityGameState.researchQueue} // Pass researchQueue
-          onCancelResearch={handleCancelResearch} // Pass cancel handler
+          researchQueue={cityGameState.researchQueue}
+          onCancelResearch={handleCancelResearch}
         />
       )}
       {isCaveMenuOpen && (
@@ -127,6 +131,14 @@ const CityModals = ({
           currentUser={currentUser}
           worldId={worldId}
         />
+      )}
+      {isHospitalMenuOpen && (
+          <HospitalMenu
+              cityGameState={cityGameState}
+              onClose={() => closeModal('isHospitalMenuOpen')}
+              onHeal={handleHealTroops}
+              getHospitalCapacity={getHospitalCapacity}
+          />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (
         <AdminCheatMenu

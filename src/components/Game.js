@@ -7,9 +7,11 @@ import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimes
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
 import Chat from './chat/Chat';
+import { useCityState } from '../hooks/useCityState';
 
 const Game = ({ onBackToWorlds }) => {
     const { worldId, gameState } = useGame();
+    const { getHospitalCapacity } = useCityState(worldId);
     const [view, setView] = useState('city'); // 'city' or 'map'
     const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -55,17 +57,39 @@ const Game = ({ onBackToWorlds }) => {
                 }
             }
 
+            // Handle wounded troops
+            const newWounded = { ...newGameState.wounded };
+            let totalWoundedInHospital = Object.values(newWounded).reduce((sum, count) => sum + count, 0);
+            const hospitalCapacity = getHospitalCapacity(newGameState.buildings.hospital?.level || 0);
+            
+            if (movement.wounded) {
+                for (const unitId in movement.wounded) {
+                    const woundedCount = movement.wounded[unitId];
+                    if (totalWoundedInHospital + woundedCount <= hospitalCapacity) {
+                        newWounded[unitId] = (newWounded[unitId] || 0) + woundedCount;
+                        totalWoundedInHospital += woundedCount;
+                    } else {
+                        const canFit = hospitalCapacity - totalWoundedInHospital;
+                        if (canFit > 0) {
+                            newWounded[unitId] = (newWounded[unitId] || 0) + canFit;
+                        }
+                        // The rest die
+                    }
+                }
+            }
+
              const returnReport = {
                 type: 'return',
                 title: `Troops returned to ${originGameState.cityName}`,
                 timestamp: serverTimestamp(),
                 units: movement.units,
                 resources: movement.resources || {},
+                wounded: movement.wounded || {},
                 read: false,
             };
             batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), returnReport);
 
-            batch.update(originOwnerRef, { units: newUnits, resources: newResources });
+            batch.update(originOwnerRef, { units: newUnits, resources: newResources, wounded: newWounded });
             batch.delete(movementDoc.ref);
             console.log(`Movement ${movement.id} processed and deleted.`);
         
@@ -122,21 +146,22 @@ const Game = ({ onBackToWorlds }) => {
                     const survivingAttackers = {};
                     let anySurvivors = false;
                     for (const unitId in movement.units) {
-                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0);
+                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0) - (result.wounded[unitId] || 0);
                         if (survivors > 0) {
                             survivingAttackers[unitId] = survivors;
                             anySurvivors = true;
                         }
                     }
 
-                    if (anySurvivors) {
-                        console.log('Survivors are returning.');
+                    if (anySurvivors || Object.keys(result.wounded).length > 0) {
+                        console.log('Survivors/wounded are returning.');
                         const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
                         const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
                         batch.update(movementDoc.ref, {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
+                            wounded: result.wounded,
                             arrivalTime: returnArrivalTime,
                         });
                     } else {
@@ -196,20 +221,21 @@ const Game = ({ onBackToWorlds }) => {
                     const survivingAttackers = {};
                     let anySurvivors = false;
                     for (const unitId in movement.units) {
-                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0);
+                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0) - (result.wounded[unitId] || 0);
                         if (survivors > 0) {
                             survivingAttackers[unitId] = survivors;
                             anySurvivors = true;
                         }
                     }
 
-                    if (anySurvivors) {
+                    if (anySurvivors || Object.keys(result.wounded).length > 0) {
                         const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
                         const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
                         batch.update(movementDoc.ref, {
                             status: 'returning',
                             units: survivingAttackers,
                             resources: result.plunder,
+                            wounded: result.wounded,
                             arrivalTime: returnArrivalTime,
                         });
                     } else {
@@ -314,7 +340,7 @@ const Game = ({ onBackToWorlds }) => {
         }
         await batch.commit();
         console.log(`Batch commit successful for movement ${movement.id}`);
-    }, [worldId]);
+    }, [worldId, getHospitalCapacity]);
 
     useEffect(() => {
         const processMovements = async () => {

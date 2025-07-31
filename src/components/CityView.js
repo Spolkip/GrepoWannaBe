@@ -27,6 +27,7 @@ const CityView = ({ showMap, worldId }) => {
         calculateUsedPopulation,
         getProductionRates,
         getWarehouseCapacity,
+        getHospitalCapacity,
         saveGameState,
         getResearchCost
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
@@ -41,6 +42,7 @@ const CityView = ({ showMap, worldId }) => {
         isTempleMenuOpen: false,
         isCaveMenuOpen: false,
         isAcademyMenuOpen: false,
+        isHospitalMenuOpen: false,
         isCheatMenuOpen: false,
         isDivinePowersOpen: false,
     });
@@ -382,6 +384,78 @@ const CityView = ({ showMap, worldId }) => {
         }
     };
 
+    const handleHealTroops = async (unitsToHeal) => {
+        const currentState = cityGameState;
+        if (!currentState || !worldId || Object.keys(unitsToHeal).length === 0) return;
+
+        const currentQueue = currentState.healQueue || [];
+        if (currentQueue.length >= 5) {
+            setMessage("Healing queue is full (max 5).");
+            return;
+        }
+
+        const totalCost = { wood: 0, stone: 0, silver: 0 };
+        let totalTime = 0;
+
+        for (const unitId in unitsToHeal) {
+            const amount = unitsToHeal[unitId];
+            const unit = unitConfig[unitId];
+            totalCost.wood += (unit.heal_cost.wood || 0) * amount;
+            totalCost.stone += (unit.heal_cost.stone || 0) * amount;
+            totalCost.silver += (unit.heal_cost.silver || 0) * amount;
+            totalTime += (unit.heal_time || 0) * amount;
+        }
+        
+        if (
+            currentState.resources.wood >= totalCost.wood &&
+            currentState.resources.stone >= totalCost.stone &&
+            currentState.resources.silver >= totalCost.silver
+        ) {
+            const newGameState = JSON.parse(JSON.stringify(currentState));
+            newGameState.resources.wood -= totalCost.wood;
+            newGameState.resources.stone -= totalCost.stone;
+            newGameState.resources.silver -= totalCost.silver;
+
+            const newWounded = { ...newGameState.wounded };
+            for (const unitId in unitsToHeal) {
+                newWounded[unitId] -= unitsToHeal[unitId];
+                if (newWounded[unitId] <= 0) {
+                    delete newWounded[unitId];
+                }
+            }
+            newGameState.wounded = newWounded;
+
+            let lastEndTime = Date.now();
+            if (currentQueue.length > 0) {
+                const lastQueueItem = currentQueue[currentQueue.length - 1];
+                lastEndTime = lastQueueItem.endTime.toDate ? lastQueueItem.endTime.toDate().getTime() : new Date(lastQueueItem.endTime).getTime();
+            }
+
+            const endTime = new Date(lastEndTime + totalTime * 1000);
+
+            for (const unitId in unitsToHeal) {
+                const newQueueItem = {
+                    unitId,
+                    amount: unitsToHeal[unitId],
+                    endTime,
+                };
+                 newGameState.healQueue = [...newGameState.healQueue, newQueueItem];
+            }
+
+            try {
+                await saveGameState(newGameState);
+                setCityGameState(newGameState);
+                setMessage(`Healing started.`);
+            } catch (error) {
+                console.error("Error starting healing:", error);
+                setMessage("Could not start healing. Please try again.");
+            }
+
+        } else {
+            setMessage("Not enough resources to heal troops!");
+        }
+    };
+
     const handleWorshipGod = async (godName) => {
         if (!cityGameState || !worldId || !godName) return;
         const newWorshipData = { ...(cityGameState.worship || {}) };
@@ -450,6 +524,7 @@ const CityView = ({ showMap, worldId }) => {
             case 'temple': openModal('isTempleMenuOpen'); break;
             case 'cave': openModal('isCaveMenuOpen'); break;
             case 'academy': openModal('isAcademyMenuOpen'); break;
+            case 'hospital': openModal('isHospitalMenuOpen'); break;
             default: setModalState(prev => ({ ...prev, selectedBuildingId: buildingId })); break;
         }
     };
@@ -534,6 +609,7 @@ const CityView = ({ showMap, worldId }) => {
                 getUpgradeCost={getUpgradeCost}
                 getFarmCapacity={getFarmCapacity}
                 getWarehouseCapacity={getWarehouseCapacity}
+                getHospitalCapacity={getHospitalCapacity}
                 getProductionRates={getProductionRates}
                 calculateUsedPopulation={calculateUsedPopulation}
                 saveGameState={saveGameState}
@@ -545,6 +621,7 @@ const CityView = ({ showMap, worldId }) => {
                 handleCancelResearch={handleCancelResearch}
                 handleWorshipGod={handleWorshipGod}
                 handleCheat={handleCheat}
+                handleHealTroops={handleHealTroops}
                 modalState={modalState}
                 openModal={openModal}
                 closeModal={closeModal}

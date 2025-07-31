@@ -209,6 +209,7 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
     let totalDefenderLosses = {};
     let attackerWon = false;
     let plunder = { wood: 0, stone: 0, silver: 0 };
+    let wounded = {};
 
     if (isNavalAttack) {
         const navalBattle = resolveBattle(attackingUnits, defendingUnits, 'naval', null, null, null, null); // No phalanx/support for naval
@@ -256,11 +257,22 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         }
     }
 
+    // Calculate wounded troops from attacker losses
+    for (const unitId in totalAttackerLosses) {
+        const losses = totalAttackerLosses[unitId];
+        const woundedCount = Math.floor(losses * 0.15); // 15% of losses become wounded
+        if (woundedCount > 0) {
+            wounded[unitId] = woundedCount;
+            totalAttackerLosses[unitId] = losses - woundedCount; // Reduce losses by the number of wounded
+        }
+    }
+
     return {
         attackerWon,
         attackerLosses: totalAttackerLosses,
         defenderLosses: totalDefenderLosses,
         plunder,
+        wounded,
     };
 }
 

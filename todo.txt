@@ -8,7 +8,7 @@ Add mythical troops and special building for them
 
 Think of a way to do leaderboard,
 
-Do forum
+Add forum
 
 Remake movement tab
 

@@ -76,6 +76,11 @@
     "description": "Increases your city's population capacity.",
     "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 },
     "image": "farm.png"
+  },
+  "hospital": {
+    "name": "Hospital",
+    "description": "Heal your wounded troops after battle.",
+    "baseCost": { "wood": 200, "stone": 150, "silver": 100, "population": 8, "time": 180 },
+    "image": "hospital.png"
   }
-  
 }
