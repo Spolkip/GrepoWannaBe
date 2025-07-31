@@ -1,3 +1,4 @@
+// src/components/Game.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
@@ -6,6 +7,7 @@ import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
+import buildingConfig from '../gameData/buildings.json';
 
 const Game = ({ onBackToWorlds }) => {
     const { worldId, gameState } = useGame();
@@ -36,6 +38,7 @@ const Game = ({ onBackToWorlds }) => {
         }
         
         const originGameState = originOwnerSnap.data();
+        const targetGameState = targetOwnerSnap?.exists() ? targetOwnerSnap.data() : null;
 
         if (movement.status === 'returning') {
             console.log(`Movement ${movement.id} is returning.`);
@@ -69,7 +72,6 @@ const Game = ({ onBackToWorlds }) => {
         
         } else if (movement.status === 'moving') {
             console.log(`Movement ${movement.id} is moving with type: ${movement.type}`);
-            const targetGameState = targetOwnerSnap?.exists() ? targetOwnerSnap.data() : null;
 
             switch (movement.type) {
                 case 'attack_village': {
@@ -302,6 +304,75 @@ const Game = ({ onBackToWorlds }) => {
 
                     const arrivalReport = { type: 'trade', title: `Trade from ${originGameState.cityName}`, timestamp: serverTimestamp(), resources: movement.resources, read: false };
                     batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), arrivalReport);
+
+                    batch.delete(movementDoc.ref);
+                    break;
+                }
+                case 'spell_cast': {
+                    console.log(`Processing spell cast: ${movement.id}`);
+                    if (!targetGameState) {
+                        console.log(`Target game state not found for spell ${movement.id}.`);
+                        batch.delete(movementDoc.ref);
+                        break;
+                    }
+
+                    const power = movement.power;
+                    const newTargetGameState = JSON.parse(JSON.stringify(targetGameState));
+                    let effectApplied = false;
+                    let reportDetails = {};
+
+                    const getTargetWarehouseCapacity = (level) => Math.floor(1000 * Math.pow(1.5, (level || 1) - 1));
+
+                    switch (power.effect.type) {
+                        case 'damage_building': {
+                            const buildings = newTargetGameState.buildings;
+                            const buildingKeys = Object.keys(buildings).filter(b => buildings[b].level > 0 && buildingConfig[b].constructible !== false && b !== 'senate');
+                            if (buildingKeys.length > 0) {
+                                const randomBuildingId = buildingKeys[Math.floor(Math.random() * buildingKeys.length)];
+                                newTargetGameState.buildings[randomBuildingId].level = Math.max(0, newTargetGameState.buildings[randomBuildingId].level - power.effect.amount);
+                                effectApplied = true;
+                                reportDetails.message = `Your ${buildingConfig[randomBuildingId].name} was damaged!`;
+                            } else {
+                                reportDetails.message = `The spell had no buildings to target.`;
+                            }
+                            break;
+                        }
+                        case 'add_resources': {
+                            const capacity = getTargetWarehouseCapacity(newTargetGameState.buildings.warehouse?.level);
+                            const resource = power.effect.resource;
+                            const amount = power.effect.amount;
+                            newTargetGameState.resources[resource] = Math.min(capacity, (newTargetGameState.resources[resource] || 0) + amount);
+                            effectApplied = true;
+                            reportDetails.message = `You received a gift of ${amount} ${resource}.`;
+                            reportDetails.resources = { [resource]: amount };
+                            break;
+                        }
+                    }
+
+                    if (effectApplied) {
+                        batch.update(targetOwnerRef, newTargetGameState);
+                    }
+
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), {
+                        type: 'spell_cast',
+                        title: `You cast ${power.name} on ${targetGameState.cityName}`,
+                        timestamp: serverTimestamp(),
+                        targetCityName: targetGameState.cityName,
+                        targetOwnerUsername: targetGameState.playerInfo?.username || 'Unknown',
+                        spell: power,
+                        read: false,
+                    });
+
+                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), {
+                        type: 'spell_received',
+                        title: `${power.name} was cast upon your city!`,
+                        timestamp: serverTimestamp(),
+                        originCityName: movement.originCityName,
+                        originOwnerUsername: movement.originOwnerUsername,
+                        spell: power,
+                        details: reportDetails,
+                        read: false,
+                    });
 
                     batch.delete(movementDoc.ref);
                     break;

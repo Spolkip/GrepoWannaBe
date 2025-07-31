@@ -24,7 +24,7 @@ const DivinePowers = ({ godName, playerReligion, favor, onCastSpell, onClose, ta
         <div className="divine-powers-modal-overlay" onClick={onClose}>
             <div className="divine-powers-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="divine-powers-header">
-                    <h2>{godDetails.name}'s Powers ({targetType === 'self' ? 'Self' : 'Targeted'})</h2>
+                    <h2>{godDetails.name}'s Spells ({targetType === 'self' ? 'Self' : 'Targeted'})</h2>
                     <button onClick={onClose} className="close-button">&times;</button>
                 </div>
                 {availablePowers.length > 0 ? (

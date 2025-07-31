@@ -481,7 +481,7 @@ const CityView = ({ showMap, worldId }) => {
             await saveGameState(newGameState);
             setCityGameState(newGameState);
             setMessage(`${power.name} has been cast!`);
-            closeModal('divinePowers');
+            closeModal('isDivinePowersOpen');
         } catch (error) {
             console.error("Error casting spell:", error);
             setMessage("Failed to cast the spell. Please try again.");
@@ -519,7 +519,7 @@ const CityView = ({ showMap, worldId }) => {
             <CityViewContent
                 cityGameState={cityGameState}
                 handlePlotClick={handlePlotClick}
-                onOpenPowers={() => openModal('divinePowers')}
+                onOpenPowers={() => openModal('isDivinePowersOpen')}
             />
 
             <CityModals
@@ -553,7 +553,7 @@ const CityView = ({ showMap, worldId }) => {
                     playerReligion={cityGameState.playerInfo.religion}
                     favor={cityGameState.worship[cityGameState.god] || 0}
                     onCastSpell={handleCastSpell}
-                    onClose={() => closeModal('divinePowers')}
+                    onClose={() => closeModal('isDivinePowersOpen')}
                 />
             )}
         </div>

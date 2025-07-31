@@ -49,7 +49,7 @@ const ReportsView = ({ onClose }) => {
         'Reinforce': ['reinforce'],
         'Trade': ['trade'],
         'Scout': ['scout', 'spy_caught'],
-        'Misc': ['return'],
+        'Misc': ['return', 'spell_cast', 'spell_received'],
     };
 
     useEffect(() => {
@@ -115,6 +115,10 @@ const ReportsView = ({ onClose }) => {
             case 'reinforce':
                 return 'text-blue-400';
             case 'trade':
+                return 'text-yellow-400';
+            case 'spell_cast':
+                return 'text-purple-400';
+            case 'spell_received':
                 return 'text-yellow-400';
             default:
                 return 'text-gray-300';
@@ -397,6 +401,29 @@ const ReportsView = ({ onClose }) => {
                         <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Resources:</strong> {renderResourceIcons(report.resources)}
                         </div>
+                    </div>
+                );
+                
+            case 'spell_cast':
+                return (
+                    <div className="space-y-1">
+                        <p className="font-bold text-purple-400">Spell Cast</p>
+                        <p>You cast {report.spell.name} on {report.targetCityName} ({report.targetOwnerUsername}).</p>
+                        <p className="text-sm text-gray-400">{report.spell.description}</p>
+                    </div>
+                );
+
+            case 'spell_received':
+                return (
+                    <div className="space-y-1">
+                        <p className="font-bold text-yellow-400">Spell Received</p>
+                        <p>{report.spell.name} was cast upon your city by {report.originOwnerUsername} from {report.originCityName}.</p>
+                        {report.details?.message && <p className="text-gray-300">{report.details.message}</p>}
+                        {report.details?.resources && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                <strong>Resources Gained:</strong> {renderResourceIcons(report.details.resources)}
+                            </div>
+                        )}
                     </div>
                 );
 

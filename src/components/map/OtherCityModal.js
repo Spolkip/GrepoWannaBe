@@ -1,8 +1,9 @@
+// src/components/map/OtherCityModal.js
 import React from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 
-const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) => {
+const OtherCityModal = ({ city, onClose, onGoTo, onActionClick, isVillageTarget }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -38,7 +39,7 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                 <div className="grid grid-cols-2 gap-4">
                     {isVillageTarget ? (
                         <button 
-                            onClick={() => onAction('attack', city)}
+                            onClick={() => onActionClick('attack', city)}
                             className="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded col-span-2"
                         >
                             Attack
@@ -46,31 +47,31 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                     ) : (
                         <>
                             <button 
-                                onClick={() => onAction('attack', city)}
+                                onClick={() => onActionClick('attack', city)}
                                 className="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Attack
                             </button>
                             <button 
-                                onClick={() => onAction('reinforce', city)}
+                                onClick={() => onActionClick('reinforce', city)}
                                 className="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Reinforce
                             </button>
                             <button 
-                                onClick={() => onAction('scout', city)}
+                                onClick={() => onActionClick('scout', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Scout
                             </button>
                             <button 
-                                onClick={() => onAction('trade', city)}
+                                onClick={() => onActionClick('trade', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Trade
                             </button>
                             <button 
-                                onClick={() => onAction('message', city)}
+                                onClick={() => onActionClick('message', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Message
@@ -81,8 +82,14 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                             >
                                 Go To
                             </button>
+                             <button
+                                onClick={() => onActionClick('castSpell', city)}
+                                className="btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded col-span-2"
+                            >
+                                Cast Spell
+                            </button>
                             <button 
-                                onClick={() => onAction('rally', city)}
+                                onClick={() => onActionClick('rally', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded col-span-2"
                             >
                                 Rally

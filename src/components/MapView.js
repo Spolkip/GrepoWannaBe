@@ -1,11 +1,10 @@
 // src/components/MapView.js
-
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase/config';
-import { doc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 // UI Components
 import Modal from './shared/Modal';
@@ -243,6 +242,56 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         }
     };
     
+    const handleTargetedCastSpell = async (power) => {
+        const targetCity = modalState.divinePowersTarget;
+        if (!targetCity) return;
+
+        const currentState = gameState;
+        if (!currentState || !currentState.god || (currentState.worship[currentState.god] || 0) < power.favorCost) {
+            setMessage("Not enough favor to cast this spell.");
+            return;
+        }
+
+        const batch = writeBatch(db);
+        const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
+        const arrivalTime = new Date(Date.now()); // Spells are instant
+
+        const movementData = {
+            type: 'spell_cast',
+            power: power,
+            originCityId: playerCity.id,
+            originOwnerId: currentUser.uid,
+            originOwnerUsername: userProfile.username,
+            targetCityId: targetCity.id,
+            targetOwnerId: targetCity.ownerId,
+            targetCityName: targetCity.cityName,
+            departureTime: serverTimestamp(),
+            arrivalTime: arrivalTime,
+            status: 'moving',
+            involvedParties: [currentUser.uid, targetCity.ownerId].filter(id => id),
+        };
+        batch.set(newMovementRef, movementData);
+
+        const newFavor = (currentState.worship[currentState.god] || 0) - power.favorCost;
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        batch.update(gameDocRef, {
+            [`worship.${currentState.god}`]: newFavor
+        });
+
+        try {
+            await batch.commit();
+            const newGameState = JSON.parse(JSON.stringify(currentState));
+            newGameState.worship[currentState.god] = newFavor;
+            setGameState(newGameState);
+
+            setMessage(`${power.name} has been cast on ${targetCity.cityName}!`);
+            closeModal('divinePowers');
+        } catch (error) {
+            console.error("Error casting targeted spell:", error);
+            setMessage("Failed to cast the spell.");
+        }
+    };
+    
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -394,8 +443,9 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     godName={gameState.god}
                     playerReligion={gameState.playerInfo.religion}
                     favor={gameState.worship[gameState.god] || 0}
-                    onCastSpell={handleCastSpell}
+                    onCastSpell={modalState.divinePowersTarget ? handleTargetedCastSpell : handleCastSpell}
                     onClose={() => closeModal('divinePowers')}
+                    targetType={modalState.divinePowersTarget ? 'other' : 'self'}
                 />
             )}
         </div>

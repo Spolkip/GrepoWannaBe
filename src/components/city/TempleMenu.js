@@ -91,7 +91,7 @@ const TempleMenu = ({ city, onWorship, onClose, favorData }) => {
                                     <div>
                                         <h5 className="text-lg font-bold mb-2 text-yellow-500">Divine Powers</h5>
                                         <ul className="list-disc list-inside text-gray-300">
-                                            {selectedGodDetails.powers.map(power => <li key={power}>{power}</li>)}
+                                            {selectedGodDetails.powers.map(power => <li key={power.name}>{power.name}</li>)}
                                         </ul>
                                     </div>
                                     <div>

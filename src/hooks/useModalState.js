@@ -9,7 +9,8 @@ export const useModalState = () => {
         isReportsPanelOpen: false,
         isAllianceModalOpen: false,
         isMessagesPanelOpen: false,
-        isDivinePowersOpen: false, // Added this line
+        isDivinePowersOpen: false,
+        divinePowersTarget: null, // To store target city for spells
     });
 
     const openModal = (type, data) => {
@@ -22,7 +23,7 @@ export const useModalState = () => {
                 case 'reports': return { ...prevState, isReportsPanelOpen: true };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: true };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: true };
-                case 'divinePowers': return { ...prevState, isDivinePowersOpen: true }; // Added this case
+                case 'divinePowers': return { ...prevState, isDivinePowersOpen: true, divinePowersTarget: data?.targetCity || null };
                 default: return prevState;
             }
         });
@@ -38,7 +39,7 @@ export const useModalState = () => {
                 case 'reports': return { ...prevState, isReportsPanelOpen: false };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: false };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: false };
-                case 'divinePowers': return { ...prevState, isDivinePowersOpen: false }; // Added this case
+                case 'divinePowers': return { ...prevState, isDivinePowersOpen: false, divinePowersTarget: null };
                 default: return prevState;
             }
         });

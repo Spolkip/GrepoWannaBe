@@ -1,5 +1,4 @@
 // src/components/city/WorshipDisplay.js
-
 import React from 'react';
 import godsConfig from '../../gameData/gods.json';
 
@@ -36,7 +35,7 @@ const WorshipDisplay = ({ godName, playerReligion, worship, buildings, onOpenPow
                     <img src={imageMap[godDetails.image]} alt={godDetails.name} className="w-24 h-24 mx-auto rounded-full border-4 border-yellow-500" />
                     <p className="text-lg font-bold text-white mt-2">{godName}</p>
                     <p className="text-sm text-blue-300 mt-2">Favor: {Math.floor(favor)} / {maxFavor}</p>
-                    <button onClick={onOpenPowers} className="btn btn-primary w-full mt-4 py-1">View Powers</button>
+                    <button onClick={onOpenPowers} className="btn btn-primary w-full mt-4 py-1">View Spells</button>
                 </div>
             ) : (
                 <p className="text-gray-400 text-center text-sm">Build a Temple to worship a god.</p>
