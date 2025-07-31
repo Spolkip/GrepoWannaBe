@@ -1,0 +1,28 @@
+.alliance-modal {
+    @apply bg-gray-800 text-white rounded-lg shadow-xl w-full max-w-4xl border-2 border-gray-600 flex flex-col;
+    height: 80vh;
+}
+
+.alliance-modal-header {
+    @apply flex justify-between items-center p-4 border-b border-gray-700;
+}
+
+.alliance-modal-header .close-button {
+    @apply text-gray-400 text-3xl leading-none hover:text-white;
+}
+
+.alliance-modal-tabs {
+    @apply flex border-b border-gray-700;
+}
+
+.alliance-modal-tabs button {
+    @apply px-6 py-3 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none;
+}
+
+.alliance-modal-tabs button.active {
+    @apply bg-gray-700 text-white border-b-2 border-blue-500;
+}
+
+.alliance-modal-content {
+    @apply p-6 overflow-y-auto;
+}

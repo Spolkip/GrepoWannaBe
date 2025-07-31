@@ -28,8 +28,6 @@ do mythic troops of the gods
 
 make it so you can conquer other cities
 
-add queue on shipyard
-
 different troops for different nationalities
 
 add a request system
@@ -37,7 +35,5 @@ add a request system
 random names for villages
 
 make market and adjust the trades accordingly
-
-add player's userProfile
 
 add invitation system to the alliance
