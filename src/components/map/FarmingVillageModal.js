@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, serverTimestamp, onSnapshot, getDoc } from 'firebase/firestore'; // Added getDoc
+import { doc, runTransaction, serverTimestamp, onSnapshot} from 'firebase/firestore'; // Added getDoc
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import resourceImage from '../../images/resources/resources.png';

@@ -1,0 +1,67 @@
+.profile-view-container {
+    @apply bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg border-2 border-gray-600 text-white;
+}
+
+.profile-header {
+    @apply flex justify-between items-center mb-4;
+}
+
+.profile-header .close-button {
+    @apply text-gray-400 text-3xl leading-none hover:text-white;
+}
+
+.message {
+    @apply text-center text-green-400 mb-4;
+}
+
+.profile-content {
+    @apply space-y-4;
+}
+
+.profile-main-info {
+    @apply flex items-center gap-4 mb-4;
+}
+
+.profile-avatar {
+    @apply w-24 h-24 rounded-full border-2 border-gray-500 object-cover;
+}
+
+.profile-details {
+    @apply flex-grow space-y-2;
+}
+
+.profile-field {
+    @apply flex flex-col;
+}
+
+.profile-field label {
+    @apply text-gray-400 mb-1 text-sm font-bold;
+}
+
+.display-field {
+    @apply bg-gray-700 p-3 rounded-lg min-h-[40px];
+}
+
+.display-field span {
+    @apply text-lg;
+}
+
+.description-text {
+    @apply text-gray-300 text-sm whitespace-pre-wrap;
+}
+
+.edit-form {
+    @apply space-y-4 bg-gray-700 p-4 rounded-lg;
+}
+
+.username-input, .description-input {
+    @apply w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.description-input {
+    @apply min-h-[80px];
+}
+
+.form-actions {
+    @apply flex justify-end gap-2 mt-4;
+}

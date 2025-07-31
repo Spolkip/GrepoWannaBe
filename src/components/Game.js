@@ -6,10 +6,12 @@ import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
+import Chat from './chat/Chat';
 
 const Game = ({ onBackToWorlds }) => {
     const { worldId, gameState } = useGame();
     const [view, setView] = useState('city'); // 'city' or 'map'
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
     const processMovement = useCallback(async (movementDoc) => {
         console.log(`Processing movement ID: ${movementDoc.id}`);
@@ -350,6 +352,17 @@ const Game = ({ onBackToWorlds }) => {
         <div className="w-full h-screen bg-gray-900 text-white">
             {view === 'city' && <CityView showMap={showMap} worldId={worldId} />}
             {view === 'map' && <MapView showCity={showCity} onBackToWorlds={onBackToWorlds} />}
+            
+            <div className="chat-container">
+                <button onClick={() => setIsChatOpen(prev => !prev)} className="chat-toggle-button">
+                    💬
+                </button>
+                <Chat 
+                    worldId={worldId} 
+                    isVisible={isChatOpen} 
+                    onClose={() => setIsChatOpen(false)} 
+                />
+            </div>
         </div>
     );
 };

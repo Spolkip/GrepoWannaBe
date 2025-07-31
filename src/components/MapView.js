@@ -18,6 +18,7 @@ import SideInfoPanel from './SideInfoPanel';
 import AllianceModal from './map/AllianceModal';
 import SettingsModal from './shared/SettingsModal';
 import DivinePowers from './city/DivinePowers';
+import ProfileView from './profile/ProfileView';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -392,6 +393,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenAlliance={() => openModal('alliance')}
                     onOpenMessages={() => openModal('messages')}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
+                    onOpenProfile={() => openModal('profile')}
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
@@ -486,6 +488,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onClose={() => closeModal('divinePowers')}
                     targetType={modalState.divinePowersTarget ? 'other' : 'self'}
                 />
+            )}
+            
+            {modalState.isProfileModalOpen && (
+                <ProfileView onClose={() => closeModal('profile')} />
             )}
         </div>
     );

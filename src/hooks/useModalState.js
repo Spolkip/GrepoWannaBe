@@ -11,6 +11,7 @@ export const useModalState = () => {
         isMessagesPanelOpen: false,
         isDivinePowersOpen: false,
         divinePowersTarget: null, // To store the target city for a spell
+        isProfileModalOpen: false,
     });
 
     const openModal = (type, data) => {
@@ -24,6 +25,7 @@ export const useModalState = () => {
                 case 'alliance': return { ...prevState, isAllianceModalOpen: true };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: true };
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: true, divinePowersTarget: data?.targetCity || null };
+                case 'profile': return { ...prevState, isProfileModalOpen: true };
                 default: return prevState;
             }
         });
@@ -40,6 +42,7 @@ export const useModalState = () => {
                 case 'alliance': return { ...prevState, isAllianceModalOpen: false };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: false };
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: false, divinePowersTarget: null };
+                case 'profile': return { ...prevState, isProfileModalOpen: false };
                 default: return prevState;
             }
         });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -13,11 +13,11 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        let unsubscribeProfile = () => {}; // Initialize with an empty function
+        let unsubscribeProfile = () => {};
 
         const unsubscribeAuth = onAuthStateChanged(auth, user => {
             setCurrentUser(user);
-            unsubscribeProfile(); // Always unsubscribe from the previous user's profile listener
+            unsubscribeProfile(); 
 
             if (user) {
                 setLoading(true);
@@ -42,11 +42,18 @@ export const AuthProvider = ({ children }) => {
 
         return () => {
             unsubscribeAuth();
-            unsubscribeProfile(); // Also unsubscribe on component unmount
+            unsubscribeProfile();
         };
     }, []);
 
-    const value = { currentUser, userProfile, loading };
+    const updateUserProfile = async (profileData) => {
+        if (currentUser) {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            await updateDoc(userDocRef, profileData);
+        }
+    };
+
+    const value = { currentUser, userProfile, loading, updateUserProfile };
 
     return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };

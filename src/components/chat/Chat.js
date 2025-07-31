@@ -1,26 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { useGame } from '../../contexts/GameContext';
 import './Chat.css';
 
-const Chat = ({ worldId }) => {
-    const { currentUser } = useAuth();
-    const { gameState } = useGame();
+const Chat = ({ worldId, isVisible, onClose }) => {
+    const { currentUser, userProfile } = useAuth();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
+
+    // Draggable state
+    const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 540 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const chatWindowRef = useRef(null);
+
 
     useEffect(() => {
         if (!worldId) return;
 
         const q = query(collection(db, 'worlds', worldId, 'chat'), orderBy('timestamp', 'asc'));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const msgs = [];
-            querySnapshot.forEach((doc) => {
-                msgs.push({ id: doc.id, ...doc.data() });
-            });
+            const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setMessages(msgs);
         });
 
@@ -33,23 +35,69 @@ const Chat = ({ worldId }) => {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (newMessage.trim() === '' || !worldId || !currentUser || !gameState) return;
-
-        const { uid, displayName } = currentUser;
-        const { ownerUsername } = gameState; // Using ownerUsername from gameState as player name
+        if (newMessage.trim() === '' || !worldId || !currentUser || !userProfile) return;
 
         await addDoc(collection(db, 'worlds', worldId, 'chat'), {
             text: newMessage,
             timestamp: serverTimestamp(),
-            uid,
-            authorName: ownerUsername || displayName, // Fallback to displayName
+            uid: currentUser.uid,
+            authorName: userProfile.username,
         });
 
         setNewMessage('');
     };
+    
+    const handleMouseDown = (e) => {
+        if (e.target.classList.contains('chat-header')) {
+            setIsDragging(true);
+            setDragStart({
+                x: e.clientX - position.x,
+                y: e.clientY - position.y,
+            });
+        }
+    };
+
+    const handleMouseMove = useCallback((e) => {
+        if (isDragging) {
+            setPosition({
+                x: e.clientX - dragStart.x,
+                y: e.clientY - dragStart.y,
+            });
+        }
+    }, [isDragging, dragStart, setPosition]);
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    useEffect(() => {
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        } else {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, handleMouseMove]);
+
+
+    if (!isVisible) return null;
 
     return (
-        <div className="chat-window">
+        <div 
+            className="chat-window" 
+            ref={chatWindowRef}
+            style={{ top: `${position.y}px`, left: `${position.x}px` }}
+        >
+            <div className="chat-header" onMouseDown={handleMouseDown}>
+                <h4>World Chat</h4>
+                <button onClick={onClose} className="close-btn">&times;</button>
+            </div>
             <div className="messages-container">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`message ${msg.uid === currentUser.uid ? 'sent' : 'received'}`}>

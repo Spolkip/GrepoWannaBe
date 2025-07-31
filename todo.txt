@@ -12,10 +12,7 @@ Add mythical troops and special building for them
 
 Think of a way to do leaderboard,
 
-
 Do forum
-
-Do a global chat
 
 Remake movement tab
 
@@ -38,3 +35,9 @@ different troops for different nationalities
 add a request system
 
 random names for villages
+
+make market and adjust the trades accordingly
+
+add player's userProfile
+
+add invitation system to the alliance
