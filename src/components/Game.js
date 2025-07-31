@@ -226,13 +226,14 @@ const Game = ({ onBackToWorlds }) => {
                     const attackingSilver = movement.resources?.silver || 0;
                     const result = resolveScouting(targetGameState, attackingSilver);
 
-                    if (result.success) {
+                     if (result.success) {
                         const scoutReport = {
                             type: 'scout',
                             title: `Scout report of ${targetGameState.cityName}`,
                             timestamp: serverTimestamp(),
                             scoutSucceeded: true, 
                             ...result,
+                            targetOwnerUsername: movement.ownerUsername, // FIX: Overwrite with correct username
                             read: false, 
                         };
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), scoutReport);
