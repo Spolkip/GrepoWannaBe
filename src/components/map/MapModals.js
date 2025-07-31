@@ -1,9 +1,10 @@
+// src/components/map/MapModals.js
 import React from 'react';
-import ReportsView from '../ReportsView';
-import MovementModal from './MovementModal';
-import MovementsPanel from './MovementsPanel';
 import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
+import MovementModal from './MovementModal';
+import MovementsPanel from './MovementsPanel';
+import ReportsView from '../ReportsView';
 import MessagesView from '../messaging/MessagesView';
 
 const MapModals = ({
@@ -21,46 +22,48 @@ const MapModals = ({
     combinedSlots,
     villages,
     handleRushMovement,
-    userProfile
+    userProfile,
+    onCastSpell
 }) => {
     return (
         <>
             {modalState.selectedCity && (
                 <OtherCityModal
                     city={modalState.selectedCity}
+                    playerCity={playerCity}
+                    travelTimeInfo={travelTimeInfo}
+                    onSendMovement={handleSendMovement}
                     onClose={() => closeModal('city')}
-                    onAction={handleActionClick}
-                    onGoTo={goToCoordinates}
-                    isVillageTarget={modalState.selectedCity.isVillageTarget}
+                    onActionClick={handleActionClick}
+                    gameState={gameState}
+                    onCastSpell={onCastSpell}
                 />
             )}
             {modalState.selectedVillage && (
                 <FarmingVillageModal
                     village={modalState.selectedVillage}
                     onClose={() => closeModal('village')}
-                    worldId={worldId}
-                    cityId={playerCity.id}
+                    onActionClick={handleActionClick}
+                    playerCity={playerCity}
                 />
             )}
             {modalState.actionDetails && (
                 <MovementModal
-                    mode={modalState.actionDetails.mode}
-                    targetCity={modalState.actionDetails.city}
-                    playerCity={playerCity}
-                    playerUnits={gameState?.units}
-                    playerResources={gameState?.resources}
-                    travelTimeInfo={travelTimeInfo}
-                    onSend={handleSendMovement}
+                    details={modalState.actionDetails}
                     onClose={() => closeModal('action')}
-                    setMessage={setMessage}
+                    onSendMovement={handleSendMovement}
+                    playerCity={playerCity}
+                    gameState={gameState}
                 />
             )}
             {modalState.isMovementsPanelOpen && (
                 <MovementsPanel
                     movements={movements}
                     onClose={() => closeModal('movements')}
-                    citySlots={{...combinedSlots, ...villages}}
-                    onRush={handleRushMovement}
+                    combinedSlots={combinedSlots}
+                    villages={villages}
+                    goToCoordinates={goToCoordinates}
+                    handleRushMovement={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
                 />
             )}
@@ -68,11 +71,7 @@ const MapModals = ({
                 <ReportsView onClose={() => closeModal('reports')} />
             )}
             {modalState.isMessagesPanelOpen && (
-                <MessagesView 
-                    onClose={() => closeModal('messages')} 
-                    initialRecipientId={modalState.actionDetails?.city?.ownerId}
-                    initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername}
-                />
+                <MessagesView onClose={() => closeModal('messages')} />
             )}
         </>
     );

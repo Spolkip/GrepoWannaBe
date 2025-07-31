@@ -394,7 +394,7 @@ const CityView = ({ showMap, worldId }) => {
         closeModal('isTempleMenuOpen');
     };
 
-    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits) => {
+    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount) => {
         if (!cityGameState || !userProfile?.is_admin) return;
         setIsInstantBuild(instantBuild);
         setIsInstantResearch(instantResearch);
@@ -420,6 +420,16 @@ const CityView = ({ showMap, worldId }) => {
         } else if (unresearchId) {
             setMessage(`Research "${researchConfig[unresearchId]?.name}" is not researched.`);
         }
+        if (favorAmount > 0 && newGameState.god) {
+            const currentFavor = newGameState.worship[newGameState.god] || 0;
+            const templeLevel = newGameState.buildings.temple?.level || 0;
+            const maxFavor = templeLevel > 0 ? 100 + (templeLevel * 20) : 0;
+            newGameState.worship[newGameState.god] = Math.min(maxFavor, currentFavor + favorAmount);
+            setMessage(`Added ${favorAmount} favor to ${newGameState.god}!`);
+        } else if (favorAmount > 0 && !newGameState.god) {
+            setMessage("No god is currently worshipped to add favor.");
+        }
+
 
         await saveGameState(newGameState);
         setMessage("Admin cheat applied!");

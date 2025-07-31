@@ -16,7 +16,7 @@ import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import AllianceModal from './map/AllianceModal';
 import SettingsModal from './shared/SettingsModal';
-import DivinePowers from './city/DivinePowers'; // Import DivinePowers
+import DivinePowers from './city/DivinePowers';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';

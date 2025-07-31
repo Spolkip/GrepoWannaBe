@@ -3,7 +3,7 @@ import React from 'react';
 import godsConfig from '../../gameData/gods.json';
 import './DivinePowers.css';
 
-const DivinePowers = ({ godName, playerReligion, favor, onCastSpell, onClose }) => {
+const DivinePowers = ({ godName, playerReligion, favor, onCastSpell, onClose, targetType = 'self' }) => {
     const getGodDetails = (name, religion) => {
         if (!name || !religion) return null;
         const religionKey = religion.toLowerCase();
@@ -18,31 +18,37 @@ const DivinePowers = ({ godName, playerReligion, favor, onCastSpell, onClose }) 
         return null;
     }
 
+    const availablePowers = godDetails.powers.filter(power => power.effect.target === targetType);
+
     return (
         <div className="divine-powers-modal-overlay" onClick={onClose}>
             <div className="divine-powers-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="divine-powers-header">
-                    <h2>{godDetails.name}'s Powers</h2>
+                    <h2>{godDetails.name}'s Powers ({targetType === 'self' ? 'Self' : 'Targeted'})</h2>
                     <button onClick={onClose} className="close-button">&times;</button>
                 </div>
-                <div className="powers-grid">
-                    {godDetails.powers.map(power => (
-                        <div key={power.name} className="power-card">
-                            <h3>{power.name}</h3>
-                            <p>{power.description}</p>
-                            <div className="power-cost">
-                                Cost: {power.favorCost} Favor
+                {availablePowers.length > 0 ? (
+                    <div className="powers-grid">
+                        {availablePowers.map(power => (
+                            <div key={power.name} className="power-card">
+                                <h3>{power.name}</h3>
+                                <p>{power.description}</p>
+                                <div className="power-cost">
+                                    Cost: {power.favorCost} Favor
+                                </div>
+                                <button
+                                    onClick={() => onCastSpell(power)}
+                                    disabled={favor < power.favorCost}
+                                    className="cast-spell-button"
+                                >
+                                    Cast Spell
+                                </button>
                             </div>
-                            <button
-                                onClick={() => onCastSpell(power)}
-                                disabled={favor < power.favorCost}
-                                className="cast-spell-button"
-                            >
-                                Cast Spell
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-400 text-center">No {targetType === 'self' ? 'self-targeted' : 'targeted'} spells available for {godDetails.name}.</p>
+                )}
             </div>
         </div>
     );

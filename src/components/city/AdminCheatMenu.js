@@ -11,10 +11,11 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
     const [unresearchId, setUnresearchId] = useState(''); // New state for unresearch
     const [isInstantResearch, setIsInstantResearch] = useState(false); // New state for instant research
     const [isInstantUnits, setIsInstantUnits] = useState(false); // New state for instant units
+    const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
 
 
     const handleCheat = () => {
-        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits); // Pass new values
+        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount); // Pass new values
         onClose();
     };
 
@@ -77,6 +78,17 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+                    {/* New Cheat: Add Favor */}
+                    <div className="flex justify-between items-center">
+                        <label htmlFor="addFavor" className="text-white">Add Favor:</label>
+                        <input
+                            id="addFavor"
+                            type="number"
+                            value={favorAmount}
+                            onChange={(e) => setFavorAmount(parseInt(e.target.value, 10) || 0)}
+                            className="bg-gray-700 text-white rounded p-2 w-32"
+                        />
                     </div>
                     {/* New Checkbox for Instant Build */}
                     <div className="flex justify-between items-center pt-4 border-t border-gray-600">

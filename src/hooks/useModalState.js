@@ -9,7 +9,7 @@ export const useModalState = () => {
         isReportsPanelOpen: false,
         isAllianceModalOpen: false,
         isMessagesPanelOpen: false,
-        isDivinePowersOpen: false,
+        isDivinePowersOpen: false, // Added this line
     });
 
     const openModal = (type, data) => {
@@ -22,7 +22,7 @@ export const useModalState = () => {
                 case 'reports': return { ...prevState, isReportsPanelOpen: true };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: true };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: true };
-                case 'divinePowers': return { ...prevState, isDivinePowersOpen: true };
+                case 'divinePowers': return { ...prevState, isDivinePowersOpen: true }; // Added this case
                 default: return prevState;
             }
         });
@@ -38,7 +38,7 @@ export const useModalState = () => {
                 case 'reports': return { ...prevState, isReportsPanelOpen: false };
                 case 'alliance': return { ...prevState, isAllianceModalOpen: false };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: false };
-                case 'divinePowers': return { ...prevState, isDivinePowersOpen: false };
+                case 'divinePowers': return { ...prevState, isDivinePowersOpen: false }; // Added this case
                 default: return prevState;
             }
         });
