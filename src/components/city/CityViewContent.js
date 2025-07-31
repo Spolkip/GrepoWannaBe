@@ -14,7 +14,7 @@ buildingImageContext.keys().forEach((item) => {
 
 const CITYSCAPE_SIZE = 2000;
 
-const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers }) => {
+const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSettings }) => {
     // Panning Logic (moved from CityView.js)
     const viewportRef = useRef(null);
     const cityContainerRef = useRef(null);
@@ -66,6 +66,32 @@ const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers }) => {
             window.removeEventListener('mouseup', handleMouseUp);
         };
     }, [isPanning, startPos, clampPan]);
+
+    if (!gameSettings.showVisuals) {
+        return (
+            <main className="flex-grow w-full h-full relative overflow-y-auto p-4">
+                <h2 className="text-2xl font-bold mb-4">City Buildings</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {Object.entries(cityGameState.buildings).map(([id, data]) => {
+                        if (data.level > 0) {
+                            return (
+                                <div key={id} className="bg-gray-800 p-3 rounded-lg cursor-pointer hover:bg-gray-700" onClick={() => handlePlotClick(id)}>
+                                    <p className="font-bold text-lg text-yellow-400">{buildingConfig[id]?.name}</p>
+                                    <p>Level {data.level}</p>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })}
+                </div>
+                 <SideInfoPanel 
+                    gameState={cityGameState} 
+                    className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" 
+                    onOpenPowers={onOpenPowers}
+                />
+            </main>
+        );
+    }
 
     return (
         <main className="flex-grow w-full h-full relative overflow-hidden cursor-grab" ref={viewportRef} onMouseDown={handleMouseDown}>

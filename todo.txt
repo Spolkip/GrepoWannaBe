@@ -2,8 +2,6 @@ Ruins around the world to give you hidden researches.
 
 Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
 
-Alliances with researches and stuff to give more teamwork, add research menu, allies, enemies etc
-
 Settings remove visuals and grid
 
 Add hospital and wounded troops
@@ -37,3 +35,5 @@ random names for villages
 make market and adjust the trades accordingly
 
 add invitation system to the alliance
+
+add alliance settings

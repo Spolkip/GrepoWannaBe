@@ -10,9 +10,11 @@ import DivinePowers from './city/DivinePowers'; // Import DivinePowers
 import { useCityState } from '../hooks/useCityState';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
+import { useGame } from '../contexts/GameContext';
 
 const CityView = ({ showMap, worldId }) => {
     const { currentUser, userProfile } = useAuth();
+    const { gameSettings } = useGame();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
     const [isInstantUnits, setIsInstantUnits] = useState(false);
@@ -520,6 +522,7 @@ const CityView = ({ showMap, worldId }) => {
                 cityGameState={cityGameState}
                 handlePlotClick={handlePlotClick}
                 onOpenPowers={() => openModal('isDivinePowersOpen')}
+                gameSettings={gameSettings}
             />
 
             <CityModals

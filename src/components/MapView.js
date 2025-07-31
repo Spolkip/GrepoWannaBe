@@ -36,13 +36,12 @@ import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, gameSettings } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [gameSettings, setGameSettings] = useState({ animations: true, confirmActions: true });
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
@@ -216,11 +215,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const handleToggleDummyCityPlacement = () => {
         setIsPlacingDummyCity(prevMode => !prevMode);
         setMessage(isPlacingDummyCity ? 'Dummy city placement OFF.' : 'Dummy city placement ON. Click an empty slot.');
-    };
-
-    const handleSaveSettings = (newSettings) => {
-        setGameSettings(newSettings);
-        console.log("Settings saved:", newSettings);
     };
 
     const handleCastSpell = async (power, targetCity) => {
@@ -452,6 +446,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                                 villages={villages}
                                 playerAlliance={playerAlliance}
                                 conqueredVillages={conqueredVillages}
+                                gameSettings={gameSettings}
                             />
                         </div>
                     </div>
@@ -487,8 +482,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             {isSettingsModalOpen && (
                 <SettingsModal
                     onClose={() => setIsSettingsModalOpen(false)}
-                    onSaveSettings={handleSaveSettings}
-                    initialSettings={gameSettings}
                 />
             )}
 

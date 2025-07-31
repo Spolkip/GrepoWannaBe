@@ -1,16 +1,26 @@
-// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/Tiles.js
+// src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const WaterTile = React.memo(() => (
-    <div className="w-full h-full bg-blue-800 border-r border-b border-blue-900" />
-));
+const defaultSettings = { showVisuals: true, showGrid: true };
 
-export const LandTile = React.memo(() => (
-    <div className="w-full h-full bg-green-600 border-r border-b border-green-700" />
-));
+export const WaterTile = React.memo(({ gameSettings = defaultSettings }) => {
+    const bgClass = gameSettings.showVisuals ? 'bg-blue-800' : 'bg-gray-900';
+    const borderClass = gameSettings.showGrid 
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-900' : 'border-gray-800'}` 
+        : 'border-r border-b border-transparent';
+    return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
+});
 
-export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance }) => {
+export const LandTile = React.memo(({ gameSettings = defaultSettings }) => {
+    const bgClass = gameSettings.showVisuals ? 'bg-green-600' : 'bg-gray-800';
+    const borderClass = gameSettings.showGrid 
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        : 'border-r border-b border-transparent';
+    return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
+});
+
+export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings }) => {
     const { currentUser } = useAuth();
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
@@ -20,7 +30,7 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             tooltipText = `Your City: ${slotData.cityName}`;
-        } else if (playerAlliance && slotData.alliance === playerAlliance) {
+        } else if (playerAlliance && slotData.alliance === playerAlliance.tag) {
             slotClass = 'alliance-city';
             tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
         } else if (slotData.ownerId.startsWith('dummy_')) {
@@ -35,8 +45,13 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
         tooltipText = 'Click to place dummy city';
     }
 
+    const backgroundClass = gameSettings.showVisuals ? 'bg-green-400' : 'bg-gray-800';
+    const borderClass = gameSettings.showGrid 
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        : 'border-r border-b border-transparent';
+
     return (
-        <div className="w-full h-full bg-green-400 border-r border-b border-green-700 flex justify-center items-center">
+        <div className={`w-full h-full ${backgroundClass} ${borderClass} flex justify-center items-center`}>
             <div onClick={(e) => onClick(e, slotData)} className={`city-slot ${slotClass}`}>
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>
@@ -44,7 +59,7 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
     );
 });
 
-export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredVillages }) => {
+export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredVillages, gameSettings = defaultSettings }) => {
     let villageClass = 'neutral-village';
     let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
 
@@ -54,9 +69,14 @@ export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredV
         villageClass = 'my-village';
         tooltipText = `Your Village: ${villageData.name}`;
     }
+    
+    const backgroundClass = gameSettings.showVisuals ? 'bg-green-500' : 'bg-gray-800';
+    const borderClass = gameSettings.showGrid 
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        : 'border-r border-b border-transparent';
 
     return (
-        <div className="w-full h-full bg-green-500 border-r border-b border-green-700 flex justify-center items-center">
+        <div className={`w-full h-full ${backgroundClass} ${borderClass} flex justify-center items-center`}>
             <div onClick={(e) => onClick(e, villageData)} className={`village-slot ${villageClass}`}>
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>

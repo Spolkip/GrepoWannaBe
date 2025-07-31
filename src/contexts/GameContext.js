@@ -1,7 +1,7 @@
 // src/contexts/GameContext.js
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot, deleteDoc, collection, runTransaction } from "firebase/firestore";
+import { doc, onSnapshot,deleteDoc, collection, runTransaction } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -19,6 +19,12 @@ export const GameProvider = ({ children, worldId }) => {
     const [playerGod, setPlayerGod] = useState(null);
     const [playerAlliance, setPlayerAlliance] = useState(null);
     const [conqueredVillages, setConqueredVillages] = useState({});
+    const [gameSettings, setGameSettings] = useState({
+        animations: true,
+        confirmActions: true,
+        showGrid: true,
+        showVisuals: true,
+    });
 
     const createAlliance = async (name, tag) => {
         if (!currentUser || !worldId || !userProfile) return;
@@ -225,6 +231,19 @@ export const GameProvider = ({ children, worldId }) => {
         };
     }, [currentUser, worldId]);
 
-    const value = { gameState, setGameState, worldState, playerCity, playerHasChosenFaction, loading, worldId, playerGod, setPlayerGod, playerAlliance, setPlayerAlliance, conqueredVillages, donateToAllianceResearch, createAlliance };
+    const value = { 
+        gameState, setGameState, 
+        worldState, 
+        playerCity, 
+        playerHasChosenFaction, 
+        loading, 
+        worldId, 
+        playerGod, setPlayerGod, 
+        playerAlliance, setPlayerAlliance, 
+        conqueredVillages, 
+        donateToAllianceResearch, 
+        createAlliance,
+        gameSettings, setGameSettings 
+    };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

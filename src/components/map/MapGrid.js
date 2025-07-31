@@ -1,12 +1,12 @@
-// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/MapGrid.js
 // src/components/map/MapGrid.js
 import React from 'react';
 import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile } from './Tiles';
 import MovementIndicator from './MovementIndicator';
 
 const TILE_SIZE = 32;
+const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
     if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
 
     const scaledTileSize = TILE_SIZE * zoom;
@@ -23,16 +23,16 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
             let tileContent;
             switch (tile.type) {
                 case 'city_slot':
-                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} />;
+                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} gameSettings={gameSettings} />;
                     break;
                 case 'village':
-                    tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} />;
+                    tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />;
                     break;
                 case 'land':
-                    tileContent = <LandTile />;
+                    tileContent = <LandTile gameSettings={gameSettings} />;
                     break;
                 default:
-                    tileContent = <WaterTile />;
+                    tileContent = <WaterTile gameSettings={gameSettings} />;
                     break;
             }
             visibleTiles.push(
@@ -47,16 +47,18 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
         }
     }
 
-    movements.forEach(movement => {
-        visibleTiles.push(
-            <MovementIndicator
-                key={`movement-${movement.id}`}
-                movement={movement}
-                citySlots={{...combinedSlots, ...villages}}
-                allMovements={movements}
-            />
-        );
-    });
+    if (gameSettings.animations) {
+        movements.forEach(movement => {
+            visibleTiles.push(
+                <MovementIndicator
+                    key={`movement-${movement.id}`}
+                    movement={movement}
+                    citySlots={{...combinedSlots, ...villages}}
+                    allMovements={movements}
+                />
+            );
+        });
+    }
 
     return <>{visibleTiles}</>;
 };
