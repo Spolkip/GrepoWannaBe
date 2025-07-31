@@ -34,9 +34,10 @@ const MapModals = ({
                     travelTimeInfo={travelTimeInfo}
                     onSendMovement={handleSendMovement}
                     onClose={() => closeModal('city')}
-                    onActionClick={handleActionClick}
+                    onAction={handleActionClick}
                     gameState={gameState}
                     onCastSpell={onCastSpell}
+                    isVillageTarget={modalState.selectedCity?.isVillageTarget}
                 />
             )}
             {modalState.selectedVillage && (

@@ -1,10 +1,12 @@
 // src/components/MapView.js
+
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase/config';
-import { doc, updateDoc, collection, onSnapshot, query, where, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot, query, where, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
+
 
 // UI Components
 import Modal from './shared/Modal';
@@ -25,8 +27,10 @@ import { useMapActions } from '../hooks/useMapActions';
 import { useCityState } from '../hooks/useCityState';
 
 // Utilities
-import { calculateDistance } from '../utils/travel';
+import { calculateDistance, calculateTravelTime } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
+import buildingConfig from '../gameData/buildings.json';
+
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
@@ -206,89 +210,124 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         console.log("Settings saved:", newSettings);
     };
 
-    const handleCastSpell = async (power) => {
+    const handleCastSpell = async (power, targetCity) => {
         const currentState = gameState;
         if (!currentState || !currentState.god || (currentState.worship[currentState.god] || 0) < power.favorCost) {
             setMessage("Not enough favor to cast this spell.");
             return;
         }
-
-        const newGameState = JSON.parse(JSON.stringify(currentState));
-        newGameState.worship[currentState.god] -= power.favorCost;
-
+    
+        const batch = writeBatch(db);
+    
+        // 1. Deduct favor from the caster
+        const casterGameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const newWorship = { ...currentState.worship };
+        newWorship[currentState.god] -= power.favorCost;
+        batch.update(casterGameDocRef, { worship: newWorship });
+    
+        // 2. Determine target
+        const isSelfCast = !targetCity;
+        const targetOwnerId = isSelfCast ? currentUser.uid : targetCity.ownerId;
+        const targetGameDocRef = doc(db, `users/${targetOwnerId}/games`, worldId);
+        const targetGameSnap = await getDoc(targetGameDocRef);
+    
+        if (!targetGameSnap.exists()) {
+            setMessage("Target city's game data not found.");
+            await batch.commit(); // Still commit the favor cost deduction
+            setGameState({ ...gameState, worship: newWorship });
+            return;
+        }
+    
+        const targetGameState = targetGameSnap.data();
+        let spellEffectMessage = '';
+        let casterMessage = '';
+        let effectApplied = false;
+    
+        // 3. Apply spell effect
         switch (power.effect.type) {
             case 'add_resources':
-                newGameState.resources[power.effect.resource] = (newGameState.resources[power.effect.resource] || 0) + power.effect.amount;
+            case 'add_multiple_resources': {
+                const resourcesToAdd = power.effect.type === 'add_resources'
+                    ? { [power.effect.resource]: power.effect.amount }
+                    : power.effect.resources;
+                
+                const newResources = { ...targetGameState.resources };
+                let resourcesReceivedMessage = [];
+                for (const resource in resourcesToAdd) {
+                    newResources[resource] = (newResources[resource] || 0) + resourcesToAdd[resource];
+                    resourcesReceivedMessage.push(`${resourcesToAdd[resource]} ${resource}`);
+                }
+                batch.update(targetGameDocRef, { resources: newResources });
+    
+                if (isSelfCast) {
+                    casterMessage = `You have blessed yourself with ${resourcesReceivedMessage.join(' and ')}!`;
+                } else {
+                    spellEffectMessage = `Your city ${targetGameState.cityName} has been blessed with ${resourcesReceivedMessage.join(' and ')} by ${userProfile.username}!`;
+                    casterMessage = `You have blessed ${targetGameState.cityName} with ${resourcesReceivedMessage.join(' and ')}.`;
+                }
+                effectApplied = true;
                 break;
-            case 'add_multiple_resources':
-                for (const resource in power.effect.resources) {
-                    newGameState.resources[resource] = (newGameState.resources[resource] || 0) + power.effect.resources[resource];
+            }
+            case 'damage_building': {
+                if (isSelfCast) break; // This spell should not be self-cast
+                const buildings = { ...targetGameState.buildings };
+                const buildingKeys = Object.keys(buildings).filter(b => buildings[b].level > 0);
+                if (buildingKeys.length > 0) {
+                    const randomBuildingKey = buildingKeys[Math.floor(Math.random() * buildingKeys.length)];
+                    buildings[randomBuildingKey].level = Math.max(0, buildings[randomBuildingKey].level - power.effect.amount);
+                    spellEffectMessage = `Your ${buildingConfig[randomBuildingKey]?.name || 'building'} in ${targetGameState.cityName} was damaged by a divine power from ${userProfile.username}!`;
+                    casterMessage = `You damaged a building in ${targetGameState.cityName}.`;
+                    batch.update(targetGameDocRef, { buildings });
+                    effectApplied = true;
+                } else {
+                    casterMessage = `You attempted to damage a building in ${targetGameState.cityName}, but there were none.`;
                 }
                 break;
-            // Add more spell effects here in the future
+            }
             default:
-                setMessage("This spell's effect is not yet implemented.");
-                return;
+                setMessage("This spell's effect is not yet implemented for instant casting.");
+                return; // Don't commit batch if not implemented
         }
-
+    
+        // 4. Create reports
+        const casterReport = {
+            type: 'spell_cast',
+            title: `Spell cast: ${power.name}`,
+            timestamp: serverTimestamp(),
+            outcome: { message: casterMessage },
+            read: false,
+        };
+        batch.set(doc(collection(db, `users/${currentUser.uid}/reports`)), casterReport);
+    
+        if (!isSelfCast) {
+            const targetReport = {
+                type: 'spell_received',
+                title: `Divine Intervention!`,
+                timestamp: serverTimestamp(),
+                outcome: { message: spellEffectMessage, from: playerCity.cityName },
+                read: false,
+            };
+            batch.set(doc(collection(db, `users/${targetOwnerId}/reports`)), targetReport);
+        }
+    
+        // 5. Commit batch and update local state
         try {
-            await saveGameState(newGameState);
-            setGameState(newGameState);
+            await batch.commit();
             setMessage(`${power.name} has been cast!`);
             closeModal('divinePowers');
+            
+            // Optimistically update local state for caster
+            if (isSelfCast) {
+                const updatedSelfSnap = await getDoc(casterGameDocRef);
+                if (updatedSelfSnap.exists()) {
+                    setGameState(updatedSelfSnap.data());
+                }
+            } else {
+                setGameState({ ...gameState, worship: newWorship });
+            }
         } catch (error) {
             console.error("Error casting spell:", error);
             setMessage("Failed to cast the spell. Please try again.");
-        }
-    };
-    
-    const handleTargetedCastSpell = async (power) => {
-        const targetCity = modalState.divinePowersTarget;
-        if (!targetCity) return;
-
-        const currentState = gameState;
-        if (!currentState || !currentState.god || (currentState.worship[currentState.god] || 0) < power.favorCost) {
-            setMessage("Not enough favor to cast this spell.");
-            return;
-        }
-
-        const batch = writeBatch(db);
-        const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
-        const arrivalTime = new Date(Date.now()); // Spells are instant
-
-        const movementData = {
-            type: 'spell_cast',
-            power: power,
-            originCityId: playerCity.id,
-            originOwnerId: currentUser.uid,
-            originOwnerUsername: userProfile.username,
-            targetCityId: targetCity.id,
-            targetOwnerId: targetCity.ownerId,
-            targetCityName: targetCity.cityName,
-            departureTime: serverTimestamp(),
-            arrivalTime: arrivalTime,
-            status: 'moving',
-            involvedParties: [currentUser.uid, targetCity.ownerId].filter(id => id),
-        };
-        batch.set(newMovementRef, movementData);
-
-        const newFavor = (currentState.worship[currentState.god] || 0) - power.favorCost;
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
-        batch.update(gameDocRef, {
-            [`worship.${currentState.god}`]: newFavor
-        });
-
-        try {
-            await batch.commit();
-            const newGameState = JSON.parse(JSON.stringify(currentState));
-            newGameState.worship[currentState.god] = newFavor;
-            setGameState(newGameState);
-
-            setMessage(`${power.name} has been cast on ${targetCity.cityName}!`);
-            closeModal('divinePowers');
-        } catch (error) {
-            console.error("Error casting targeted spell:", error);
-            setMessage("Failed to cast the spell.");
         }
     };
     
@@ -443,7 +482,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     godName={gameState.god}
                     playerReligion={gameState.playerInfo.religion}
                     favor={gameState.worship[gameState.god] || 0}
-                    onCastSpell={modalState.divinePowersTarget ? handleTargetedCastSpell : handleCastSpell}
+                    onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)}
                     onClose={() => closeModal('divinePowers')}
                     targetType={modalState.divinePowersTarget ? 'other' : 'self'}
                 />

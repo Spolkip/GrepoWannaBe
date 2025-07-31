@@ -1,9 +1,8 @@
-// src/components/map/OtherCityModal.js
 import React from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 
-const OtherCityModal = ({ city, onClose, onGoTo, onActionClick, isVillageTarget }) => {
+const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -31,7 +30,6 @@ const OtherCityModal = ({ city, onClose, onGoTo, onActionClick, isVillageTarget 
                 
                 {isVillageTarget && city.troops && Object.keys(city.troops).length > 0 && (
                     <div className="bg-gray-700 p-3 rounded-lg mb-4">
-                        {/* The title is passed here */}
                         <TroopDisplay units={city.troops} unitsData={unitsData} title="Village Troops" />
                     </div>
                 )}
@@ -39,7 +37,7 @@ const OtherCityModal = ({ city, onClose, onGoTo, onActionClick, isVillageTarget 
                 <div className="grid grid-cols-2 gap-4">
                     {isVillageTarget ? (
                         <button 
-                            onClick={() => onActionClick('attack', city)}
+                            onClick={() => onAction('attack', city)}
                             className="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded col-span-2"
                         >
                             Attack
@@ -47,52 +45,46 @@ const OtherCityModal = ({ city, onClose, onGoTo, onActionClick, isVillageTarget 
                     ) : (
                         <>
                             <button 
-                                onClick={() => onActionClick('attack', city)}
+                                onClick={() => onAction('attack', city)}
                                 className="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Attack
                             </button>
                             <button 
-                                onClick={() => onActionClick('reinforce', city)}
+                                onClick={() => onAction('reinforce', city)}
                                 className="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Reinforce
                             </button>
                             <button 
-                                onClick={() => onActionClick('scout', city)}
+                                onClick={() => onAction('scout', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Scout
                             </button>
                             <button 
-                                onClick={() => onActionClick('trade', city)}
+                                onClick={() => onAction('trade', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Trade
                             </button>
+                             <button 
+                                onClick={() => onAction('castSpell', city)}
+                                className="btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                            >
+                                Cast Spell
+                            </button>
                             <button 
-                                onClick={() => onActionClick('message', city)}
+                                onClick={() => onAction('message', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Message
                             </button>
                             <button 
                                 onClick={handleGoTo}
-                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Go To
-                            </button>
-                             <button
-                                onClick={() => onActionClick('castSpell', city)}
-                                className="btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded col-span-2"
-                            >
-                                Cast Spell
-                            </button>
-                            <button 
-                                onClick={() => onActionClick('rally', city)}
                                 className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded col-span-2"
                             >
-                                Rally
+                                Go To
                             </button>
                         </>
                     )}

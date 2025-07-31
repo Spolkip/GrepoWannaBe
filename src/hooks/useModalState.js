@@ -10,7 +10,7 @@ export const useModalState = () => {
         isAllianceModalOpen: false,
         isMessagesPanelOpen: false,
         isDivinePowersOpen: false,
-        divinePowersTarget: null, // To store target city for spells
+        divinePowersTarget: null, // To store the target city for a spell
     });
 
     const openModal = (type, data) => {

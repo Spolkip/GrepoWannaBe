@@ -18,13 +18,15 @@ const DivinePowers = ({ godName, playerReligion, favor, onCastSpell, onClose, ta
         return null;
     }
 
-    const availablePowers = godDetails.powers.filter(power => power.effect.target === targetType);
+    const availablePowers = godDetails.powers.filter(power => {
+        return power.effect.target === targetType || power.effect.target === 'both';
+    });
 
     return (
         <div className="divine-powers-modal-overlay" onClick={onClose}>
             <div className="divine-powers-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="divine-powers-header">
-                    <h2>{godDetails.name}'s Spells ({targetType === 'self' ? 'Self' : 'Targeted'})</h2>
+                    <h2>{godDetails.name}'s Powers ({targetType === 'self' ? 'On Your City' : 'On Another City'})</h2>
                     <button onClick={onClose} className="close-button">&times;</button>
                 </div>
                 {availablePowers.length > 0 ? (

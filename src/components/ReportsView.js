@@ -49,7 +49,7 @@ const ReportsView = ({ onClose }) => {
         'Reinforce': ['reinforce'],
         'Trade': ['trade'],
         'Scout': ['scout', 'spy_caught'],
-        'Misc': ['return', 'spell_cast', 'spell_received'],
+        'Misc': ['return', 'spell_cast', 'spell_received', 'spell_fail'],
     };
 
     useEffect(() => {
@@ -111,14 +111,15 @@ const ReportsView = ({ onClose }) => {
                 return report.scoutSucceeded ? 'text-green-400' : 'text-red-400';
             case 'spy_caught':
                 return 'text-red-400';
+            case 'spell_cast':
+            case 'spell_received':
+                return 'text-purple-400';
+            case 'spell_fail':
+                return 'text-red-400';
             case 'return':
             case 'reinforce':
                 return 'text-blue-400';
             case 'trade':
-                return 'text-yellow-400';
-            case 'spell_cast':
-                return 'text-purple-400';
-            case 'spell_received':
                 return 'text-yellow-400';
             default:
                 return 'text-gray-300';
@@ -141,26 +142,20 @@ const ReportsView = ({ onClose }) => {
     };
     
     const getImageUrl = (imageName) => {
-        // Direct match for image names (e.g., unit images like 'swordman.png')
+        if (!imageName) return '';
         if (images[imageName]) {
             return images[imageName];
         }
-        
-        // Check for resource images (e.g., 'resources/wood.png')
         if (imageName.startsWith('resources/')) {
             if (images[imageName]) {
                 return images[imageName];
             }
         }
-
-        // Check for building images (e.g., 'buildings/senate.png')
         if (imageName.startsWith('buildings/')) {
              if (images[imageName]) {
                 return images[imageName];
             }
         }
-
-        // Check for god images (e.g., 'gods/zeus.png')
         if (imageName.startsWith('gods/')) {
              if (images[imageName]) {
                 return images[imageName];
@@ -214,7 +209,6 @@ const ReportsView = ({ onClose }) => {
                 {Object.entries(buildings).map(([buildingId, data]) => {
                     if (data.level > 0) {
                         const building = buildingConfig[buildingId];
-                        // Corrected: Ensure the image path includes the "buildings/" prefix
                         const imageSrc = getImageUrl(`buildings/${building?.image}` || '');
                         return (
                             <div key={buildingId} className="flex flex-col items-center">
@@ -321,7 +315,6 @@ const ReportsView = ({ onClose }) => {
                 );
 
             case 'scout':
-                // Safely access playerReligion and god
                 const scoutedGod = (report.god && report.playerReligion) ? godsConfig[report.playerReligion.toLowerCase()]?.[report.god] : null;
                 return (
                     <div className="space-y-3">
@@ -329,7 +322,6 @@ const ReportsView = ({ onClose }) => {
                             <>
                                 <p className="font-bold text-green-400 text-lg">Scout Successful!</p>
                                 <p><strong>Target City:</strong> {report.targetCityName}</p>
-                                {/* Fallback for targetOwnerUsername */}
                                 <p><strong>Owner:</strong> {report.targetOwnerUsername || 'Unknown'}</p>
                                 {scoutedGod && (
                                     <div className="flex items-center gap-2 mt-2">
@@ -353,6 +345,16 @@ const ReportsView = ({ onClose }) => {
                         ) : (
                             <p className="font-bold text-red-400">{report.message || 'Scout Failed!'}</p>
                         )}
+                    </div>
+                );
+            case 'spell_cast':
+            case 'spell_received':
+            case 'spell_fail':
+                return (
+                    <div className="space-y-2 text-center">
+                        <p className="font-bold text-lg">{report.title}</p>
+                        <p>{outcome.message}</p>
+                        {outcome.from && <p className="text-sm text-gray-400">From: {outcome.from}</p>}
                     </div>
                 );
             
@@ -401,29 +403,6 @@ const ReportsView = ({ onClose }) => {
                         <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Resources:</strong> {renderResourceIcons(report.resources)}
                         </div>
-                    </div>
-                );
-                
-            case 'spell_cast':
-                return (
-                    <div className="space-y-1">
-                        <p className="font-bold text-purple-400">Spell Cast</p>
-                        <p>You cast {report.spell.name} on {report.targetCityName} ({report.targetOwnerUsername}).</p>
-                        <p className="text-sm text-gray-400">{report.spell.description}</p>
-                    </div>
-                );
-
-            case 'spell_received':
-                return (
-                    <div className="space-y-1">
-                        <p className="font-bold text-yellow-400">Spell Received</p>
-                        <p>{report.spell.name} was cast upon your city by {report.originOwnerUsername} from {report.originCityName}.</p>
-                        {report.details?.message && <p className="text-gray-300">{report.details.message}</p>}
-                        {report.details?.resources && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                <strong>Resources Gained:</strong> {renderResourceIcons(report.details.resources)}
-                            </div>
-                        )}
                     </div>
                 );
 

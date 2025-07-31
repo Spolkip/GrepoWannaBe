@@ -6,9 +6,9 @@
             "powers": [
                 {
                     "name": "Divine Sign",
-                    "description": "Instantly receive 250 silver.",
+                    "description": "Instantly send 250 silver to a target city.",
                     "favorCost": 50,
-                    "effect": { "type": "add_resources", "resource": "silver", "amount": 250, "target": "self" }
+                    "effect": { "type": "add_resources", "resource": "silver", "amount": 250, "target": "both" }
                 },
                 {
                     "name": "Lightning Bolt",
@@ -26,15 +26,15 @@
             "powers": [
                 {
                     "name": "Wedding",
-                    "description": "Instantly receive 250 wood.",
+                    "description": "Instantly send 250 wood to a target city.",
                     "favorCost": 50,
-                    "effect": { "type": "add_resources", "resource": "wood", "amount": 250, "target": "self" }
+                    "effect": { "type": "add_resources", "resource": "wood", "amount": 250, "target": "both" }
                 },
                 {
                     "name": "Satisfaction",
-                    "description": "Increase resource production by 10% for 1 hour in your city.",
+                    "description": "Increase resource production by 10% for 1 hour in a target city.",
                     "favorCost": 150,
-                    "effect": { "type": "resource_boost", "multiplier": 1.1, "duration": 3600, "target": "self" }
+                    "effect": { "type": "resource_boost", "multiplier": 1.1, "duration": 3600, "target": "both" }
                 }
             ],
             "mythical_units": ["Harpy", "Medusa"],
@@ -68,9 +68,9 @@
             "powers": [
                 {
                     "name": "Divine Sign",
-                    "description": "Instantly receive 250 silver.",
+                    "description": "Instantly send 250 silver to a target city.",
                     "favorCost": 50,
-                    "effect": { "type": "add_resources", "resource": "silver", "amount": 250, "target": "self" }
+                    "effect": { "type": "add_resources", "resource": "silver", "amount": 250, "target": "both" }
                 },
                 {
                     "name": "Lightning Bolt",
@@ -88,15 +88,15 @@
             "powers": [
                 {
                     "name": "Wedding",
-                    "description": "Instantly receive 250 wood.",
+                    "description": "Instantly send 250 wood to a target city.",
                     "favorCost": 50,
-                    "effect": { "type": "add_resources", "resource": "wood", "amount": 250, "target": "self" }
+                    "effect": { "type": "add_resources", "resource": "wood", "amount": 250, "target": "both" }
                 },
                 {
                     "name": "Satisfaction",
-                    "description": "Increase resource production by 10% for 1 hour in your city.",
+                    "description": "Increase resource production by 10% for 1 hour in a target city.",
                     "favorCost": 150,
-                    "effect": { "type": "resource_boost", "multiplier": 1.1, "duration": 3600, "target": "self" }
+                    "effect": { "type": "resource_boost", "multiplier": 1.1, "duration": 3600, "target": "both" }
                 }
             ],
             "mythical_units": ["Harpy", "Medusa"],
@@ -176,9 +176,9 @@
                 },
                 {
                     "name": "Bountiful Harvest",
-                    "description": "Instantly receive 250 wood and 250 stone.",
+                    "description": "Instantly send 250 wood and 250 stone to a target city.",
                     "favorCost": 100,
-                    "effect": { "type": "add_multiple_resources", "resources": { "wood": 250, "stone": 250 }, "target": "self" }
+                    "effect": { "type": "add_multiple_resources", "resources": { "wood": 250, "stone": 250 }, "target": "both" }
                 }
             ],
             "mythical_units": ["Mummy", "Serpopard"],
