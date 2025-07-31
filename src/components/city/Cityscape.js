@@ -1,8 +1,10 @@
+// src/components/city/Cityscape.js
 import React from 'react';
 import BuildingSpot from './BuildingSpot';
 import buildingLayout from './BuildingLayout.json';
+import buildingConfig from '../../gameData/buildings.json'; // Import building config
 
-const Cityscape = ({ buildings, onBuildingClick }) => {
+const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {
   return (
     <div
       style={{
@@ -15,6 +17,7 @@ const Cityscape = ({ buildings, onBuildingClick }) => {
       {buildingLayout.map((building) => {
         const buildingData = buildings[building.id];
         const level = buildingData?.level || 0;
+        const config = buildingConfig[building.id]; // Get config for the building
         
         return (
           <BuildingSpot
@@ -22,6 +25,7 @@ const Cityscape = ({ buildings, onBuildingClick }) => {
             building={building}
             level={level}
             onClick={() => onBuildingClick(building.id)}
+            image={config?.image ? buildingImages[config.image] : null} // Pass image URL
           />
         );
       })}

@@ -1,15 +1,21 @@
+// src/components/TroopDisplay.js
 import React from 'react';
 import unitConfig from '../gameData/units.json';
 
-// Dynamically import all images from the images folder
-const images = require.context('../images', false, /\.(png|jpe?g|svg)$/);
+// Dynamically import all images from the images and images/buildings folder
+const images = {};
+const imageContexts = [
+    require.context('../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/gods', false, /\.(png|jpe?g|svg)$/),
+];
 
-const imageMap = images.keys().reduce((acc, item) => {
-    const key = item.replace('./', '');
-    acc[key] = images(item);
-    return acc;
-}, {});
-
+imageContexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const key = item.replace('./', '');
+        images[key] = context(item);
+    });
+});
 
 const TroopDisplay = ({ units, title }) => {
     const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land');
@@ -19,7 +25,7 @@ const TroopDisplay = ({ units, title }) => {
         const unit = unitConfig[unitId];
         if (!unit || !unit.image) return null;
 
-        const imageUrl = imageMap[unit.image];
+        const imageUrl = images[unit.image];
         if (!imageUrl) return null;
 
         return (

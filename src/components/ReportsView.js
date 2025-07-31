@@ -1,38 +1,42 @@
-// src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
+import godsConfig from '../gameData/gods.json'; // Import gods config
 
-// Import all images statically
-import swordmanImg from '../images/swordman.png';
-import woodImg from '../images/resources/wood.png';
-import stoneImg from '../images/resources/stone.png';
-import silverImg from '../images/resources/silver.png';
-import archersImg from '../images/archers.png';
-import cavalryImg from '../images/cavalry.png';
-import fastTransportShipImg from '../images/fast_transport_ship.png';
-import hospiteImg from '../images/hospite.png';
-import slingerImg from '../images/slinger.png';
-import transportShipImg from '../images/transport_ship.png';
-import tritemeImg from '../images/trireme.png';
+// Dynamically import all images from the images and its subfolders
+const images = {};
 
-// Image map for easy reference
-const imageMap = {
-  'swordman.png': swordmanImg,
-  'resources/wood.png': woodImg,
-  'resources/stone.png': stoneImg,
-  'resources/silver.png': silverImg,
-  'archers.png': archersImg,
-  'cavalry.png': cavalryImg,
-  'fast_transport_ship.png': fastTransportShipImg,
-  'hospite.png': hospiteImg,
-  'slinger.png': slingerImg,
-  'transport_ship.png': transportShipImg,
-  'triteme.png': tritemeImg,
-};
+// Context for images directly in src/images (e.g., units)
+const mainImageContext = require.context('../images', false, /\.(png|jpe?g|svg)$/);
+mainImageContext.keys().forEach((item) => {
+    const key = item.replace('./', ''); // e.g., 'swordman.png'
+    images[key] = mainImageContext(item);
+});
+
+// Context for images in src/images/resources
+const resourceImageContext = require.context('../images/resources', false, /\.(png|jpe?g|svg)$/);
+resourceImageContext.keys().forEach((item) => {
+    const key = `resources/${item.replace('./', '')}`; // e.g., 'resources/wood.png'
+    images[key] = resourceImageContext(item);
+});
+
+// Context for images in src/images/buildings
+const buildingImageContext = require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/);
+buildingImageContext.keys().forEach((item) => {
+    const key = `buildings/${item.replace('./', '')}`; // e.g., 'buildings/senate.png'
+    images[key] = buildingImageContext(item);
+});
+
+// Context for images in src/images/gods
+const godsImageContext = require.context('../images/gods', false, /\.(png|jpe?g|svg)$/);
+godsImageContext.keys().forEach((item) => {
+    const key = `gods/${item.replace('./', '')}`; // e.g., 'gods/zeus.png'
+    images[key] = godsImageContext(item);
+});
+
 
 const ReportsView = ({ onClose }) => {
     const { currentUser } = useAuth();
@@ -133,15 +137,30 @@ const ReportsView = ({ onClose }) => {
     };
     
     const getImageUrl = (imageName) => {
-        // Check if we have the image in our static imports
-        if (imageMap[imageName]) {
-            return imageMap[imageName];
+        // Direct match for image names (e.g., unit images like 'swordman.png')
+        if (images[imageName]) {
+            return images[imageName];
         }
         
-        // Fallback for unit images from unitConfig
-        const unitImage = unitConfig[imageName]?.image;
-        if (unitImage && imageMap[unitImage]) {
-            return imageMap[unitImage];
+        // Check for resource images (e.g., 'resources/wood.png')
+        if (imageName.startsWith('resources/')) {
+            if (images[imageName]) {
+                return images[imageName];
+            }
+        }
+
+        // Check for building images (e.g., 'buildings/senate.png')
+        if (imageName.startsWith('buildings/')) {
+             if (images[imageName]) {
+                return images[imageName];
+            }
+        }
+
+        // Check for god images (e.g., 'gods/zeus.png')
+        if (imageName.startsWith('gods/')) {
+             if (images[imageName]) {
+                return images[imageName];
+            }
         }
         
         console.warn(`Image not found: ${imageName}`);
@@ -152,7 +171,7 @@ const ReportsView = ({ onClose }) => {
         if (!units || Object.keys(units).length === 0) return null;
         
         return (
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center justify-center gap-2">
                 {Object.entries(units).map(([unitId, count]) => {
                     if (count > 0) {
                         const unit = unitConfig[unitId];
@@ -181,6 +200,29 @@ const ReportsView = ({ onClose }) => {
                 </div>
             );
         });
+    };
+
+    const renderBuildingDisplay = (buildings) => {
+        if (!buildings || Object.keys(buildings).length === 0) return null;
+
+        return (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+                {Object.entries(buildings).map(([buildingId, data]) => {
+                    if (data.level > 0) {
+                        const building = buildingConfig[buildingId];
+                        // Corrected: Ensure the image path includes the "buildings/" prefix
+                        const imageSrc = getImageUrl(`buildings/${building?.image}` || '');
+                        return (
+                            <div key={buildingId} className="flex flex-col items-center">
+                                {imageSrc && <img src={imageSrc} alt={building?.name || buildingId} className="w-8 h-8"/>}
+                                <span className="text-sm">{building?.name || buildingId} (Lvl {data.level})</span>
+                            </div>
+                        );
+                    }
+                    return null;
+                })}
+            </div>
+        );
     };
 
     const renderReportOutcome = (report) => {
@@ -275,29 +317,47 @@ const ReportsView = ({ onClose }) => {
                 );
 
             case 'scout':
+                // Safely access playerReligion and god
+                const scoutedGod = (report.god && report.playerReligion) ? godsConfig[report.playerReligion.toLowerCase()]?.[report.god] : null;
                 return (
-                    <>
+                    <div className="space-y-3">
                         {report.scoutSucceeded ? (
-                            <div className="space-y-1">
-                                <p className="font-bold text-green-400">Scout Successful!</p>
-                                <p><strong>Target:</strong> {report.targetCityName} (Owner: {report.targetOwnerUsername})</p>
-                                <p><strong>Worshipped God:</strong> {report.god || 'None'}</p>
-                                <p><strong>Units:</strong> {renderUnitList(report.units)}</p>
-                                <p><strong>Resources:</strong> {Object.entries(report.resources || {}).map(([res, amount]) => `${Math.floor(amount)} ${res}`).join(', ') || 'None'}</p>
-                                <p><strong>Buildings:</strong> {Object.entries(report.buildings || {}).map(([bldg, data]) => `${buildingConfig[bldg]?.name || bldg} (Lvl ${data.level})`).join(', ') || 'None'}</p>
-                            </div>
+                            <>
+                                <p className="font-bold text-green-400 text-lg">Scout Successful!</p>
+                                <p><strong>Target City:</strong> {report.targetCityName}</p>
+                                {/* Fallback for targetOwnerUsername */}
+                                <p><strong>Owner:</strong> {report.targetOwnerUsername || 'Unknown'}</p>
+                                {scoutedGod && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <p><strong>Worshipped God:</strong> {scoutedGod.name}</p>
+                                        <img src={getImageUrl(`gods/${scoutedGod.image}`)} alt={scoutedGod.name} className="w-8 h-8"/>
+                                    </div>
+                                )}
+                                <div className="mt-4">
+                                    <h5 className="font-semibold text-yellow-300">Resources:</h5>
+                                    <div className="flex flex-wrap gap-2">{renderResourceIcons(report.resources)}</div>
+                                </div>
+                                <div className="mt-4">
+                                    <h5 className="font-semibold text-yellow-300">Units:</h5>
+                                    {renderTroopDisplay(report.units)}
+                                </div>
+                                <div className="mt-4">
+                                    <h5 className="font-semibold text-yellow-300">Buildings:</h5>
+                                    {renderBuildingDisplay(report.buildings)}
+                                </div>
+                            </>
                         ) : (
                             <p className="font-bold text-red-400">{report.message || 'Scout Failed!'}</p>
                         )}
-                    </>
+                    </div>
                 );
             
             case 'return':
                 return (
                     <div className="space-y-1">
                         <p className="font-bold text-blue-400">Troops Returned</p>
-                        <p><strong>Surviving Units:</strong> {renderUnitList(report.units)}</p>
-                        {/* Changed <p> to <div> to resolve nesting warning */}
+                        <p><strong>Surviving Units:</strong></p>
+                        {renderTroopDisplay(report.units)}
                         <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Loot:</strong> {renderResourceIcons(report.resources)}
                         </div>
@@ -310,7 +370,9 @@ const ReportsView = ({ onClose }) => {
                         <p className="font-bold text-red-400">Spy Detected!</p>
                         <p>A spy from {report.originCityName || 'an unknown city'} was detected.</p>
                         {report.silverGained > 0 && (
-                            <p>You gained {Math.floor(report.silverGained)} silver from the spy.</p>
+                            <div className="flex items-center gap-2">
+                                <p>You gained:</p> {renderResourceIcons({ silver: report.silverGained })}
+                            </div>
                         )}
                     </div>
                 );
@@ -321,7 +383,8 @@ const ReportsView = ({ onClose }) => {
                         <p className="font-bold text-blue-400">Reinforcement Arrived</p>
                         <p><strong>From:</strong> {report.originCityName}</p>
                         <p><strong>To:</strong> {report.targetCityName}</p>
-                        <p><strong>Units:</strong> {renderUnitList(report.units)}</p>
+                        <p><strong>Units:</strong></p>
+                        {renderTroopDisplay(report.units)}
                     </div>
                 );
 
@@ -331,7 +394,7 @@ const ReportsView = ({ onClose }) => {
                         <p className="font-bold text-yellow-400">Trade Complete</p>
                         <p><strong>From:</strong> {report.originCityName}</p>
                         <p><strong>To:</strong> {report.targetCityName}</p>
-                        <div className="flex flex-wrap gap-2 mt-2"> {/* Changed <p> to <div> here too for consistency if renderResourceIcons returns divs */}
+                        <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Resources:</strong> {renderResourceIcons(report.resources)}
                         </div>
                     </div>

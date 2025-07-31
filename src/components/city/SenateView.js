@@ -3,6 +3,15 @@ import React from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 import BuildQueue from './BuildQueue';
 
+// Dynamically import all building images
+const buildingImages = {};
+const buildingImageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
+buildingImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    buildingImages[key] = buildingImageContext(item);
+});
+
+
 const formatTime = (seconds) => {
     if (seconds < 60) return `${Math.floor(seconds)}s`;
     const minutes = Math.floor(seconds / 60);
@@ -61,6 +70,13 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                                             <span>Time: {formatTime(cost.time)}</span>
                                         </div>
                                     </div>
+                                    {config.image && (
+                                        <img 
+                                            src={buildingImages[config.image]} 
+                                            alt={config.name} 
+                                            className="w-24 h-24 object-contain mx-auto my-2" 
+                                        />
+                                    )}
                                     <button
                                         onClick={() => onUpgrade(id)}
                                         // Modified disabled check to only consider affordability and overall queue limit

@@ -2,66 +2,79 @@
   "senate": {
     "name": "Senate",
     "description": "Manage your city and view building levels.",
-    "baseCost": { "wood": 200, "stone": 250, "silver": 150, "population": 10, "time": 120 }
+    "baseCost": { "wood": 200, "stone": 250, "silver": 150, "population": 10, "time": 120 },
+    "image": "senate.png"
   },
   "timber_camp": {
     "name": "Timber Camp",
     "description": "Generates wood for your empire.",
-    "baseCost": { "wood": 60, "stone": 80, "silver": 20, "population": 5, "time": 60 }
+    "baseCost": { "wood": 60, "stone": 80, "silver": 20, "population": 5, "time": 60 },
+    "image": "lumber_mill.png"
   },
   "quarry": {
     "name": "Quarry",
     "description": "Mines stone for construction.",
-    "baseCost": { "wood": 80, "stone": 60, "silver": 20, "population": 5, "time": 60 }
+    "baseCost": { "wood": 80, "stone": 60, "silver": 20, "population": 5, "time": 60 },
+    "image": "stone_quarry.png"
   },
   "silver_mine": {
     "name": "Silver Mine",
     "description": "Mints silver coins.",
-    "baseCost": { "wood": 100, "stone": 100, "silver": 50, "population": 8, "time": 90 }
+    "baseCost": { "wood": 100, "stone": 100, "silver": 50, "population": 8, "time": 90 },
+    "image": "silver_mines.png"
   },
   "warehouse": {
     "name": "Warehouse",
     "description": "Stores your precious resources.",
-    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 5, "time": 80 }
+    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 5, "time": 80 },
+    "image": "warehouse.png"
   },
   "barracks": {
     "name": "Barracks",
     "description": "Train land units to attack and defend.",
-    "baseCost": { "wood": 120, "stone": 100, "silver": 80, "population": 10, "time": 150 }
+    "baseCost": { "wood": 120, "stone": 100, "silver": 80, "population": 10, "time": 150 },
+    "image": "barracks.png"
   },
   "shipyard": {
     "name": "Shipyard",
     "description": "Build ships for naval warfare.",
-    "baseCost": { "wood": 150, "stone": 100, "silver": 100, "population": 10, "time": 180 }
+    "baseCost": { "wood": 150, "stone": 100, "silver": 100, "population": 10, "time": 180 },
+    "image": "shipyard.png"
   },
   "academy": {
     "name": "Academy",
     "description": "Research new technologies and units.",
-    "baseCost": { "wood": 220, "stone": 220, "silver": 180, "population": 15, "time": 240 }
+    "baseCost": { "wood": 220, "stone": 220, "silver": 180, "population": 15, "time": 240 },
+    "image": "academy.png"
   },
   "city_wall": {
     "name": "City Wall",
     "description": "Increases the defense of your city.",
-    "baseCost": { "wood": 50, "stone": 250, "silver": 100, "population": 5, "time": 100 }
+    "baseCost": { "wood": 50, "stone": 250, "silver": 100, "population": 5, "time": 100 },
+    "image": "city_wall.png"
   },
   "cave": {
     "name": "Cave",
     "description": "Train spies and store silver safely from raids.",
-    "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5, "time": 120 }
+    "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5, "time": 120 },
+    "image": "cavepng.png"
   },
   "market": {
     "name": "Market",
     "description": "Trade resources with other players.",
-    "baseCost": { "wood": 180, "stone": 180, "silver": 180, "population": 10, "time": 200 }
+    "baseCost": { "wood": 180, "stone": 180, "silver": 180, "population": 10, "time": 200 },
+    "image": "market.png"
   },
   "temple": {
     "name": "Temple",
     "description": "Worship the gods to gain their favor.",
-    "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10, "time": 300 }
+    "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10, "time": 300 },
+    "image": "temple.png"
   },
   "farm": {
     "name": "Farm",
     "description": "Increases your city's population capacity.",
-    "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 }
+    "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 },
+    "image": "farm.png"
   }
 }

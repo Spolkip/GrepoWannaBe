@@ -1,4 +1,4 @@
-// spolkip/grepoliswannabe/GrepolisWannaBe-84ea944fec8305f67d645494c64605ee04b71622/src/components/map/MovementModal.js
+// src/components/map/MovementModal.js
 import React, { useState, useMemo, useEffect } from 'react';
 import { calculateTravelTime, formatTravelTime } from '../../utils/travel';
 import unitConfig from '../../gameData/units.json';
@@ -9,12 +9,18 @@ import TradePanel from './TradePanel';
 import ScoutPanel from './ScoutPanel';
 
 // Dynamically import all images from the images folder (this is for unit images)
-const images = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
-const imageMap = images.keys().reduce((acc, item) => {
-    const key = item.replace('./', '');
-    acc[key] = images(item);
-    return acc;
-}, {});
+const images = {};
+const imageContexts = [
+    require.context('../../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/resources', false, /\.(png|jpe?g|svg)$/),
+];
+
+imageContexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const key = item.replace('./', '');
+        images[key] = context(item);
+    });
+});
 
 // MovementModal component allows players to send units or resources for various actions.
 const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlayerUnits, playerResources: initialPlayerResources, travelTimeInfo, onSend, onClose, setMessage }) => {
@@ -218,7 +224,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                 {landUnitsList.map(unit => (
                                     <div key={unit.id} className="flex flex-col items-center p-1 rounded-lg w-12">
                                         <div className="relative w-11 h-12 mb-1">
-                                            <img src={imageMap[unit.image]} alt="" className="w-full h-full object-cover rounded-md " />
+                                            <img src={images[unit.image]} alt="" className="w-full h-full object-cover rounded-md " />
                                              <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs px-1 rounded-tl-md font-bold">
                                                 {unit.currentCount}
                                             </span>
@@ -245,7 +251,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                 {navalUnitsList.map(unit => (
                                     <div key={unit.id} className="flex flex-col items-center p-1">
                                         <div className="relative w-12 h-12">
-                                            <img src={imageMap[unit.image]} alt={unit.name} className="w-full h-full object-cover rounded-md" />
+                                            <img src={images[unit.image]} alt={unit.name} className="w-full h-full object-cover rounded-md" />
                                             <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs px-1 rounded-tl-md font-bold">
                                                 {unit.currentCount}
                                             </span>

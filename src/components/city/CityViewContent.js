@@ -2,6 +2,15 @@
 import React, { useRef, useEffect, useCallback, useLayoutEffect, useState } from 'react';
 import Cityscape from './Cityscape';
 import SideInfoPanel from '../SideInfoPanel';
+import buildingConfig from '../../gameData/buildings.json'; // Import building config
+
+// Dynamically import all building images
+const buildingImages = {};
+const buildingImageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
+buildingImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    buildingImages[key] = buildingImageContext(item);
+});
 
 const CITYSCAPE_SIZE = 2000;
 
@@ -61,7 +70,7 @@ const CityViewContent = ({ cityGameState, handlePlotClick }) => {
     return (
         <main className="flex-grow w-full h-full relative overflow-hidden cursor-grab" ref={viewportRef} onMouseDown={handleMouseDown}>
             <div ref={cityContainerRef} style={{ transformOrigin: '0 0' }}>
-                <Cityscape buildings={cityGameState.buildings} onBuildingClick={handlePlotClick} />
+                <Cityscape buildings={cityGameState.buildings} onBuildingClick={handlePlotClick} buildingImages={buildingImages} />
             </div>
             <SideInfoPanel gameState={cityGameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" />
         </main>
