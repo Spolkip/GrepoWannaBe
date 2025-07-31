@@ -1,0 +1,97 @@
+/* src/components/city/DivinePowers.css */
+.divine-powers-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.divine-powers-modal-content {
+    background-color: #2d3748;
+    border: 2px solid #a0aec0;
+    border-radius: 8px;
+    padding: 20px;
+    width: 90%;
+    max-width: 600px;
+}
+
+.divine-powers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #f7fafc;
+    font-family: 'IM Fell English SC', serif;
+}
+
+.divine-powers-header h2 {
+    font-size: 2rem;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #f7fafc;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.powers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.power-card {
+    background-color: #4a5568;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.power-card h3 {
+    font-size: 1.25rem;
+    color: #f7fafc;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.power-card p {
+    color: #cbd5e0;
+    font-size: 0.9rem;
+    flex-grow: 1;
+}
+
+.power-cost {
+    color: #a0aec0;
+    font-style: italic;
+    margin-top: 15px;
+}
+
+.cast-spell-button {
+    background-color: #4299e1;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+.cast-spell-button:hover:not(:disabled) {
+    background-color: #3182ce;
+}
+
+.cast-spell-button:disabled {
+    background-color: #718096;
+    cursor: not-allowed;
+}

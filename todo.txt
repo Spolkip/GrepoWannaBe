@@ -8,6 +8,8 @@ Settings remove visuals and grid
 
 Add hospital and wounded troops
 
+Add mythical troops and special building for them
+
 Think of a way to do leaderboard,
 
 Do messages system
@@ -35,3 +37,7 @@ add on villages trades as well
 do the spells and mythics troops of the gods
 
 make it so you can conquer other cities
+
+add queue on shipyard
+
+different troops for different nationalities

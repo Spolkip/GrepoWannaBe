@@ -15,14 +15,15 @@ import MapGrid from './map/MapGrid';
 import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import AllianceModal from './map/AllianceModal';
-import SettingsModal from './shared/SettingsModal'; // Import SettingsModal
+import SettingsModal from './shared/SettingsModal';
+import DivinePowers from './city/DivinePowers'; // Import DivinePowers
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
 import { useMapData } from '../hooks/usemapdatapls';
 import { useModalState } from '../hooks/useModalState';
 import { useMapActions } from '../hooks/useMapActions';
-import { useCityState } from '../hooks/useCityState'; // Import useCityState to get population calculation functions
+import { useCityState } from '../hooks/useCityState';
 
 // Utilities
 import { calculateDistance } from '../utils/travel';
@@ -30,13 +31,13 @@ import { getVillageTroops } from '../utils/combat';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // New state for settings modal
-    const [gameSettings, setGameSettings] = useState({ animations: true, confirmActions: true }); // New state for game settings
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [gameSettings, setGameSettings] = useState({ animations: true, confirmActions: true });
 
     const viewportRef = useRef(null);
     const mapContainerRef = useRef(null);
@@ -75,10 +76,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
-    // Use useCityState hooks to get population calculation functions
-    const { getFarmCapacity, calculateUsedPopulation } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, saveGameState } = useCityState(worldId);
 
-    // Calculate population details for TopBar
     const maxPopulation = useMemo(() => {
         return gameState?.buildings ? getFarmCapacity(gameState.buildings.farm?.level) : 0;
     }, [gameState?.buildings, getFarmCapacity]);
@@ -205,9 +204,43 @@ const MapView = ({ showCity, onBackToWorlds }) => {
 
     const handleSaveSettings = (newSettings) => {
         setGameSettings(newSettings);
-        // Here you would typically save settings to Firestore
-        // For example: updateDoc(doc(db, 'users', currentUser.uid, 'settings', 'game'), newSettings);
         console.log("Settings saved:", newSettings);
+    };
+
+    const handleCastSpell = async (power) => {
+        const currentState = gameState;
+        if (!currentState || !currentState.god || (currentState.worship[currentState.god] || 0) < power.favorCost) {
+            setMessage("Not enough favor to cast this spell.");
+            return;
+        }
+
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        newGameState.worship[currentState.god] -= power.favorCost;
+
+        switch (power.effect.type) {
+            case 'add_resources':
+                newGameState.resources[power.effect.resource] = (newGameState.resources[power.effect.resource] || 0) + power.effect.amount;
+                break;
+            case 'add_multiple_resources':
+                for (const resource in power.effect.resources) {
+                    newGameState.resources[resource] = (newGameState.resources[resource] || 0) + power.effect.resources[resource];
+                }
+                break;
+            // Add more spell effects here in the future
+            default:
+                setMessage("This spell's effect is not yet implemented.");
+                return;
+        }
+
+        try {
+            await saveGameState(newGameState);
+            setGameState(newGameState);
+            setMessage(`${power.name} has been cast!`);
+            closeModal('divinePowers');
+        } catch (error) {
+            console.error("Error casting spell:", error);
+            setMessage("Failed to cast the spell. Please try again.");
+        }
     };
     
     const mapGrid = useMemo(() => {
@@ -270,7 +303,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenReports={() => openModal('reports')}
                     onOpenAlliance={() => openModal('alliance')}
                     onOpenMessages={() => openModal('messages')}
-                    onOpenSettings={() => setIsSettingsModalOpen(true)} // Open settings modal
+                    onOpenSettings={() => setIsSettingsModalOpen(true)}
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
@@ -288,7 +321,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                             availablePopulation={availablePopulation} 
                             maxPopulation={maxPopulation} 
                         />
-                        <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" />
+                        <SideInfoPanel 
+                            gameState={gameState} 
+                            className="absolute top-16 right-4 z-20 flex flex-col gap-4"
+                            onOpenPowers={() => openModal('divinePowers')}
+                        />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>
@@ -349,6 +386,16 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onClose={() => setIsSettingsModalOpen(false)}
                     onSaveSettings={handleSaveSettings}
                     initialSettings={gameSettings}
+                />
+            )}
+
+            {modalState.isDivinePowersOpen && (
+                <DivinePowers
+                    godName={gameState.god}
+                    playerReligion={gameState.playerInfo.religion}
+                    favor={gameState.worship[gameState.god] || 0}
+                    onCastSpell={handleCastSpell}
+                    onClose={() => closeModal('divinePowers')}
                 />
             )}
         </div>

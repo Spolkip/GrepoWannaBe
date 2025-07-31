@@ -6,11 +6,10 @@ import CityHeader from './city/CityHeader';
 import ResourceBar from './city/ResourceBar';
 import CityModals from './city/CityModals';
 import CityViewContent from './city/CityViewContent';
+import DivinePowers from './city/DivinePowers'; // Import DivinePowers
 import { useCityState } from '../hooks/useCityState';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
-
-// Removed: const CITYSCAPE_SIZE = 2000; (now only used in CityViewContent.js)
 
 const CityView = ({ showMap, worldId }) => {
     const { currentUser, userProfile } = useAuth();
@@ -41,12 +40,12 @@ const CityView = ({ showMap, worldId }) => {
         isCaveMenuOpen: false,
         isAcademyMenuOpen: false,
         isCheatMenuOpen: false,
+        isDivinePowersOpen: false,
     });
 
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
     const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
 
-    // Action Handlers (these remain in CityView as they interact with overall game state)
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
@@ -415,7 +414,6 @@ const CityView = ({ showMap, worldId }) => {
         if (warehouseLevels > 0) {
             newGameState.buildings.warehouse.level += warehouseLevels;
         }
-        // Handle unresearching
         if (unresearchId && newGameState.research[unresearchId]) {
             delete newGameState.research[unresearchId];
             setMessage(`Research "${researchConfig[unresearchId]?.name}" unreasearched!`);
@@ -441,6 +439,42 @@ const CityView = ({ showMap, worldId }) => {
             case 'cave': openModal('isCaveMenuOpen'); break;
             case 'academy': openModal('isAcademyMenuOpen'); break;
             default: setModalState(prev => ({ ...prev, selectedBuildingId: buildingId })); break;
+        }
+    };
+
+    const handleCastSpell = async (power) => {
+        const currentState = cityGameState;
+        if (!currentState || !currentState.god || (currentState.worship[currentState.god] || 0) < power.favorCost) {
+            setMessage("Not enough favor to cast this spell.");
+            return;
+        }
+
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        newGameState.worship[currentState.god] -= power.favorCost;
+
+        switch (power.effect.type) {
+            case 'add_resources':
+                newGameState.resources[power.effect.resource] = (newGameState.resources[power.effect.resource] || 0) + power.effect.amount;
+                break;
+            case 'add_multiple_resources':
+                for (const resource in power.effect.resources) {
+                    newGameState.resources[resource] = (newGameState.resources[resource] || 0) + power.effect.resources[resource];
+                }
+                break;
+            // Add more spell effects here in the future
+            default:
+                setMessage("This spell's effect is not yet implemented.");
+                return;
+        }
+
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+            setMessage(`${power.name} has been cast!`);
+            closeModal('divinePowers');
+        } catch (error) {
+            console.error("Error casting spell:", error);
+            setMessage("Failed to cast the spell. Please try again.");
         }
     };
 
@@ -475,6 +509,7 @@ const CityView = ({ showMap, worldId }) => {
             <CityViewContent
                 cityGameState={cityGameState}
                 handlePlotClick={handlePlotClick}
+                onOpenPowers={() => openModal('divinePowers')}
             />
 
             <CityModals
@@ -502,6 +537,15 @@ const CityView = ({ showMap, worldId }) => {
                 closeModal={closeModal}
                 setMessage={setMessage}
             />
+            {modalState.isDivinePowersOpen && (
+                <DivinePowers
+                    godName={cityGameState.god}
+                    playerReligion={cityGameState.playerInfo.religion}
+                    favor={cityGameState.worship[cityGameState.god] || 0}
+                    onCastSpell={handleCastSpell}
+                    onClose={() => closeModal('divinePowers')}
+                />
+            )}
         </div>
     );
 };

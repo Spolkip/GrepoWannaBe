@@ -14,7 +14,7 @@ buildingImageContext.keys().forEach((item) => {
 
 const CITYSCAPE_SIZE = 2000;
 
-const CityViewContent = ({ cityGameState, handlePlotClick }) => {
+const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers }) => {
     // Panning Logic (moved from CityView.js)
     const viewportRef = useRef(null);
     const cityContainerRef = useRef(null);
@@ -72,7 +72,11 @@ const CityViewContent = ({ cityGameState, handlePlotClick }) => {
             <div ref={cityContainerRef} style={{ transformOrigin: '0 0' }}>
                 <Cityscape buildings={cityGameState.buildings} onBuildingClick={handlePlotClick} buildingImages={buildingImages} />
             </div>
-            <SideInfoPanel gameState={cityGameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" />
+            <SideInfoPanel 
+                gameState={cityGameState} 
+                className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20" 
+                onOpenPowers={onOpenPowers}
+            />
         </main>
     );
 };
