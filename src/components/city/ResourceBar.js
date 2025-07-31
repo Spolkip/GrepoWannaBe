@@ -2,6 +2,7 @@ import React from 'react';
 import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
+import populationImage from '../../images/resources/population.png';
 
 const ResourceBar = ({ resources, productionRates, availablePopulation }) => {
     return (
@@ -19,7 +20,7 @@ const ResourceBar = ({ resources, productionRates, availablePopulation }) => {
                 <div><span className="font-bold text-lg text-blue-300">{Math.floor(resources.silver).toLocaleString()}</span><span className="text-xs text-gray-400"> (+{productionRates.silver}/hr)</span></div>
             </div>
             <div className="bg-gray-800 p-3 rounded-lg flex items-center border border-gray-700">
-                <img src="https://placehold.co/48x48/DC143C/FFFFFF?text=P" alt="Population" className="resource-icon rounded"/>
+                <img src={populationImage} alt="Population" className="resource-icon rounded"/>
                 <div><span className="font-bold text-lg text-red-400">{availablePopulation.toLocaleString()}</span><span className="text-xs text-gray-400"> Available Pop.</span></div>
             </div>
         </div>

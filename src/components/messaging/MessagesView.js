@@ -1,5 +1,3 @@
-// src/components/messaging/MessagesView.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
@@ -69,7 +67,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         if (newMessage.trim() === '' || (!selectedConversation && !newRecipient)) return;
 
         let conversationId = selectedConversation?.id;
-        let participants = selectedConversation?.participants;
+        // Removed: let participants = selectedConversation?.participants;
 
         if (isComposing) {
             const recipientQuery = query(collection(db, 'users'), where('username', '==', newRecipient));
@@ -106,7 +104,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             } else {
                 conversationId = convoSnapshot.docs[0].id;
             }
-            participants = [currentUser.uid, recipientId];
+            // Removed: participants = [currentUser.uid, recipientId];
         }
 
         const convoRef = doc(db, 'worlds', worldId, 'conversations', conversationId);

@@ -2,8 +2,10 @@ import React from 'react';
 import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
+import populationImage from '../../images/resources/population.png';
+
 // TopBar component displays current city resources and name.
-const TopBar = ({ gameState }) => {
+const TopBar = ({ gameState, availablePopulation, maxPopulation }) => {
     if (!gameState) return null; // Don't render if gameState is not available
     const { resources, cityName } = gameState; // Destructure resources and cityName from gameState
 
@@ -25,6 +27,11 @@ const TopBar = ({ gameState }) => {
                 <div className="flex items-center">
                     <img src= {silverImage} alt="Silver" className="w-6 h-6 mr-2 text-gray-300"/> 
                     <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
+                </div>
+                {/* Display Population */}
+                <div className="flex items-center">
+                    <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
+                    <span className="font-bold text-red-400">{Math.floor(availablePopulation)}</span>
                 </div>
             </div>
         </div>

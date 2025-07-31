@@ -297,11 +297,10 @@ const ReportsView = ({ onClose }) => {
                     <div className="space-y-1">
                         <p className="font-bold text-blue-400">Troops Returned</p>
                         <p><strong>Surviving Units:</strong> {renderUnitList(report.units)}</p>
-                        <p><strong>Loot:</strong> 
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {renderResourceIcons(report.resources)}
-                            </div>
-                        </p>
+                        {/* Changed <p> to <div> to resolve nesting warning */}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            <strong>Loot:</strong> {renderResourceIcons(report.resources)}
+                        </div>
                     </div>
                 );
 
@@ -332,11 +331,9 @@ const ReportsView = ({ onClose }) => {
                         <p className="font-bold text-yellow-400">Trade Complete</p>
                         <p><strong>From:</strong> {report.originCityName}</p>
                         <p><strong>To:</strong> {report.targetCityName}</p>
-                        <p><strong>Resources:</strong> 
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {renderResourceIcons(report.resources)}
-                            </div>
-                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2"> {/* Changed <p> to <div> here too for consistency if renderResourceIcons returns divs */}
+                            <strong>Resources:</strong> {renderResourceIcons(report.resources)}
+                        </div>
                     </div>
                 );
 

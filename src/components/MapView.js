@@ -22,6 +22,7 @@ import { useMapInteraction } from '../hooks/useMapInteraction';
 import { useMapData } from '../hooks/usemapdatapls';
 import { useModalState } from '../hooks/useModalState';
 import { useMapActions } from '../hooks/useMapActions';
+import { useCityState } from '../hooks/useCityState'; // Import useCityState to get population calculation functions
 
 // Utilities
 import { calculateDistance } from '../utils/travel';
@@ -74,6 +75,22 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
+    // Use useCityState hooks to get population calculation functions
+    const { getFarmCapacity, calculateUsedPopulation } = useCityState(worldId);
+
+    // Calculate population details for TopBar
+    const maxPopulation = useMemo(() => {
+        return gameState?.buildings ? getFarmCapacity(gameState.buildings.farm?.level) : 0;
+    }, [gameState?.buildings, getFarmCapacity]);
+
+    const usedPopulation = useMemo(() => {
+        return gameState?.buildings && gameState?.units ? calculateUsedPopulation(gameState.buildings, gameState.units) : 0;
+    }, [gameState?.buildings, gameState?.units, calculateUsedPopulation]);
+
+    const availablePopulation = useMemo(() => {
+        return maxPopulation - usedPopulation;
+    }, [maxPopulation, usedPopulation]);
+
     useEffect(() => {
         if (!currentUser) return;
         const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), where('read', '==', false));
@@ -266,7 +283,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                         onMouseDown={handleMouseDown}
                         style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}
                     >
-                        <TopBar gameState={gameState} />
+                        <TopBar 
+                            gameState={gameState} 
+                            availablePopulation={availablePopulation} 
+                            maxPopulation={maxPopulation} 
+                        />
                         <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
