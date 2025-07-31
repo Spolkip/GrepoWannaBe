@@ -12,9 +12,6 @@ Add mythical troops and special building for them
 
 Think of a way to do leaderboard,
 
-Do messages system
-
-Do Settings
 
 Do forum
 
@@ -30,10 +27,6 @@ Make the travel time smaller, a lot smaller for scouting and trading
 
 add cities inside the island
 
-when you attack the villages remove the naval.
-
-add on villages trades as well
-
 do mythic troops of the gods
 
 make it so you can conquer other cities
@@ -43,3 +36,5 @@ add queue on shipyard
 different troops for different nationalities
 
 add a request system
+
+random names for villages

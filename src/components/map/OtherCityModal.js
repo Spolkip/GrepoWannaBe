@@ -1,9 +1,18 @@
 import React from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
+import woodImage from '../../images/resources/wood.png';
+import stoneImage from '../../images/resources/stone.png';
+import silverImage from '../../images/resources/silver.png';
 
 const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) => {
     if (!city) return null;
+
+    const resourceImages = {
+        wood: woodImage,
+        stone: stoneImage,
+        silver: silverImage,
+    };
 
     const handleGoTo = () => {
         if (onGoTo) {
@@ -28,9 +37,24 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                 <p className="text-gray-400 mb-2">{ownerText}</p>
                 {city.ownerFaction && <p className="text-gray-400 mb-6">Faction: {city.ownerFaction}</p>}
                 
-                {isVillageTarget && city.troops && Object.keys(city.troops).length > 0 && (
+                {isVillageTarget && (
                     <div className="bg-gray-700 p-3 rounded-lg mb-4">
-                        <TroopDisplay units={city.troops} unitsData={unitsData} title="Village Troops" />
+                        <div className="flex justify-center items-center space-x-4">
+                            <div className="flex flex-col items-center">
+                                <span className="text-sm text-gray-400 capitalize">Demands</span>
+                                <img src={resourceImages[city.demands]} alt={city.demands} className="w-10 h-10" />
+                            </div>
+                            <span className="text-3xl text-gray-400 font-bold">&rarr;</span>
+                            <div className="flex flex-col items-center">
+                                <span className="text-sm text-gray-400 capitalize">Supplies</span>
+                                <img src={resourceImages[city.supplies]} alt={city.supplies} className="w-10 h-10" />
+                            </div>
+                        </div>
+                        {city.troops && Object.keys(city.troops).length > 0 && (
+                            <div className="mt-4 border-t border-gray-600 pt-2">
+                                <TroopDisplay units={city.troops} unitsData={unitsData} title="Village Troops" />
+                            </div>
+                        )}
                     </div>
                 )}
 

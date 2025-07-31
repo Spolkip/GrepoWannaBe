@@ -6,41 +6,52 @@ import { doc, runTransaction, serverTimestamp, onSnapshot, getDoc } from 'fireba
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import resourceImage from '../../images/resources/resources.png';
+import woodImage from '../../images/resources/wood.png';
+import stoneImage from '../../images/resources/stone.png';
+import silverImage from '../../images/resources/silver.png';
 
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
     const { currentUser } = useAuth();
     const { gameState, setGameState } = useGame();
     const [village, setVillage] = useState(initialVillage);
-    const [baseVillageData, setBaseVillageData] = useState(null); // State for global village data
+    const [baseVillageData, setBaseVillageData] = useState(initialVillage); // Initialize with prop to prevent loading bug
     const [isProcessing, setIsProcessing] = useState(false);
     const [message, setMessage] = useState('');
     const [timeSinceCollection, setTimeSinceCollection] = useState(Infinity);
     const [activeTab, setActiveTab] = useState('demand');
     const [tradeAmount, setTradeAmount] = useState(0);
 
-    // Listen for real-time updates on the player's conquered village
+    const resourceImages = {
+        wood: woodImage,
+        stone: stoneImage,
+        silver: silverImage,
+    };
+
+    // Listen for real-time updates on BOTH player's conquered village and the base village data
     useEffect(() => {
         if (!worldId || !village?.id || !currentUser) return;
 
+        // Listener for player-specific data
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
-        const unsubscribe = onSnapshot(playerVillageRef, (docSnap) => {
+        const unsubscribePlayerVillage = onSnapshot(playerVillageRef, (docSnap) => {
             if (docSnap.exists()) {
-                setVillage({ id: docSnap.id, ...docSnap.data() });
+                // Merge player-specific updates into the main village state
+                setVillage(prev => ({ ...prev, ...docSnap.data() }));
             }
         });
 
-        // Fetch the base village data once
-        const fetchBaseVillageData = async () => {
-            const baseVillageRef = doc(db, 'worlds', worldId, 'villages', village.id);
-            const baseVillageSnap = await getDoc(baseVillageRef);
-            if (baseVillageSnap.exists()) {
-                setBaseVillageData(baseVillageSnap.data());
+        // Listener for base village data (for real-time resource updates)
+        const baseVillageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+        const unsubscribeBaseVillage = onSnapshot(baseVillageRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setBaseVillageData(docSnap.data());
             }
+        });
+
+        return () => {
+            unsubscribePlayerVillage();
+            unsubscribeBaseVillage();
         };
-
-        fetchBaseVillageData();
-
-        return () => unsubscribe();
     }, [worldId, village.id, currentUser]);
 
     const demandOptions = [
@@ -288,13 +299,24 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                             <h4 className="font-bold text-lg text-center mb-2">Trade with Village</h4>
                             {baseVillageData ? (
                                 <>
+                                    <div className="flex justify-center items-center space-x-4 my-4">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-sm text-gray-400 capitalize">You Give</span>
+                                            <img src={resourceImages[baseVillageData.demands]} alt={baseVillageData.demands} className="w-12 h-12" />
+                                        </div>
+                                        <span className="text-3xl text-gray-400 font-bold">&rarr;</span>
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-sm text-gray-400 capitalize">You Receive</span>
+                                            <img src={resourceImages[baseVillageData.supplies]} alt={baseVillageData.supplies} className="w-12 h-12" />
+                                        </div>
+                                    </div>
                                     <p className="text-center text-gray-400 text-sm mb-4">
-                                        Trade {baseVillageData.demands} for {baseVillageData.supplies} at a ratio of {baseVillageData.tradeRatio}:1.
+                                        Trade Ratio: {baseVillageData.tradeRatio}:1
                                     </p>
                                     <div className="bg-gray-700 p-4 rounded-lg">
                                         <div className="flex justify-between items-center mb-2">
-                                            <span>Your {baseVillageData.demands}: {Math.floor(gameState.resources[baseVillageData.demands] || 0)}</span>
-                                            <span>Village's {baseVillageData.supplies}: {Math.floor(baseVillageData.resources[baseVillageData.supplies] || 0)}</span>
+                                            <span className="capitalize">Your {baseVillageData.demands}: {Math.floor(gameState.resources[baseVillageData.demands] || 0)}</span>
+                                            <span className="capitalize">Village's {baseVillageData.supplies}: {Math.floor(baseVillageData.resources[baseVillageData.supplies] || 0)}</span>
                                         </div>
                                         <input
                                             type="range"
@@ -305,8 +327,8 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                                             className="w-full"
                                         />
                                         <div className="flex justify-between items-center mt-2">
-                                            <span>You give: <span className="font-bold text-red-400">{tradeAmount} {baseVillageData.demands}</span></span>
-                                            <span>You receive: <span className="font-bold text-green-400">{Math.floor(tradeAmount / baseVillageData.tradeRatio)} {baseVillageData.supplies}</span></span>
+                                            <span className="capitalize">You give: <span className="font-bold text-red-400">{tradeAmount} {baseVillageData.demands}</span></span>
+                                            <span className="capitalize">You receive: <span className="font-bold text-green-400">{Math.floor(tradeAmount / baseVillageData.tradeRatio)} {baseVillageData.supplies}</span></span>
                                         </div>
                                         <button
                                             onClick={handleTrade}
