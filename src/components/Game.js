@@ -6,7 +6,6 @@ import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
-import buildingConfig from '../gameData/buildings.json';
 
 const Game = ({ onBackToWorlds }) => {
     const { worldId, gameState } = useGame();

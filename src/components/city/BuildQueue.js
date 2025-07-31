@@ -1,5 +1,15 @@
+// src/components/city/BuildQueue.js
 import React, { useState, useEffect } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
+
+// Dynamically import all building images
+const buildingImages = {};
+const buildingImageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
+buildingImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    buildingImages[key] = buildingImageContext(item);
+});
+
 
 const formatTime = (seconds) => {
     if (seconds < 0) seconds = 0;
@@ -9,10 +19,12 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const QueueItem = ({ item, onCancel }) => {
+const QueueItem = ({ item, isFirst, onCancel }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
+        if (!isFirst) return; // Only calculate time for the first item in the queue
+
         const calculateTimeLeft = () => {
             const endTime = item.endTime?.toDate ? item.endTime.toDate() : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
@@ -26,42 +38,51 @@ const QueueItem = ({ item, onCancel }) => {
         calculateTimeLeft();
         const interval = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(interval);
-    }, [item.endTime]);
+    }, [item.endTime, isFirst]);
 
     const building = buildingConfig[item.buildingId];
+    if (!building) return null;
+    const imageSrc = buildingImages[building.image];
 
     return (
-        <div className="flex justify-between items-center bg-gray-600 p-2 rounded">
-            <span className="font-semibold">{building.name} (Level {item.level})</span>
-            <div className="flex items-center gap-4">
-                <span className="font-mono text-yellow-300">{formatTime(timeLeft)}</span>
-                <button 
-                    onClick={onCancel} 
-                    className="text-red-400 hover:text-red-300 font-bold text-xl leading-none px-2 rounded-full"
-                    title="Cancel Construction"
-                >
-                    &times;
-                </button>
-            </div>
+        <div className="relative w-16 h-16 bg-gray-700 border-2 border-gray-600 rounded-md flex-shrink-0" title={`${building.name} (Level ${item.level})`}>
+            <img src={imageSrc} alt={building.name} className="w-full h-full object-contain p-1" />
+            <span className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-bl-md z-10">
+                ^{item.level}
+            </span>
+            {isFirst && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs text-center py-0.5 font-mono">
+                    {formatTime(timeLeft)}
+                </div>
+            )}
+            <button
+                onClick={onCancel}
+                className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
+                title="Cancel Construction"
+            >
+                &times;
+            </button>
         </div>
     );
 };
 
 const BuildQueue = ({ buildQueue, onCancel }) => {
-    if (!buildQueue || buildQueue.length === 0) {
-        return (
-            <div className="bg-gray-900 p-3 rounded-lg mb-4">
-                <h4 className="text-lg font-semibold text-gray-400 text-center">Build queue is empty.</h4>
-            </div>
-        );
-    }
+    const queueCapacity = 5;
+    const emptySlots = Array(Math.max(0, queueCapacity - (buildQueue?.length || 0))).fill(null);
 
     return (
-        <div className="bg-gray-900 p-3 rounded-lg mb-4">
-            <h4 className="text-lg font-semibold text-yellow-400 mb-2">Construction Queue ({buildQueue.length}/5)</h4>
-            <div className="space-y-2">
-                {buildQueue.map((item, index) => (
-                    <QueueItem key={`${item.buildingId}-${index}`} item={item} onCancel={() => onCancel(index)} />
+        <div className="bg-gray-900 p-2 rounded-lg mb-4 flex items-center gap-3 border border-gray-700">
+            <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center text-4xl flex-shrink-0" title="Construction">
+                🔨
+            </div>
+            <div className="flex-grow flex items-center gap-3">
+                {buildQueue && buildQueue.map((item, index) => (
+                    <QueueItem key={`${item.buildingId}-${index}`} item={item} isFirst={index === 0} onCancel={() => onCancel(index)} />
+                ))}
+                {emptySlots.map((_, index) => (
+                    <div key={`empty-${index}`} className="w-16 h-16 bg-gray-800 border-2 border-dashed border-gray-600 rounded-md flex items-center justify-center flex-shrink-0">
+                        <img src={buildingImages['temple.png']} alt="Empty Slot" className="w-10 h-10 opacity-20" />
+                    </div>
                 ))}
             </div>
         </div>

@@ -1,5 +1,5 @@
 // src/components/city/SenateView.js
-import React from 'react';
+import React, { useState } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 import BuildQueue from './BuildQueue';
 
@@ -11,31 +11,56 @@ buildingImageContext.keys().forEach((item) => {
     buildingImages[key] = buildingImageContext(item);
 });
 
+const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFull }) => {
+    const buttonText = level === 0 ? 'Build' : `Expand to ${level + 1}`;
+    let disabledReason = '';
+    if (isQueueFull) disabledReason = 'Queue Full';
+    else if (!canAfford) disabledReason = 'Not enough resources/pop';
 
-const formatTime = (seconds) => {
-    if (seconds < 60) return `${Math.floor(seconds)}s`;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    return `${hours}h ${remainingMinutes}m`;
-}
+    return (
+        <div className="bg-gray-700/80 border-2 border-gray-600 rounded-lg p-2 w-48 text-center flex flex-col items-center relative shadow-lg">
+            {/* Connector line to parent row */}
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-500/50"></div>
 
-// FIX: Add onCancelBuild to the list of props being received
-const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild }) => {
+            <h4 className="font-bold text-yellow-400 text-base">{config.name}</h4>
+            <p className="text-sm text-gray-300 font-semibold">Level {level}</p>
+            <img src={buildingImages[config.image]} alt={config.name} className="w-20 h-20 object-contain my-1" />
+            
+            <div className="text-xs text-gray-400 mb-2">
+                <span>{cost.wood}W</span>, <span>{cost.stone}S</span>, <span>{cost.silver}Ag</span>, <span>{cost.population}P</span>
+            </div>
+
+            <button
+                onClick={() => onUpgrade(id)}
+                disabled={!canAfford || isQueueFull}
+                className={`w-full py-1.5 rounded font-bold text-sm transition-colors ${!canAfford || isQueueFull ? 'btn-disabled' : 'btn-upgrade'}`}
+            >
+                {disabledReason || buttonText}
+            </button>
+        </div>
+    );
+};
+
+const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage }) => {
+    const [activeTab, setActiveTab] = useState('upgrade');
     
-    // Removed isBuildingInQueue function as it's no longer needed to restrict multiple same-building queues
+    const buildingRows = [
+        ['senate'],
+        ['timber_camp', 'farm', 'quarry', 'warehouse'],
+        ['silver_mine', 'barracks', 'temple', 'market'],
+        ['shipyard', 'academy', 'city_wall', 'cave']
+    ];
+
+    const isBuildingInQueue = (buildingId) => (buildQueue || []).some(task => task.buildingId === buildingId);
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
-            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-600 pb-3 mb-4">
                     <h2 className="text-3xl font-bold font-title text-yellow-300">Senate</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
-
-                {/* FIX: Pass the function down to BuildQueue as the 'onCancel' prop */}
+                
                 <BuildQueue buildQueue={buildQueue} onCancel={onCancelBuild} />
                 
                 <div className='flex justify-between items-center mb-4 p-3 bg-gray-900 rounded-lg'>
@@ -47,53 +72,68 @@ const SenateView = ({ buildings, resources, onUpgrade, getUpgradeCost, onClose, 
                     </div>
                 </div>
 
+                <div className="flex border-b border-gray-600 mb-4">
+                    <button onClick={() => setActiveTab('upgrade')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'upgrade' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Upgrade</button>
+                    <button onClick={() => setActiveTab('demolish')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'demolish' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Demolish</button>
+                </div>
+
                 <div className="overflow-y-auto pr-2">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {Object.entries(buildingConfig).map(([id, config]) => {
-                            if (config.constructible === false) return null;
-                            const level = buildings[id]?.level || 0;
-                            const cost = getUpgradeCost(id, level + 1);
-                            const canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && (maxPopulation-usedPopulation >= cost.population);
-                            // Removed 'inQueue' variable as it's no longer needed for this specific restriction.
-                            
-                            return (
-                                <div key={id} className={`bg-gray-700 p-4 rounded-lg flex flex-col justify-between shadow-md border border-gray-600 transition-opacity ${buildQueue.length >= 5 ? 'opacity-50' : ''}`}>
-                                    <div>
-                                        <h3 className="text-xl font-semibold text-yellow-400">{config.name}</h3>
-                                        <p className="text-sm text-gray-300 mb-2">Level: {level}</p>
-                                        <p className="text-sm text-gray-400 mb-3">{config.description}</p>
-                                        <div className="text-xs grid grid-cols-2 gap-1 mb-3">
-                                            <span>Wood: {cost.wood}</span>
-                                            <span>Stone: {cost.stone}</span>
-                                            <span>Silver: {cost.silver}</span>
-                                            <span>Population: {cost.population}</span>
-                                            <span>Time: {formatTime(cost.time)}</span>
-                                        </div>
-                                    </div>
-                                    {config.image && (
-                                        <img 
-                                            src={buildingImages[config.image]} 
-                                            alt={config.name} 
-                                            className="w-24 h-24 object-contain mx-auto my-2" 
-                                        />
-                                    )}
-                                    <button
-                                        onClick={() => onUpgrade(id)}
-                                        // Modified disabled check to only consider affordability and overall queue limit
-                                        disabled={!canAfford || buildQueue.length >= 5}
-                                        className={`w-full py-2 rounded font-bold transition-colors ${
-                                            !canAfford || buildQueue.length >= 5
-                                                ? 'bg-gray-600 cursor-not-allowed opacity-60' // General disabled style
-                                                : 'bg-green-600 hover:bg-green-500' // Enabled style
-                                        }`}
-                                    >
-                                        {/* Adjusted button text logic */}
-                                        {buildQueue.length >= 5 ? 'Queue Full' : (level === 0 ? 'Build' : `Upgrade to ${level + 1}`)}
-                                    </button>
+                    {activeTab === 'upgrade' && (
+                        <div className="flex flex-col items-center space-y-12 py-6">
+                            {buildingRows.map((row, rowIndex) => (
+                                <div key={rowIndex} className="flex justify-center items-start gap-6 relative">
+                                    {row.length > 1 && rowIndex > 0 && <div className="absolute -top-9 left-0 right-0 h-0.5 bg-gray-500/50 z-0 w-3/4 mx-auto"></div>}
+                                    {row.map(id => {
+                                        const config = buildingConfig[id];
+                                        if (config.constructible === false && id !== 'senate') return null;
+                                        const level = buildings[id]?.level || 0;
+                                        const cost = getUpgradeCost(id, level + 1);
+                                        const canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && (maxPopulation - usedPopulation >= cost.population);
+                                        const isQueueFull = (buildQueue || []).length >= 5;
+
+                                        return (
+                                            <BuildingCard 
+                                                key={id} 
+                                                id={id}
+                                                config={config}
+                                                level={level}
+                                                cost={cost}
+                                                canAfford={canAfford}
+                                                onUpgrade={onUpgrade}
+                                                isQueueFull={isQueueFull}
+                                            />
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
-                    </div>
+                            ))}
+                        </div>
+                    )}
+                    {activeTab === 'demolish' && (
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {Object.entries(buildings)
+                                .filter(([id, data]) => data.level > 0 && buildingConfig[id].constructible !== false && id !== 'senate')
+                                .map(([id, data]) => {
+                                    const config = buildingConfig[id];
+                                    const inQueue = isBuildingInQueue(id);
+                                    return (
+                                        <div key={id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                                            <div>
+                                                <h4 className="text-xl font-semibold text-yellow-400">{config.name}</h4>
+                                                <p className="text-sm text-gray-300">Level {data.level}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => onDemolish(id, setMessage)}
+                                                disabled={inQueue || (buildQueue || []).length >= 5}
+                                                className={`py-2 px-4 rounded font-bold ${inQueue || (buildQueue || []).length >= 5 ? 'btn-disabled' : 'btn-danger'}`}
+                                            >
+                                                {inQueue ? 'In Queue' : 'Demolish'}
+                                            </button>
+                                        </div>
+                                    );
+                                })
+                            }
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

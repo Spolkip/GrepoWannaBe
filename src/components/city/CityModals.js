@@ -87,6 +87,7 @@ const CityModals = ({
           buildings={cityGameState.buildings}
           unitQueue={cityGameState.unitQueue}
           onCancelTrain={handleCancelTrain}
+          cityGameState={cityGameState}
         />
       )}
       {isShipyardMenuOpen && (
@@ -98,6 +99,7 @@ const CityModals = ({
           buildings={cityGameState.buildings}
           unitQueue={cityGameState.unitQueue}
           onCancelTrain={handleCancelTrain}
+          cityGameState={cityGameState}
         />
       )}
       {isTempleMenuOpen && (

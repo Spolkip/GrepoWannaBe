@@ -27,7 +27,7 @@ import { useMapActions } from '../hooks/useMapActions';
 import { useCityState } from '../hooks/useCityState';
 
 // Utilities
-import { calculateDistance, calculateTravelTime } from '../utils/travel';
+import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
 import buildingConfig from '../gameData/buildings.json';
 
@@ -79,7 +79,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
-    const { getFarmCapacity, calculateUsedPopulation, saveGameState } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation } = useCityState(worldId);
 
     const maxPopulation = useMemo(() => {
         return gameState?.buildings ? getFarmCapacity(gameState.buildings.farm?.level) : 0;
@@ -241,7 +241,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         const targetGameState = targetGameSnap.data();
         let spellEffectMessage = '';
         let casterMessage = '';
-        let effectApplied = false;
     
         // 3. Apply spell effect
         switch (power.effect.type) {
@@ -265,7 +264,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     spellEffectMessage = `Your city ${targetGameState.cityName} has been blessed with ${resourcesReceivedMessage.join(' and ')} by ${userProfile.username}!`;
                     casterMessage = `You have blessed ${targetGameState.cityName} with ${resourcesReceivedMessage.join(' and ')}.`;
                 }
-                effectApplied = true;
                 break;
             }
             case 'damage_building': {
@@ -278,7 +276,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     spellEffectMessage = `Your ${buildingConfig[randomBuildingKey]?.name || 'building'} in ${targetGameState.cityName} was damaged by a divine power from ${userProfile.username}!`;
                     casterMessage = `You damaged a building in ${targetGameState.cityName}.`;
                     batch.update(targetGameDocRef, { buildings });
-                    effectApplied = true;
                 } else {
                     casterMessage = `You attempted to damage a building in ${targetGameState.cityName}, but there were none.`;
                 }
