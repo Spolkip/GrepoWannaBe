@@ -1,3 +1,4 @@
+// src/components/map/MovementItem.js
 import React from 'react';
 import Countdown from './Countdown'; // Import Countdown component
 import unitConfig from '../../gameData/units.json'; // Import unit configuration
@@ -11,7 +12,9 @@ const MovementItem = ({ movement, citySlots, onRush, isAdmin }) => {
     const currentUser = movement.originOwnerId; // Simplified for display, actual check is in parent
 
     const originCity = citySlots[movement.originCityId];
-    const targetCity = citySlots[movement.targetCityId];
+    const targetId = movement.targetCityId || movement.targetVillageId;
+    const targetCity = citySlots[targetId];
+
     const isOutgoing = movement.originOwnerId === currentUser; // Determine if movement is outgoing for current user
 
     // Helper function to render details of units and resources involved in the movement
@@ -44,7 +47,7 @@ const MovementItem = ({ movement, citySlots, onRush, isAdmin }) => {
                 <div>
                     <p className="font-bold text-lg text-white capitalize">{actionText}</p>
                     <p className="text-sm text-gray-400">
-                        From: {fromCity?.cityName || 'Unknown'} To: {toCity?.cityName || 'Unknown'}
+                        From: {fromCity?.cityName || fromCity?.name || 'Unknown'} To: {toCity?.cityName || toCity?.name || 'Unknown'}
                     </p>
                 </div>
                 <div className="text-right">

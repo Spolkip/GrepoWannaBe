@@ -50,11 +50,14 @@ const MapModals = ({
             )}
             {modalState.actionDetails && (
                 <MovementModal
-                    details={modalState.actionDetails}
+                    mode={modalState.actionDetails.mode}
+                    targetCity={modalState.actionDetails.city}
                     onClose={() => closeModal('action')}
-                    onSendMovement={handleSendMovement}
+                    onSend={handleSendMovement}
                     playerCity={playerCity}
                     gameState={gameState}
+                    travelTimeInfo={travelTimeInfo}
+                    setMessage={setMessage}
                 />
             )}
             {modalState.isMovementsPanelOpen && (
@@ -64,7 +67,7 @@ const MapModals = ({
                     combinedSlots={combinedSlots}
                     villages={villages}
                     goToCoordinates={goToCoordinates}
-                    handleRushMovement={handleRushMovement}
+                    onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
                 />
             )}

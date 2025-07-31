@@ -345,7 +345,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent" onClick={onClose}>
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-[400px] max-h-[90vh] border-2 border-gray-600" onClick={e => e.stopPropagation()}>
-                <h3 className="font-title text-2xl text-white mb-4 capitalize">{mode} {targetCity.cityName || targetCity.name}</h3>
+                <h3 className="font-title text-2xl text-white mb-4 capitalize">{mode} {targetCity ? targetCity.cityName || targetCity.name : ''}</h3>
                 <div className="max-h-[70vh] overflow-y-auto pr-2">
                     {renderContent()}
                 </div>
