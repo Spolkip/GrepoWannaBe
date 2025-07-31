@@ -1,3 +1,4 @@
+// src/components/map/AllianceModal.js
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import AllianceOverview from '../alliance/AllianceOverview';
@@ -10,15 +11,10 @@ const AllianceModal = ({ onClose }) => {
     const { playerAlliance } = useGame();
     const [activeTab, setActiveTab] = useState('overview');
 
+    // This modal will now only render if the player is in an alliance.
+    // The decision to show the creation modal is handled in MapView.
     if (!playerAlliance) {
-        // TODO: Add UI for creating or joining an alliance
-        return (
-            <div className="modal-backdrop" onClick={onClose}>
-                <div className="modal-content" onClick={e => e.stopPropagation()}>
-                    <p>You are not in an alliance.</p>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     const renderTabContent = () => {
@@ -37,7 +33,7 @@ const AllianceModal = ({ onClose }) => {
     };
 
     return (
-        <div className="modal-backdrop" onClick={onClose}>
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center" onClick={onClose}>
             <div className="alliance-modal" onClick={e => e.stopPropagation()}>
                 <div className="alliance-modal-header">
                     <h2 className="font-title text-3xl">{playerAlliance.name} [{playerAlliance.tag}]</h2>

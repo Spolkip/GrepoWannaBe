@@ -6,6 +6,7 @@ import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
 import ReportsView from '../ReportsView';
 import MessagesView from '../messaging/MessagesView';
+import AllianceCreation from '../alliance/AllianceCreation';
 
 const MapModals = ({
     modalState,
@@ -46,6 +47,7 @@ const MapModals = ({
                     onClose={() => closeModal('village')}
                     onActionClick={handleActionClick}
                     playerCity={playerCity}
+                    worldId={worldId}
                 />
             )}
             {modalState.actionDetails && (
@@ -75,7 +77,14 @@ const MapModals = ({
                 <ReportsView onClose={() => closeModal('reports')} />
             )}
             {modalState.isMessagesPanelOpen && (
-                <MessagesView onClose={() => closeModal('messages')} />
+                <MessagesView 
+                    onClose={() => closeModal('messages')} 
+                    initialRecipientId={modalState.actionDetails?.city?.ownerId}
+                    initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername}
+                />
+            )}
+            {modalState.isAllianceCreationOpen && (
+                <AllianceCreation onClose={() => closeModal('allianceCreation')} />
             )}
         </>
     );

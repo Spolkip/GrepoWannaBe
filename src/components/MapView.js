@@ -19,6 +19,7 @@ import AllianceModal from './map/AllianceModal';
 import SettingsModal from './shared/SettingsModal';
 import DivinePowers from './city/DivinePowers';
 import ProfileView from './profile/ProfileView';
+import AllianceCreation from './alliance/AllianceCreation'; // Import AllianceCreation
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -93,6 +94,14 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const availablePopulation = useMemo(() => {
         return maxPopulation - usedPopulation;
     }, [maxPopulation, usedPopulation]);
+
+    const handleOpenAlliance = () => {
+        if (playerAlliance) {
+            openModal('alliance');
+        } else {
+            openModal('allianceCreation');
+        }
+    };
 
     useEffect(() => {
         if (!currentUser) return;
@@ -390,7 +399,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onGoToCity={showCity}
                     onOpenMovements={() => openModal('movements')}
                     onOpenReports={() => openModal('reports')}
-                    onOpenAlliance={() => openModal('alliance')}
+                    onOpenAlliance={handleOpenAlliance}
                     onOpenMessages={() => openModal('messages')}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
                     onOpenProfile={() => openModal('profile')}
@@ -469,6 +478,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             
             {modalState.isAllianceModalOpen && (
                 <AllianceModal onClose={() => closeModal('alliance')} />
+            )}
+
+            {modalState.isAllianceCreationOpen && (
+                <AllianceCreation onClose={() => closeModal('allianceCreation')} />
             )}
 
             {isSettingsModalOpen && (
