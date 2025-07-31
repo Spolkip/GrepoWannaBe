@@ -162,6 +162,12 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
             // Select a random cooldown from the array
             const randomCooldown = demandCooldowns[Math.floor(Math.random() * demandCooldowns.length)];
 
+            // Define trade properties
+            const resources = ['wood', 'stone', 'silver'];
+            let demands = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
+            let supplies = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
+
+
             villages[villageId] = {
                 id: villageId,
                 x: tile.x,
@@ -178,7 +184,10 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
                 maxResources: 1000 + level * 200,
                 lastDemandTime: 0,
                 demandCooldown: randomCooldown,
-                troops: generateVillageTroops(level)
+                troops: generateVillageTroops(level),
+                tradeRatio: 1.25,
+                demands: demands,
+                supplies: supplies
             };
         }
     });

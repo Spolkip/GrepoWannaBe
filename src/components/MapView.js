@@ -188,7 +188,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 islandId: villageData.islandId,
                 isVillageTarget: true,
                 troops: getVillageTroops(villageData),
-                level: villageData.level || 1
+                level: villageData.level || 1,
+                demands: villageData.demands,
+                supplies: villageData.supplies,
+                tradeRatio: villageData.tradeRatio
             };
             openModal('city', targetData);
         }
