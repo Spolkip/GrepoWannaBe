@@ -2,8 +2,6 @@ Ruins around the world to give you hidden researches.
 
 Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
 
-Settings remove visuals and grid
-
 Add hospital and wounded troops
 
 Add mythical troops and special building for them
@@ -13,8 +11,6 @@ Think of a way to do leaderboard,
 Do forum
 
 Remake movement tab
-
-Remake movement and report window report
 
 Add population to resource buildings to produce more resources
 

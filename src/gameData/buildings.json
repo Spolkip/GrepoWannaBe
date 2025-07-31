@@ -77,4 +77,5 @@
     "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 },
     "image": "farm.png"
   }
+  
 }
