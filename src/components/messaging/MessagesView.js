@@ -3,9 +3,10 @@ import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
+import { parseBBCode } from '../../utils/bbcodeParser';
 import './MessagesView.css'; // Import the new CSS file
 
-const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null }) => {
+const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId } = useGame();
     const [conversations, setConversations] = useState([]);
@@ -146,6 +147,18 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         return convo.participantUsernames[otherId] || 'Unknown';
     };
 
+    const handleContentClick = (e) => {
+        const target = e.target;
+        if (target.classList.contains('bbcode-action')) {
+            const actionType = target.dataset.actionType;
+            const actionId = target.dataset.actionId;
+            if (actionType && actionId && onActionClick) {
+                onActionClick(actionType, actionId);
+                onClose();
+            }
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
             <div className="papyrus-bg papyrus-text w-full max-w-4xl h-3/4 flex flex-col rounded-lg">
@@ -191,12 +204,12 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                         <h3 className="font-bold text-lg font-title">{getOtherParticipant(selectedConversation)}</h3>
                                     )}
                                 </div>
-                                <div className="flex-grow overflow-y-auto p-4 space-y-4">
+                                <div className="flex-grow overflow-y-auto p-4 space-y-4" onClick={handleContentClick}>
                                     {messages.map(msg => (
                                         <div key={msg.id} className={`flex ${msg.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`${msg.senderId === currentUser.uid ? 'papyrus-message-sent' : 'papyrus-message-received'}`}>
                                                 <p className="font-bold text-sm font-title">{msg.senderUsername}</p>
-                                                <p>{msg.text}</p>
+                                                <div dangerouslySetInnerHTML={{ __html: parseBBCode(msg.text) }} />
                                                 <p className="text-xs text-gray-700/70 mt-1 text-right">{msg.timestamp?.toDate().toLocaleTimeString()}</p>
                                             </div>
                                         </div>

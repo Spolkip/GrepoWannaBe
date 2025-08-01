@@ -26,7 +26,8 @@ const MapModals = ({
     villages,
     handleRushMovement,
     userProfile,
-    onCastSpell
+    onCastSpell,
+    onActionClick
 }) => {
     return (
         <>
@@ -38,6 +39,7 @@ const MapModals = ({
                     onSendMovement={handleSendMovement}
                     onClose={() => closeModal('city')}
                     onAction={handleActionClick}
+                    onGoTo={goToCoordinates}
                     gameState={gameState}
                     onCastSpell={onCastSpell}
                     isVillageTarget={modalState.selectedCity?.isVillageTarget}
@@ -84,6 +86,7 @@ const MapModals = ({
                     onClose={() => closeModal('messages')} 
                     initialRecipientId={modalState.actionDetails?.city?.ownerId}
                     initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername}
+                    onActionClick={onActionClick}
                 />
             )}
             {modalState.isAllianceCreationOpen && (

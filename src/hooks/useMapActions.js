@@ -26,6 +26,9 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         } else if (mode === 'castSpell') {
             openModal('divinePowers', { targetCity });
             closeModal('city');
+        } else if (mode === 'profile') {
+            openModal('profile', { userId: targetCity.ownerId });
+            closeModal('city');
         } else if (['information', 'rally'].includes(mode)) {
             setMessage(`${mode.charAt(0).toUpperCase() + mode.slice(1)} is not yet implemented.`);
         }

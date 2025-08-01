@@ -10,16 +10,18 @@
 - add a request system
 - random names for villages
 - make market and adjust the trades accordingly
-- add invitation system to the alliance
 - add alliance settings
 - leader can recommend research
 - add quests that gives rewards
 - add special buildings
 - add a gameplay behind getting cities
-- senate to happiness to people, it gives you more a buff on resource production
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
 - add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
 - add heroes that can do skills on battle and also give buffs
 - add the ui to glow and show it on the movement tab when you are getting attacked
 - add creation of ranks of the guild and select permissions of the leader
 - if a player has a second town in the island to give get from the village 20% more resources per demand
+- add seasons and weather
+- add winds
+- make the island to generate random sizes but smaller
+- keep the messages and reports per world

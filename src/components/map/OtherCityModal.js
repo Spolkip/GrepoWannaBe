@@ -105,8 +105,14 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                                 Message
                             </button>
                             <button 
+                                onClick={() => onAction('profile', city)}
+                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                            >
+                                Profile
+                            </button>
+                            <button 
                                 onClick={handleGoTo}
-                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded col-span-2"
+                                className="btn bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
                             >
                                 Go To
                             </button>

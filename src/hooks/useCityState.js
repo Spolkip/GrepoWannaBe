@@ -21,7 +21,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     // #comment calculate city happiness based on senate level and workers
     const calculateHappiness = useCallback((buildings) => {
         if (!buildings || !buildings.senate) return 0;
-        const baseHappiness = buildings.senate.level * 10;
+        const baseHappiness = buildings.senate.level * 5; // #comment Happiness per senate level set to 5
         
         let workerCount = 0;
         const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];

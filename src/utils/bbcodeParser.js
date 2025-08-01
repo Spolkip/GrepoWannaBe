@@ -31,5 +31,10 @@ export const parseBBCode = (text) => {
     // [player]playername[/player]
     html = html.replace(/\[player\](.*?)\[\/player\]/gs, '<span class="bbcode-player">$1</span>');
 
+    // [action=type,id=someId]Click Me[/action]
+    html = html.replace(/\[action=([^,\]]+),allianceId=([^\]]+)\](.*?)\[\/action\]/gs, (match, type, id, text) => {
+        return `<span class="bbcode-action" data-action-type="${type}" data-action-id="${id}">${text}</span>`;
+    });
+
     return html;
 };

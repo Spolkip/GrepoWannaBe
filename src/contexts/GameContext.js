@@ -1,7 +1,7 @@
 // src/contexts/GameContext.js
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot,deleteDoc, collection, runTransaction } from "firebase/firestore";
+import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -118,6 +118,135 @@ export const GameProvider = ({ children, worldId }) => {
         }
     };
 
+    // #comment sends an alliance invitation message to a player
+    const sendAllianceInvitation = async (targetUserId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            alert("Only the alliance leader can send invitations.");
+            return;
+        }
+        if (!targetUserId) {
+            alert("Invalid target player.");
+            return;
+        }
+    
+        try {
+            const targetUserDoc = await getDoc(doc(db, 'users', targetUserId));
+            const targetUsername = targetUserDoc.exists() ? targetUserDoc.data().username : 'Unknown Player';
+
+            // Add event to alliance log
+            const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+            await addDoc(allianceEventsRef, {
+                type: 'invitation_sent',
+                text: `${userProfile.username} invited ${targetUsername} to the alliance.`,
+                timestamp: serverTimestamp(),
+            });
+
+            const messageText = `You have been invited to join the alliance "${playerAlliance.name}".\n\n[action=accept_invite,allianceId=${playerAlliance.id}]Accept Invitation[/action]\n[action=decline_invite,allianceId=${playerAlliance.id}]Decline Invitation[/action]`;
+    
+            const conversationQuery = query(
+                collection(db, 'worlds', worldId, 'conversations'),
+                where('participants', '==', [currentUser.uid, targetUserId].sort())
+            );
+            const conversationSnapshot = await getDocs(conversationQuery);
+    
+            let conversationRef;
+            if (conversationSnapshot.empty) {
+                conversationRef = doc(collection(db, 'worlds', worldId, 'conversations'));
+                await setDoc(conversationRef, {
+                    participants: [currentUser.uid, targetUserId].sort(),
+                    participantUsernames: {
+                        [currentUser.uid]: userProfile.username,
+                        [targetUserId]: targetUsername,
+                    },
+                    lastMessage: { text: "Alliance Invitation", senderId: 'system', timestamp: serverTimestamp() },
+                    readBy: [],
+                });
+            } else {
+                conversationRef = conversationSnapshot.docs[0].ref;
+            }
+    
+            await addDoc(collection(conversationRef, 'messages'), {
+                text: messageText,
+                senderId: 'system',
+                senderUsername: 'System',
+                isSystem: true,
+                timestamp: serverTimestamp(),
+            });
+    
+            await updateDoc(conversationRef, {
+                lastMessage: { text: "Alliance Invitation Sent", senderId: 'system', timestamp: serverTimestamp() },
+                readBy: [],
+            });
+    
+            alert("Invitation sent!");
+    
+        } catch (error) {
+            console.error("Error sending invitation:", error);
+            alert("Failed to send invitation.");
+        }
+    };
+
+    // #comment handles a player accepting an alliance invitation
+    const acceptAllianceInvitation = async (allianceId) => {
+        if (!currentUser || !worldId) return;
+    
+        const newAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+    
+        try {
+            await runTransaction(db, async (transaction) => {
+                const newAllianceDoc = await transaction.get(newAllianceDocRef);
+                const gameDoc = await transaction.get(gameDocRef);
+    
+                if (!newAllianceDoc.exists()) throw new Error("Alliance no longer exists.");
+                if (!gameDoc.exists()) throw new Error("Your game data was not found.");
+    
+                const newAllianceData = newAllianceDoc.data();
+                const gameData = gameDoc.data();
+                const oldAllianceId = gameData.alliance;
+    
+                if (oldAllianceId === allianceId) throw new Error("You are already in this alliance.");
+    
+                // If player is in another alliance, remove them from it
+                if (oldAllianceId) {
+                    const oldAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', oldAllianceId);
+                    const oldAllianceDoc = await transaction.get(oldAllianceDocRef);
+                    if (oldAllianceDoc.exists()) {
+                        const oldAllianceData = oldAllianceDoc.data();
+                        const updatedMembers = oldAllianceData.members.filter(m => m.uid !== currentUser.uid);
+                        transaction.update(oldAllianceDocRef, { members: updatedMembers });
+    
+                        // Add event to old alliance
+                        const oldAllianceEventsRef = doc(collection(db, 'worlds', worldId, 'alliances', oldAllianceId, 'events'));
+                        transaction.set(oldAllianceEventsRef, {
+                            type: 'member_left',
+                            text: `${userProfile.username} has left the alliance to join ${newAllianceData.name}.`,
+                            timestamp: serverTimestamp(),
+                        });
+                    }
+                }
+    
+                // Add player to the new alliance
+                const newMembers = [...newAllianceData.members, { uid: currentUser.uid, username: userProfile.username, rank: 'member' }];
+                transaction.update(newAllianceDocRef, { members: newMembers });
+    
+                // Update player's game data
+                transaction.update(gameDocRef, { alliance: allianceId });
+    
+                // Add event to new alliance
+                const newAllianceEventsRef = doc(collection(db, 'worlds', worldId, 'alliances', allianceId, 'events'));
+                transaction.set(newAllianceEventsRef, {
+                    type: 'member_joined',
+                    text: `${userProfile.username} has joined the alliance.`,
+                    timestamp: serverTimestamp(),
+                });
+            });
+            alert(`You have joined the alliance "${allianceId}"!`);
+        } catch (error) {
+            console.error("Error accepting invitation:", error);
+            alert(`Failed to join alliance: ${error.message}`);
+        }
+    };
 
     useEffect(() => {
         if (!currentUser || !worldId) {
@@ -243,7 +372,9 @@ export const GameProvider = ({ children, worldId }) => {
         conqueredVillages, 
         donateToAllianceResearch, 
         createAlliance,
-        gameSettings, setGameSettings 
+        gameSettings, setGameSettings,
+        sendAllianceInvitation,
+        acceptAllianceInvitation
     };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

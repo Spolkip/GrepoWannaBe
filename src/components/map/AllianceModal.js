@@ -5,6 +5,7 @@ import AllianceOverview from '../alliance/AllianceOverview';
 import AllianceMembers from '../alliance/AllianceMembers';
 import AllianceResearch from '../alliance/AllianceResearch';
 import AllianceDiplomacy from '../alliance/AllianceDiplomacy';
+import AllianceEvents from '../alliance/AllianceEvents'; // Import new component
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose }) => {
@@ -27,6 +28,8 @@ const AllianceModal = ({ onClose }) => {
                 return <AllianceResearch />;
             case 'diplomacy':
                 return <AllianceDiplomacy />;
+            case 'events': // Add new case
+                return <AllianceEvents />;
             default:
                 return <AllianceOverview />;
         }
@@ -44,6 +47,7 @@ const AllianceModal = ({ onClose }) => {
                     <button onClick={() => setActiveTab('members')} className={activeTab === 'members' ? 'active' : ''}>Members</button>
                     <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
                     <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
+                    <button onClick={() => setActiveTab('events')} className={activeTab === 'events' ? 'active' : ''}>Events</button> 
                 </div>
                 <div className="alliance-modal-content">
                     {renderTabContent()}

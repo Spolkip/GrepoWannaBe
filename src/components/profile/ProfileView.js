@@ -7,9 +7,9 @@ import { useCityState } from '../../hooks/useCityState';
 import unitConfig from '../../gameData/units.json';
 import './ProfileView.css';
 
-const ProfileView = ({ onClose, viewUserId, onGoToCity }) => {
+const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
-    const { worldId, gameState: ownGameState } = useGame();
+    const { worldId, gameState: ownGameState, playerAlliance } = useGame();
     const { calculateTotalPoints } = useCityState(worldId);
 
     const [profileData, setProfileData] = useState(null);
@@ -86,7 +86,6 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity }) => {
     const displayGame = isOwnProfile ? ownGameState : gameData;
     const totalPoints = isOwnProfile ? calculateTotalPoints(ownGameState) : points;
     
-    // #comment calculate troop stats based on game data
     let totalAttack = 0;
     let totalDefense = 0;
     if (displayGame?.units) {
@@ -103,6 +102,9 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity }) => {
         if (x === undefined || y === undefined) return '?';
         return `${Math.floor(y / 10)}${Math.floor(x / 10)}`;
     };
+
+    const isLeader = playerAlliance && playerAlliance.leader.uid === currentUser.uid;
+    const canInvite = isLeader && !isOwnProfile;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -165,6 +167,11 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity }) => {
                 </div>
                  {isOwnProfile && !isEditing && (
                     <button onClick={() => setIsEditing(true)} className="profile-edit-button">Edit Profile</button>
+                )}
+                {canInvite && (
+                    <button onClick={() => onInviteToAlliance(viewUserId)} className="profile-edit-button">
+                        Invite to Alliance
+                    </button>
                 )}
             </div>
         </div>

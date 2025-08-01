@@ -37,7 +37,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, gameSettings } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, gameSettings, sendAllianceInvitation, acceptAllianceInvitation } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
@@ -105,6 +105,15 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             openModal('alliance');
         } else {
             openModal('allianceCreation');
+        }
+    };
+
+    const handleMessageAction = async (type, id) => {
+        if (type === 'accept_invite') {
+            await acceptAllianceInvitation(id);
+        } else if (type === 'decline_invite') {
+            alert("Invitation declined. (This will be fully implemented later)");
+            // #comment In the future, this would update the message or delete the invitation.
         }
     };
 
@@ -441,8 +450,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                         <div
                             ref={mapContainerRef}
                             style={{
-                                width: worldState?.islands ? worldState.width * 32 : 0,
-                                height: worldState?.islands ? worldState.height * 32 : 0,
+                                width: worldState?.width ? worldState.width * 32 : 0,
+                                height: worldState?.height ? worldState.height * 32 : 0,
                                 transformOrigin: '0 0',
                             }}
                         >
@@ -484,6 +493,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 villages={villages}
                 handleRushMovement={handleRushMovement}
                 userProfile={userProfile}
+                onActionClick={handleMessageAction}
             />
             
             {modalState.isAllianceModalOpen && (
@@ -516,6 +526,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onClose={() => closeModal('profile')} 
                     viewUserId={modalState.viewingProfileId} 
                     onGoToCity={handleGoToCityFromProfile}
+                    onInviteToAlliance={sendAllianceInvitation}
                 />
             )}
              {modalState.isLeaderboardOpen && (
