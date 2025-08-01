@@ -40,7 +40,8 @@ const CityModals = ({
   closeModal,
   setMessage,
   onAddWorker,
-  onRemoveWorker
+  onRemoveWorker,
+  getMaxWorkerSlots
 }) => {
   const {
     selectedBuildingId,
@@ -71,6 +72,7 @@ const CityModals = ({
           onAddWorker={onAddWorker}
           onRemoveWorker={onRemoveWorker}
           availablePopulation={availablePopulation}
+          getMaxWorkerSlots={getMaxWorkerSlots}
         />
       )}
       {isSenateViewOpen && (

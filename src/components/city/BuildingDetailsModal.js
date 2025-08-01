@@ -1,20 +1,20 @@
 import React from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 
-const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProductionRates, getWarehouseCapacity, getFarmCapacity, onOpenBarracks, onOpenShipyard, onAddWorker, onRemoveWorker, availablePopulation }) => {
+const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProductionRates, getWarehouseCapacity, getFarmCapacity, onOpenBarracks, onOpenShipyard, onAddWorker, onRemoveWorker, availablePopulation, getMaxWorkerSlots }) => {
     const config = buildingConfig[buildingId];
     if (!config) return null;
 
     const nextLevel = buildingData.level + 1;
     const isProductionBuilding = ['timber_camp', 'quarry', 'silver_mine'].includes(buildingId);
     const workers = buildingData.workers || 0;
-    const maxWorkers = 3;
+    const maxWorkers = isProductionBuilding ? getMaxWorkerSlots(buildingData.level) : 0;
 
     const handleAddWorker = () => {
         if (availablePopulation >= 20) {
             onAddWorker(buildingId);
         } else {
-            alert("Not enough available population. Each worker requires 20 population.");
+            console.warn("Not enough available population. Each worker requires 20 population.");
         }
     };
 
@@ -43,7 +43,7 @@ const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProduction
                         <p>Current: {getProductionRates({ [buildingId]: buildingData })[getResourceType(buildingId)].toLocaleString()}</p>
                         <p>Next Level: {getProductionRates({ [buildingId]: { level: nextLevel, workers: workers } })[getResourceType(buildingId)].toLocaleString()}</p>
                         <div className="mt-4 pt-4 border-t border-gray-700">
-                            <h4 className="font-semibold text-lg mb-2">Worker Slots</h4>
+                            <h4 className="font-semibold text-lg mb-2">Worker Slots ({workers}/{maxWorkers})</h4>
                             <div className="flex items-center space-x-2">
                                 {Array.from({ length: maxWorkers }).map((_, i) => (
                                     <div key={i} className={`w-10 h-10 rounded-full flex items-center justify-center ${i < workers ? 'bg-green-500' : 'bg-gray-600'}`}>
@@ -55,7 +55,7 @@ const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProduction
                                      <button onClick={() => onRemoveWorker(buildingId)} disabled={workers <= 0} className="w-6 h-6 flex items-center justify-center bg-red-600 hover:bg-red-500 rounded-md text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed">-</button>
                                 </div>
                             </div>
-                            <p className="text-xs mt-2 text-gray-400">Each worker costs 20 population and boosts production by 10%.</p>
+                            <p className="text-xs mt-2 text-gray-400">Each worker costs 20 population and boosts production by 10%. Each worker decreases happiness by 3%.</p>
                         </div>
                     </div>
                 )}

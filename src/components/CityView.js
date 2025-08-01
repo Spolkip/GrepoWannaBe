@@ -28,7 +28,9 @@ const CityView = ({ showMap, worldId }) => {
         getWarehouseCapacity,
         getHospitalCapacity,
         saveGameState,
-        getResearchCost
+        getResearchCost,
+        calculateHappiness,
+        getMaxWorkerSlots
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
     const [message, setMessage] = useState('');
     const [modalState, setModalState] = useState({
@@ -656,6 +658,7 @@ const CityView = ({ showMap, worldId }) => {
     const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
     const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
     const availablePopulation = maxPopulation - usedPopulation;
+    const happiness = calculateHappiness(cityGameState.buildings);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900">
@@ -672,6 +675,7 @@ const CityView = ({ showMap, worldId }) => {
                 resources={cityGameState.resources}
                 productionRates={productionRates}
                 availablePopulation={availablePopulation}
+                happiness={happiness}
             />
             <CityViewContent
                 cityGameState={cityGameState}
@@ -710,6 +714,7 @@ const CityView = ({ showMap, worldId }) => {
                 setMessage={setMessage}
                 onAddWorker={handleAddWorker}
                 onRemoveWorker={handleRemoveWorker}
+                getMaxWorkerSlots={getMaxWorkerSlots}
             />
             {modalState.isDivinePowersOpen && (
                 <DivinePowers

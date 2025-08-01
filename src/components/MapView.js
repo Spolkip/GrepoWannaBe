@@ -82,7 +82,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
-    const { getFarmCapacity, calculateUsedPopulation } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness } = useCityState(worldId);
 
     const maxPopulation = useMemo(() => {
         return gameState?.buildings ? getFarmCapacity(gameState.buildings.farm?.level) : 0;
@@ -95,6 +95,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const availablePopulation = useMemo(() => {
         return maxPopulation - usedPopulation;
     }, [maxPopulation, usedPopulation]);
+
+    const happiness = useMemo(() => {
+        return gameState?.buildings ? calculateHappiness(gameState.buildings) : 0;
+    }, [gameState?.buildings, calculateHappiness]);
 
     const handleOpenAlliance = () => {
         if (playerAlliance) {
@@ -422,6 +426,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                             gameState={gameState} 
                             availablePopulation={availablePopulation} 
                             maxPopulation={maxPopulation} 
+                            happiness={happiness}
                         />
                         <SideInfoPanel 
                             gameState={gameState} 

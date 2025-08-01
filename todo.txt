@@ -21,7 +21,5 @@
 - add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
 - add heroes that can do skills on battle and also give buffs
 - add the ui to glow and show it on the movement tab when you are getting attacked
-- you start with 1 slot, per 5 levels you get another slot, up to 6 slots, each time you put a worker it takes out from 3% from happiness for each
-- add a new variable called happiness to the city that you get as you upgrade senate
 - add creation of ranks of the guild and select permissions of the leader
 - if a player has a second town in the island to give get from the village 20% more resources per demand

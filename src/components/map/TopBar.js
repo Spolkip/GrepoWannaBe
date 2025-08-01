@@ -5,9 +5,12 @@ import silverImage from '../../images/resources/silver.png';
 import populationImage from '../../images/resources/population.png';
 
 // TopBar component displays current city resources and name.
-const TopBar = ({ gameState, availablePopulation, maxPopulation }) => {
+const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness }) => {
     if (!gameState) return null; // Don't render if gameState is not available
     const { resources, cityName } = gameState; // Destructure resources and cityName from gameState
+
+    const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
+    const happinessTooltip = happiness > 70 ? `Happy: +10% resource production!` : `Content: No production bonus.`;
 
     return (
         <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gray-900 bg-opacity-70">
@@ -32,6 +35,11 @@ const TopBar = ({ gameState, availablePopulation, maxPopulation }) => {
                 <div className="flex items-center">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
                     <span className="font-bold text-red-400">{Math.floor(availablePopulation)}</span>
+                </div>
+                 {/* Display Happiness */}
+                <div className="flex items-center" title={happinessTooltip}>
+                    <span className="text-xl mr-2">{happinessIcon}</span>
+                    <span className="font-bold text-green-400">{happiness}%</span>
                 </div>
             </div>
         </div>

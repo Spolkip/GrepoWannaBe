@@ -18,14 +18,43 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         gameStateRef.current = cityGameState;
     }, [cityGameState]);
 
-    // #comment calculate production rates considering workers
+    // #comment calculate city happiness based on senate level and workers
+    const calculateHappiness = useCallback((buildings) => {
+        if (!buildings || !buildings.senate) return 0;
+        const baseHappiness = buildings.senate.level * 10;
+        
+        let workerCount = 0;
+        const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
+        productionBuildings.forEach(buildingId => {
+            if (buildings[buildingId] && buildings[buildingId].workers) {
+                workerCount += buildings[buildingId].workers;
+            }
+        });
+
+        const happinessPenalty = workerCount * 3;
+        return Math.max(0, Math.min(100, baseHappiness - happinessPenalty));
+    }, []);
+    
+    // #comment calculate max worker slots for a resource building
+    const getMaxWorkerSlots = useCallback((level) => {
+        if (!level || level < 1) return 0;
+        // Starts with 1, +1 every 5 levels. Capped at 6.
+        return Math.min(6, 1 + Math.floor(level / 5));
+    }, []);
+
+    // #comment calculate production rates considering workers and happiness
     const getProductionRates = useCallback((buildings) => {
         if (!buildings) return { wood: 0, stone: 0, silver: 0 };
+        
+        const happiness = calculateHappiness(buildings);
+        const happinessBonus = happiness > 70 ? 1.10 : 1.0;
+
         const rates = {
             wood: Math.floor(30 * Math.pow(1.2, (buildings.timber_camp?.level || 1) - 1)),
             stone: Math.floor(30 * Math.pow(1.2, (buildings.quarry?.level || 1) - 1)),
             silver: Math.floor(15 * Math.pow(1.15, (buildings.silver_mine?.level || 1) - 1)),
         };
+
         if (buildings.timber_camp?.workers) {
             rates.wood *= (1 + buildings.timber_camp.workers * 0.1);
         }
@@ -35,8 +64,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (buildings.silver_mine?.workers) {
             rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
         }
+
+        rates.wood = Math.floor(rates.wood * happinessBonus);
+        rates.stone = Math.floor(rates.stone * happinessBonus);
+        rates.silver = Math.floor(rates.silver * happinessBonus);
+
         return rates;
-    }, []);
+    }, [calculateHappiness]);
 
     const getWarehouseCapacity = useCallback((level) => {
         if (!level) return 0;
@@ -377,6 +411,8 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         calculateUsedPopulation,
         saveGameState,
         getResearchCost,
-        calculateTotalPoints
+        calculateTotalPoints,
+        calculateHappiness,
+        getMaxWorkerSlots
     };
 };
