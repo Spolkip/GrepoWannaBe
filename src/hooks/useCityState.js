@@ -18,13 +18,24 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         gameStateRef.current = cityGameState;
     }, [cityGameState]);
 
+    // #comment calculate production rates considering workers
     const getProductionRates = useCallback((buildings) => {
         if (!buildings) return { wood: 0, stone: 0, silver: 0 };
-        return {
+        const rates = {
             wood: Math.floor(30 * Math.pow(1.2, (buildings.timber_camp?.level || 1) - 1)),
             stone: Math.floor(30 * Math.pow(1.2, (buildings.quarry?.level || 1) - 1)),
             silver: Math.floor(15 * Math.pow(1.15, (buildings.silver_mine?.level || 1) - 1)),
         };
+        if (buildings.timber_camp?.workers) {
+            rates.wood *= (1 + buildings.timber_camp.workers * 0.1);
+        }
+        if (buildings.quarry?.workers) {
+            rates.stone *= (1 + buildings.quarry.workers * 0.1);
+        }
+        if (buildings.silver_mine?.workers) {
+            rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
+        }
+        return rates;
     }, []);
 
     const getWarehouseCapacity = useCallback((level) => {
@@ -75,6 +86,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         };
     }, [isInstantResearch]);
 
+    // #comment calculate used population including workers
     const calculateUsedPopulation = useCallback((buildings, units) => {
         let used = 0;
         if (buildings) {
@@ -85,6 +97,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
               if (i > 0) {
                 used += getUpgradeCost(buildingId, i).population;
               }
+            }
+            if (buildingData.workers) {
+                used += buildingData.workers * 20;
             }
           }
         }

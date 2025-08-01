@@ -2,15 +2,11 @@ Ruins around the world to give you hidden researches.
 
 Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
 
-Add hospital and wounded troops
-
 Add mythical troops and special building for them
 
 Think of a way to do leaderboard,
 
 Add forum
-
-Remake movement tab
 
 Add population to resource buildings to produce more resources
 
@@ -38,8 +34,6 @@ leader can recomment research
 
 add quests that gives rewards
 
-add a way to get a second city
-
 add special buildings
 
 add a gameplay behind getting cities
@@ -53,3 +47,9 @@ if the city has the the whole island to be able to contruct a building that give
 add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
 
 add heroes that can do skills on battle and also give buffs
+
+add the ui to glow and show it on the movement tab when you are getting attacked
+
+you start with 1 slot, per 5 levels you get another slot, up to 6 slots, each time you put a worker it takes out from 3% from happiness for each
+
+add a new variable called happiness to the city that you get as you upgrade senate

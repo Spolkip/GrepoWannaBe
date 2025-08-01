@@ -38,7 +38,9 @@ const CityModals = ({
   modalState,
   openModal,
   closeModal,
-  setMessage
+  setMessage,
+  onAddWorker,
+  onRemoveWorker
 }) => {
   const {
     selectedBuildingId,
@@ -66,6 +68,9 @@ const CityModals = ({
           getFarmCapacity={getFarmCapacity}
           onOpenBarracks={() => { closeModal('selectedBuildingId'); openModal('isBarracksMenuOpen'); }}
           onOpenShipyard={() => { closeModal('selectedBuildingId'); openModal('isShipyardMenuOpen'); }}
+          onAddWorker={onAddWorker}
+          onRemoveWorker={onRemoveWorker}
+          availablePopulation={availablePopulation}
         />
       )}
       {isSenateViewOpen && (

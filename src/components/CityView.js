@@ -47,6 +47,21 @@ const CityView = ({ showMap, worldId }) => {
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
     const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
 
+    const handleAddWorker = async (buildingId) => {
+        const newGameState = { ...cityGameState };
+        if (!newGameState.buildings[buildingId].workers) {
+            newGameState.buildings[buildingId].workers = 0;
+        }
+        newGameState.buildings[buildingId].workers += 1;
+        await saveGameState(newGameState);
+    };
+    
+    const handleRemoveWorker = async (buildingId) => {
+        const newGameState = { ...cityGameState };
+        newGameState.buildings[buildingId].workers -= 1;
+        await saveGameState(newGameState);
+    };
+
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
@@ -693,6 +708,8 @@ const CityView = ({ showMap, worldId }) => {
                 openModal={openModal}
                 closeModal={closeModal}
                 setMessage={setMessage}
+                onAddWorker={handleAddWorker}
+                onRemoveWorker={handleRemoveWorker}
             />
             {modalState.isDivinePowersOpen && (
                 <DivinePowers
