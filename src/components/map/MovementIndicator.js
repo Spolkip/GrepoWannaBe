@@ -10,8 +10,13 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
     // Ensure movement and citySlots data are available
     if (!movement || !citySlots) return null;
 
-    const originCity = citySlots[movement.originCityId];
-    const targetCity = citySlots[movement.targetCityId];
+    // #comment determine the visual origin and target based on movement status
+    const isReturning = movement.status === 'returning';
+    const originId = isReturning ? (movement.targetCityId || movement.targetVillageId) : movement.originCityId;
+    const targetId = isReturning ? movement.originCityId : (movement.targetCityId || movement.targetVillageId);
+
+    const originCity = citySlots[originId];
+    const targetCity = citySlots[targetId];
     
     // Ensure both origin and target cities exist in citySlots
     if (!originCity || !targetCity) return null;
@@ -48,13 +53,15 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
     // Define configurations for different movement types (color, icon, line color)
     const movementTypes = {
         attack: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
+        attack_village: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         reinforce: { color: '#3b82f6', icon: '🛡️', lineColor: '#3b82f6' },
         scout: { color: '#10b981', icon: '👁️', lineColor: '#10b981' },
         trade: { color: '#f59e0b', icon: '💰', lineColor: '#f59e0b' },
+        return: { color: '#a855f7', icon: '↩️', lineColor: '#a855f7' },
         default: { color: '#6b7280', icon: '➡️', lineColor: '#6b7280' }
     };
 
-    const config = movementTypes[movement.type] || movementTypes.default; // Get config for current movement type
+    const config = movementTypes[isReturning ? 'return' : movement.type] || movementTypes.default; // Get config for current movement type
 
     // Find overlapping movements (going between same cities) to adjust line appearance
     const overlappingMovements = (Array.isArray(allMovements)) ? allMovements.filter(m => {

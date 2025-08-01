@@ -1,3 +1,4 @@
+// useMapActions hook for managing map-related user actions.
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -66,7 +67,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const travelSeconds = calculateTravelTime(distance, slowestSpeed);
         const now = Date.now();
         const arrivalTime = new Date(now + travelSeconds * 1000);
-        const cancellableUntil = new Date(now + 90 * 1000); // 90 seconds to cancel
+        const cancellableUntil = new Date(now + 600 * 1000); // 10 minutes to cancel
 
         let movementData;
         if (mode === 'attack' && targetCity.isVillageTarget) {
@@ -154,54 +155,38 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         }
     };
     
+    // handles the cancellation of a movement
     const handleCancelMovement = async (movementId) => {
         const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
-
+    
         try {
             await runTransaction(db, async (transaction) => {
                 const movementDoc = await transaction.get(movementRef);
-                const gameDoc = await transaction.get(gameDocRef);
-
-                if (!movementDoc.exists() || !gameDoc.exists()) {
-                    throw new Error("Movement or game data not found.");
+    
+                if (!movementDoc.exists()) {
+                    throw new Error("Movement data not found.");
                 }
-
+    
                 const movementData = movementDoc.data();
-                const gameData = gameDoc.data();
                 
                 const cancellableUntil = movementData.cancellableUntil.toDate();
                 if (new Date() > cancellableUntil) {
                     throw new Error("The grace period to cancel this movement has passed.");
                 }
-
-                // Refund units
-                const updatedUnits = { ...gameData.units };
-                for (const unitId in movementData.units) {
-                    updatedUnits[unitId] = (updatedUnits[unitId] || 0) + movementData.units[unitId];
-                }
-
-                // Refund resources (for trade/scout)
-                const updatedResources = { ...gameData.resources };
-                const updatedCave = { ...gameData.cave };
-                 if (movementData.type === 'scout') {
-                    if (movementData.resources && movementData.resources.silver) {
-                        updatedCave.silver = (updatedCave.silver || 0) + movementData.resources.silver;
-                    }
-                } else if (movementData.resources) {
-                    for (const resource in movementData.resources) {
-                        updatedResources[resource] = (updatedResources[resource] || 0) + movementData.resources[resource];
-                    }
-                }
-
-                transaction.update(gameDocRef, { 
-                    units: updatedUnits,
-                    resources: updatedResources,
-                    cave: updatedCave
+    
+                const now = Date.now();
+                const departureTime = movementData.departureTime.toDate().getTime();
+                const elapsedTime = now - departureTime;
+                const returnArrivalTime = new Date(now + elapsedTime);
+    
+                transaction.update(movementRef, {
+                    status: 'returning',
+                    arrivalTime: returnArrivalTime,
+                    departureTime: serverTimestamp(),
+                    cancellableUntil: new Date(0)
                 });
-                transaction.delete(movementRef);
             });
-            setMessage("Movement cancelled successfully.");
+            setMessage("Movement is now returning.");
         } catch (error) {
             console.error("Error cancelling movement:", error);
             setMessage(`Could not cancel movement: ${error.message}`);

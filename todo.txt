@@ -51,3 +51,5 @@ senate to happiness to people, it gives you more a buff on resource production
 if the city has the the whole island to be able to contruct a building that give buffs to the guild
 
 add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
+
+add heroes that can do skills on battle and also give buffs
