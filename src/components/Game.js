@@ -56,28 +56,21 @@ const Game = ({ onBackToWorlds }) => {
                     newResources[resourceId] = (newResources[resourceId] || 0) + movement.resources[resourceId];
                 }
             }
-
             // Handle wounded troops
             const newWounded = { ...newGameState.wounded };
             let totalWoundedInHospital = Object.values(newWounded).reduce((sum, count) => sum + count, 0);
             const hospitalCapacity = getHospitalCapacity(newGameState.buildings.hospital?.level || 0);
-            
             if (movement.wounded) {
                 for (const unitId in movement.wounded) {
                     const woundedCount = movement.wounded[unitId];
-                    if (totalWoundedInHospital + woundedCount <= hospitalCapacity) {
-                        newWounded[unitId] = (newWounded[unitId] || 0) + woundedCount;
-                        totalWoundedInHospital += woundedCount;
-                    } else {
+                    if (totalWoundedInHospital < hospitalCapacity) {
                         const canFit = hospitalCapacity - totalWoundedInHospital;
-                        if (canFit > 0) {
-                            newWounded[unitId] = (newWounded[unitId] || 0) + canFit;
-                        }
-                        // The rest die
+                        const toHeal = Math.min(canFit, woundedCount);
+                        newWounded[unitId] = (newWounded[unitId] || 0) + toHeal;
+                        totalWoundedInHospital += toHeal;
                     }
                 }
             }
-
              const returnReport = {
                 type: 'return',
                 title: `Troops returned to ${originGameState.cityName}`,
@@ -88,11 +81,9 @@ const Game = ({ onBackToWorlds }) => {
                 read: false,
             };
             batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), returnReport);
-
             batch.update(originOwnerRef, { units: newUnits, resources: newResources, wounded: newWounded });
             batch.delete(movementDoc.ref);
             console.log(`Movement ${movement.id} processed and deleted.`);
-        
         } else if (movement.status === 'moving') {
             console.log(`Movement ${movement.id} is moving with type: ${movement.type}`);
             const targetGameState = targetOwnerSnap?.exists() ? targetOwnerSnap.data() : null;

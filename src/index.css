@@ -105,7 +105,7 @@ body {
 /* --- Map & Tile Styles --- */
 
 .map-viewport {
-    @apply absolute inset-0 w-full h-full cursor-grab bg-blue-800 overflow-hidden;
+    @apply absolute inset-0 w-full h-full cursor-grab bg-[url('./images/sea.jpg')] bg-cover bg-center overflow-hidden;
 }
 .map-viewport:active {
     @apply cursor-grabbing;

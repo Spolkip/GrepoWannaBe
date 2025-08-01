@@ -4,46 +4,31 @@ import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
-import godsConfig from '../gameData/gods.json'; // Import gods config
+import godsConfig from '../gameData/gods.json';
 
 // Dynamically import all images from the images and its subfolders
 const images = {};
-
-// Context for images directly in src/images (e.g., units)
-const mainImageContext = require.context('../images', false, /\.(png|jpe?g|svg)$/);
-mainImageContext.keys().forEach((item) => {
-    const key = item.replace('./', ''); // e.g., 'swordman.png'
-    images[key] = mainImageContext(item);
+const imageContexts = [
+    require.context('../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/resources', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/gods', false, /\.(png|jpe?g|svg)$/),
+];
+imageContexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const keyWithSubdir = context.id.includes('/resources') ? `resources/${item.replace('./', '')}` :
+                              context.id.includes('/buildings') ? `buildings/${item.replace('./', '')}` :
+                              context.id.includes('/gods') ? `gods/${item.replace('./', '')}` :
+                              item.replace('./', '');
+        images[keyWithSubdir] = context(item);
+    });
 });
-
-// Context for images in src/images/resources
-const resourceImageContext = require.context('../images/resources', false, /\.(png|jpe?g|svg)$/);
-resourceImageContext.keys().forEach((item) => {
-    const key = `resources/${item.replace('./', '')}`; // e.g., 'resources/wood.png'
-    images[key] = resourceImageContext(item);
-});
-
-// Context for images in src/images/buildings
-const buildingImageContext = require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/);
-buildingImageContext.keys().forEach((item) => {
-    const key = `buildings/${item.replace('./', '')}`; // e.g., 'buildings/senate.png'
-    images[key] = buildingImageContext(item);
-});
-
-// Context for images in src/images/gods
-const godsImageContext = require.context('../images/gods', false, /\.(png|jpe?g|svg)$/);
-godsImageContext.keys().forEach((item) => {
-    const key = `gods/${item.replace('./', '')}`; // e.g., 'gods/zeus.png'
-    images[key] = godsImageContext(item);
-});
-
 
 const ReportsView = ({ onClose }) => {
     const { currentUser } = useAuth();
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
     const [activeTab, setActiveTab] = useState('Combat');
-
     const tabs = {
         'Combat': ['attack', 'attack_village'],
         'Reinforce': ['reinforce'],
@@ -64,9 +49,7 @@ const ReportsView = ({ onClose }) => {
 
     useEffect(() => {
         if (!currentUser || reports.length === 0) return;
-    
         const unreadReports = reports.filter(report => !report.read);
-    
         if (unreadReports.length > 0) {
             unreadReports.forEach(async (report) => {
                 if (report.id) {
@@ -101,7 +84,7 @@ const ReportsView = ({ onClose }) => {
         setActiveTab(tabName);
         setSelectedReport(null);
     };
-    
+
     const getReportTitleColor = (report) => {
         switch (report.type) {
             case 'attack':
@@ -140,35 +123,17 @@ const ReportsView = ({ onClose }) => {
             .map(([id, count]) => `${count} ${unitConfig[id]?.name || id}`)
             .join(', ');
     };
-    
+
     const getImageUrl = (imageName) => {
-        if (!imageName) return '';
-        if (images[imageName]) {
-            return images[imageName];
+        if (!imageName || !images[imageName]) {
+            console.warn(`Image not found: ${imageName}`);
+            return '';
         }
-        if (imageName.startsWith('resources/')) {
-            if (images[imageName]) {
-                return images[imageName];
-            }
-        }
-        if (imageName.startsWith('buildings/')) {
-             if (images[imageName]) {
-                return images[imageName];
-            }
-        }
-        if (imageName.startsWith('gods/')) {
-             if (images[imageName]) {
-                return images[imageName];
-            }
-        }
-        
-        console.warn(`Image not found: ${imageName}`);
-        return '';
+        return images[imageName];
     };
 
     const renderTroopDisplay = (units) => {
         if (!units || Object.keys(units).length === 0) return null;
-        
         return (
             <div className="flex flex-wrap items-center justify-center gap-2">
                 {Object.entries(units).map(([unitId, count]) => {
@@ -203,7 +168,6 @@ const ReportsView = ({ onClose }) => {
 
     const renderBuildingDisplay = (buildings) => {
         if (!buildings || Object.keys(buildings).length === 0) return null;
-
         return (
             <div className="flex flex-wrap items-center justify-center gap-2">
                 {Object.entries(buildings).map(([buildingId, data]) => {
@@ -227,53 +191,8 @@ const ReportsView = ({ onClose }) => {
         const outcome = report.outcome || {};
         const attacker = report.attacker || {};
         const defender = report.defender || {};
-
         switch (report.type) {
             case 'attack':
-                return (
-                    <div className="flex flex-col items-center">
-                        <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
-                            {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
-                        </p>
-                        <div className="flex items-center justify-between w-full mb-4">
-                            <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
-                                <p className="text-sm text-gray-400">{report.originOwnerUsername || 'You'}</p>
-                            </div>
-                            <div className="w-1/3 text-center">
-                                <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
-                            </div>
-                            <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.cityName || 'Unknown City'}</p>
-                                <p className="text-sm text-gray-400">{report.ownerUsername || 'Opponent'}</p>
-                            </div>
-                        </div>
-
-                        <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
-                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Attacker Units</h4>
-                                {renderTroopDisplay(attacker.units)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
-                            </div>
-                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Defender Units</h4>
-                                {renderTroopDisplay(defender.units)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
-                            </div>
-                        </div>
-
-                        {outcome.attackerWon && outcome.plunder && (
-                            <div className="w-full p-3 bg-green-800/30 rounded mt-4 text-center">
-                                <h4 className="font-semibold text-lg text-green-300 mb-2">Plundered Resources</h4>
-                                <div className="flex justify-center">
-                                    {renderResourceIcons(outcome.plunder)}
-                                </div>
-                            </div>
-                        )}
-                        <p className="text-gray-400 mt-4">No battle points received.</p>
-                    </div>
-                );
-
             case 'attack_village':
                 return (
                     <div className="flex flex-col items-center">
@@ -289,31 +208,36 @@ const ReportsView = ({ onClose }) => {
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.villageName || 'Unknown Village'}</p>
-                                <p className="text-sm text-gray-400">Neutral</p>
+                                <p className="font-bold text-lg">{defender.cityName || defender.villageName || 'Unknown'}</p>
+                                <p className="text-sm text-gray-400">{report.type === 'attack_village' ? 'Neutral' : (report.ownerUsername || 'Opponent')}</p>
                             </div>
                         </div>
-
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
                             <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-300 mb-2">Attacker Units</h4>
                                 {renderTroopDisplay(attacker.units)}
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                                {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
+                                    <p className="mt-2 text-orange-400"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
+                                )}
                             </div>
                             <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Village Troops</h4>
-                                {renderTroopDisplay(defender.troops)}
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Defender Units</h4>
+                                {renderTroopDisplay(defender.units || defender.troops)}
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
                             </div>
                         </div>
-
-                        {outcome.attackerWon && (
-                            <p className="text-green-400 font-bold mt-4">You have conquered the village!</p>
+                        {outcome.attackerWon && outcome.plunder && (
+                            <div className="w-full p-3 bg-green-800/30 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-green-300 mb-2">Plundered Resources</h4>
+                                <div className="flex justify-center">
+                                    {renderResourceIcons(outcome.plunder)}
+                                </div>
+                            </div>
                         )}
                         <p className="text-gray-400 mt-4">No battle points received.</p>
                     </div>
                 );
-
             case 'scout':
                 const scoutedGod = (report.god && report.playerReligion) ? godsConfig[report.playerReligion.toLowerCase()]?.[report.god] : null;
                 return (
@@ -357,19 +281,23 @@ const ReportsView = ({ onClose }) => {
                         {outcome.from && <p className="text-sm text-gray-400">From: {outcome.from}</p>}
                     </div>
                 );
-            
             case 'return':
                 return (
                     <div className="space-y-1">
                         <p className="font-bold text-blue-400">Troops Returned</p>
                         <p><strong>Surviving Units:</strong></p>
                         {renderTroopDisplay(report.units)}
+                        {report.wounded && Object.keys(report.wounded).length > 0 && (
+                            <>
+                                <p className="font-bold text-orange-400 mt-2">Wounded Units:</p>
+                                {renderTroopDisplay(report.wounded)}
+                            </>
+                        )}
                         <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Loot:</strong> {renderResourceIcons(report.resources)}
                         </div>
                     </div>
                 );
-
             case 'spy_caught':
                 return (
                     <div className="space-y-1">
@@ -382,7 +310,6 @@ const ReportsView = ({ onClose }) => {
                         )}
                     </div>
                 );
-            
             case 'reinforce':
                 return (
                     <div className="space-y-1">
@@ -393,7 +320,6 @@ const ReportsView = ({ onClose }) => {
                         {renderTroopDisplay(report.units)}
                     </div>
                 );
-
             case 'trade':
                 return (
                     <div className="space-y-1">
@@ -405,7 +331,6 @@ const ReportsView = ({ onClose }) => {
                         </div>
                     </div>
                 );
-
             default:
                 return <p>Report type not recognized.</p>;
         }
@@ -420,7 +345,6 @@ const ReportsView = ({ onClose }) => {
                     <h2 className="text-xl font-bold">Reports</h2>
                     <button onClick={onClose} className="text-white text-2xl">&times;</button>
                 </div>
-
                 <div className="flex flex-grow overflow-hidden">
                     <div className="w-1/3 border-r border-gray-600 flex flex-col">
                         <div className="flex border-b border-gray-600">
@@ -438,7 +362,6 @@ const ReportsView = ({ onClose }) => {
                                 </button>
                             ))}
                         </div>
-                        
                         <ul className="overflow-y-auto">
                             {filteredReports.length > 0 ? (
                                 filteredReports.map(report => (
@@ -461,7 +384,6 @@ const ReportsView = ({ onClose }) => {
                             )}
                         </ul>
                     </div>
-                    
                     <div className="w-2/3 p-4 overflow-y-auto">
                         {selectedReport ? (
                             <div>

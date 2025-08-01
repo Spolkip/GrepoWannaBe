@@ -1,6 +1,5 @@
 // src/components/city/CityModals.js
 import React from 'react';
-
 import AdminCheatMenu from './AdminCheatMenu';
 import BarracksMenu from './BarracksMenu';
 import ShipyardMenu from './ShipyardMenu';
@@ -28,14 +27,18 @@ const CityModals = ({
   handleCancelBuild,
   handleTrainTroops,
   handleCancelTrain,
+  handleFireTroops,
   handleStartResearch,
   handleCancelResearch,
   handleWorshipGod,
   handleCheat,
   handleHealTroops,
+  handleCancelHeal,
+  availablePopulation,
   modalState,
   openModal,
-  closeModal
+  closeModal,
+  setMessage
 }) => {
   const {
     selectedBuildingId,
@@ -50,10 +53,6 @@ const CityModals = ({
   } = modalState;
 
   if (!cityGameState) return null;
-
-  const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
-  const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
-  const availablePopulation = maxPopulation - usedPopulation;
 
   return (
     <>
@@ -76,8 +75,8 @@ const CityModals = ({
           onUpgrade={handleUpgrade}
           getUpgradeCost={getUpgradeCost}
           onClose={() => closeModal('isSenateViewOpen')}
-          usedPopulation={usedPopulation}
-          maxPopulation={maxPopulation}
+          usedPopulation={calculateUsedPopulation(cityGameState.buildings, cityGameState.units)}
+          maxPopulation={getFarmCapacity(cityGameState.buildings?.farm?.level)}
           buildQueue={cityGameState.buildQueue}
           onCancelBuild={handleCancelBuild}
         />
@@ -87,6 +86,7 @@ const CityModals = ({
           resources={cityGameState.resources}
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
+          onFire={handleFireTroops}
           onClose={() => closeModal('isBarracksMenuOpen')}
           buildings={cityGameState.buildings}
           unitQueue={cityGameState.unitQueue}
@@ -137,7 +137,9 @@ const CityModals = ({
               cityGameState={cityGameState}
               onClose={() => closeModal('isHospitalMenuOpen')}
               onHeal={handleHealTroops}
+              onCancelHeal={handleCancelHeal}
               getHospitalCapacity={getHospitalCapacity}
+              availablePopulation={availablePopulation}
           />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (

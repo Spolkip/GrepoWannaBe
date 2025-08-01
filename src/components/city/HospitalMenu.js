@@ -10,9 +10,8 @@ imageContext.keys().forEach((item) => {
     unitImages[key] = imageContext(item);
 });
 
-const HospitalMenu = ({ cityGameState, onClose, onHeal, getHospitalCapacity }) => {
+const HospitalMenu = ({ cityGameState, onClose, onHeal, onCancelHeal, getHospitalCapacity, availablePopulation }) => {
     const [healAmounts, setHealAmounts] = useState({});
-
     const woundedUnits = cityGameState.wounded || {};
     const hospitalLevel = cityGameState.buildings.hospital?.level || 0;
     const capacity = getHospitalCapacity(hospitalLevel);
@@ -35,10 +34,21 @@ const HospitalMenu = ({ cityGameState, onClose, onHeal, getHospitalCapacity }) =
             return acc;
         }, { wood: 0, stone: 0, silver: 0 });
     }, [healAmounts]);
+    
+    const populationCost = useMemo(() => {
+        return Object.entries(healAmounts).reduce((acc, [unitId, amount]) => {
+            const unit = unitConfig[unitId];
+            if (unit) {
+                acc += (unit.cost.population || 0) * amount;
+            }
+            return acc;
+        }, 0);
+    }, [healAmounts]);
 
     const canAfford = cityGameState.resources.wood >= totalCost.wood &&
                       cityGameState.resources.stone >= totalCost.stone &&
                       cityGameState.resources.silver >= totalCost.silver;
+    const hasEnoughPopulation = availablePopulation >= populationCost;
 
     const handleHeal = () => {
         const unitsToHeal = Object.entries(healAmounts).filter(([, amount]) => amount > 0);
@@ -56,7 +66,6 @@ const HospitalMenu = ({ cityGameState, onClose, onHeal, getHospitalCapacity }) =
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
                 <p className="text-gray-400 mb-4">Capacity: {totalWounded} / {capacity}</p>
-
                 <div className="flex-grow overflow-y-auto pr-2">
                     <h4 className="text-xl font-semibold text-yellow-400 mb-2">Wounded Units</h4>
                     {Object.keys(woundedUnits).length > 0 ? (
@@ -97,7 +106,6 @@ const HospitalMenu = ({ cityGameState, onClose, onHeal, getHospitalCapacity }) =
                         <p className="text-gray-500 text-center py-8">No wounded units.</p>
                     )}
                 </div>
-                
                 <div className="mt-4 pt-4 border-t border-gray-600">
                     <div className="flex justify-between items-center">
                         <div>
@@ -105,21 +113,26 @@ const HospitalMenu = ({ cityGameState, onClose, onHeal, getHospitalCapacity }) =
                             <p className="text-sm text-gray-300">
                                 Wood: {totalCost.wood}, Stone: {totalCost.stone}, Silver: {totalCost.silver}
                             </p>
+                            <p className="text-sm text-gray-300">
+                                Population: <span className={hasEnoughPopulation ? 'text-green-400' : 'text-red-400'}>{populationCost} / {availablePopulation}</span>
+                            </p>
                         </div>
                         <button
                             onClick={handleHeal}
-                            disabled={!canAfford || Object.keys(healAmounts).length === 0 || (cityGameState.healQueue || []).length >= 5}
-                            className={`py-2 px-6 text-lg rounded-lg btn ${canAfford && Object.keys(healAmounts).length > 0 && (cityGameState.healQueue || []).length < 5 ? 'btn-confirm' : 'btn-disabled'}`}
+                            disabled={!canAfford || !hasEnoughPopulation || Object.values(healAmounts).reduce((sum, val) => sum + val, 0) === 0 || (cityGameState.healQueue || []).length >= 5}
+                            className={`py-2 px-6 text-lg rounded-lg btn ${canAfford && hasEnoughPopulation && Object.values(healAmounts).reduce((sum, val) => sum + val, 0) > 0 && (cityGameState.healQueue || []).length < 5 ? 'btn-confirm' : 'btn-disabled'}`}
                         >
-                            { (cityGameState.healQueue || []).length >= 5 ? 'Queue Full' : 'Heal Selected'}
+                            { (cityGameState.healQueue || []).length >= 5 ? 'Queue Full' : (!hasEnoughPopulation ? 'Not Enough Pop.' : 'Heal Selected') }
                         </button>
                     </div>
                 </div>
-
-                <UnitQueue unitQueue={cityGameState.healQueue || []} onCancel={() => {}} />
+                <UnitQueue 
+                    unitQueue={cityGameState.healQueue || []} 
+                    onCancel={onCancelHeal} 
+                    title="Healing"
+                />
             </div>
         </div>
     );
 };
-
 export default HospitalMenu;

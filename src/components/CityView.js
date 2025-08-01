@@ -6,7 +6,7 @@ import CityHeader from './city/CityHeader';
 import ResourceBar from './city/ResourceBar';
 import CityModals from './city/CityModals';
 import CityViewContent from './city/CityViewContent';
-import DivinePowers from './city/DivinePowers'; // Import DivinePowers
+import DivinePowers from './city/DivinePowers';
 import { useCityState } from '../hooks/useCityState';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
@@ -18,7 +18,6 @@ const CityView = ({ showMap, worldId }) => {
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
     const [isInstantUnits, setIsInstantUnits] = useState(false);
-
     const {
         cityGameState,
         setCityGameState,
@@ -31,9 +30,7 @@ const CityView = ({ showMap, worldId }) => {
         saveGameState,
         getResearchCost
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
-
     const [message, setMessage] = useState('');
-
     const [modalState, setModalState] = useState({
         selectedBuildingId: null,
         isSenateViewOpen: false,
@@ -55,22 +52,20 @@ const CityView = ({ showMap, worldId }) => {
         if (!currentState || !worldId) return;
 
         const currentQueue = currentState.buildQueue || [];
-
         if (currentQueue.length >= 5) {
             setMessage("Build queue is full (max 5).");
             return;
         }
 
         const building = currentState.buildings[buildingId] || { level: 0 };
-
         let effectiveCurrentLevel = building.level;
         currentQueue.forEach(task => {
             if (task.buildingId === buildingId && task.level > effectiveCurrentLevel) {
                 effectiveCurrentLevel = task.level;
             }
         });
-        const nextLevelToQueue = effectiveCurrentLevel + 1;
 
+        const nextLevelToQueue = effectiveCurrentLevel + 1;
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
@@ -83,7 +78,6 @@ const CityView = ({ showMap, worldId }) => {
             newTotalPopulation <= maxPopulation
         ) {
             const newGameState = JSON.parse(JSON.stringify(currentState));
-
             newGameState.resources.wood -= cost.wood;
             newGameState.resources.stone -= cost.stone;
             newGameState.resources.silver -= cost.silver;
@@ -97,7 +91,6 @@ const CityView = ({ showMap, worldId }) => {
                         : new Date(lastQueueItem.endTime).getTime();
                 }
             }
-
             const endTime = new Date(lastEndTime + cost.time * 1000);
 
             const newQueueItem = {
@@ -105,7 +98,6 @@ const CityView = ({ showMap, worldId }) => {
                 level: nextLevelToQueue,
                 endTime: endTime,
             };
-
             newGameState.buildQueue = [...currentQueue, newQueueItem];
 
             try {
@@ -130,8 +122,8 @@ const CityView = ({ showMap, worldId }) => {
 
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
-
         const cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+
         const newResources = {
             ...currentState.resources,
             wood: currentState.resources.wood + cost.wood,
@@ -143,7 +135,6 @@ const CityView = ({ showMap, worldId }) => {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
-
             const taskToUpdate = newQueue[i];
             const taskCost = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level);
             const newEndTime = new Date(previousTaskEndTime + taskCost.time * 1000);
@@ -160,7 +151,6 @@ const CityView = ({ showMap, worldId }) => {
         if (!currentState || !researchConfig[researchId]) return;
 
         const currentQueue = currentState.researchQueue || [];
-
         if (currentQueue.length >= 5) {
             setMessage("Research queue is full (max 5).");
             return;
@@ -173,12 +163,10 @@ const CityView = ({ showMap, worldId }) => {
             setMessage("Research already completed.");
             return;
         }
-
         if (currentQueue.some(item => item.researchId === researchId)) {
             setMessage("Research is already in the queue.");
             return;
         }
-
         if (requirements.academy && currentState.buildings.academy.level < requirements.academy) {
             setMessage(`Requires Academy Level ${requirements.academy}.`);
             return;
@@ -187,7 +175,6 @@ const CityView = ({ showMap, worldId }) => {
             setMessage(`Requires "${researchConfig[requirements.research].name}" research first.`);
             return;
         }
-
         if (
             currentState.resources.wood < cost.wood ||
             currentState.resources.stone < cost.stone ||
@@ -218,7 +205,6 @@ const CityView = ({ showMap, worldId }) => {
             researchId,
             endTime: endTime,
         };
-
         newGameState.researchQueue = [...currentQueue, newQueueItem];
 
         try {
@@ -237,7 +223,6 @@ const CityView = ({ showMap, worldId }) => {
         if (!currentState || !currentState.researchQueue || itemIndex < 0 || itemIndex >= currentState.researchQueue.length) {
             return;
         }
-
         const newQueue = [...currentState.researchQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
         const researchData = researchConfig[canceledTask.researchId];
@@ -253,7 +238,6 @@ const CityView = ({ showMap, worldId }) => {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
-
             const taskToUpdate = newQueue[i];
             const taskResearchTime = getResearchCost(taskToUpdate.researchId).time;
             const newEndTime = new Date(previousTaskEndTime + taskResearchTime * 1000);
@@ -287,7 +271,6 @@ const CityView = ({ showMap, worldId }) => {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
-
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];
             const newEndTime = new Date(previousTaskEndTime + (isInstantUnits ? 1 : taskUnit.cost.time * taskToUpdate.amount) * 1000);
@@ -305,14 +288,12 @@ const CityView = ({ showMap, worldId }) => {
         if (!currentState || !worldId || amount <= 0) return;
 
         const currentQueue = currentState.unitQueue || [];
-
         if (currentQueue.length >= 5) {
             setMessage("Unit training queue is full (max 5).");
             return;
         }
 
         const unit = unitConfig[unitId];
-
         const totalCost = {
             wood: unit.cost.wood * amount,
             stone: unit.cost.stone * amount,
@@ -324,7 +305,6 @@ const CityView = ({ showMap, worldId }) => {
         currentQueue.forEach(task => {
             effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
         });
-
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const availablePopulation = maxPopulation - effectiveUsedPopulation;
 
@@ -344,7 +324,6 @@ const CityView = ({ showMap, worldId }) => {
             availablePopulation >= totalCost.population
         ) {
             const newGameState = JSON.parse(JSON.stringify(currentState));
-
             newGameState.resources.wood -= totalCost.wood;
             newGameState.resources.stone -= totalCost.stone;
             newGameState.resources.silver -= totalCost.silver;
@@ -358,7 +337,6 @@ const CityView = ({ showMap, worldId }) => {
                         : new Date(lastQueueItem.endTime).getTime();
                 }
             }
-
             const trainingTime = unit.cost.time * amount;
             const endTime = new Date(lastEndTime + (isInstantUnits ? 1 : trainingTime) * 1000);
 
@@ -367,7 +345,6 @@ const CityView = ({ showMap, worldId }) => {
                 amount,
                 endTime: endTime,
             };
-
             newGameState.unitQueue = [...currentQueue, newQueueItem];
 
             try {
@@ -387,61 +364,88 @@ const CityView = ({ showMap, worldId }) => {
     const handleHealTroops = async (unitsToHeal) => {
         const currentState = cityGameState;
         if (!currentState || !worldId || Object.keys(unitsToHeal).length === 0) return;
-
-        const currentQueue = currentState.healQueue || [];
-        if (currentQueue.length >= 5) {
-            setMessage("Healing queue is full (max 5).");
-            return;
-        }
-
-        const totalCost = { wood: 0, stone: 0, silver: 0 };
-        let totalTime = 0;
-
+    
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        let currentQueue = newGameState.healQueue || [];
+        
+        const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
+        const usedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+        const availablePopulation = maxPopulation - usedPopulation;
+        let populationToHeal = 0;
         for (const unitId in unitsToHeal) {
             const amount = unitsToHeal[unitId];
             const unit = unitConfig[unitId];
-            totalCost.wood += (unit.heal_cost.wood || 0) * amount;
-            totalCost.stone += (unit.heal_cost.stone || 0) * amount;
-            totalCost.silver += (unit.heal_cost.silver || 0) * amount;
-            totalTime += (unit.heal_time || 0) * amount;
+            populationToHeal += (unit.cost.population || 0) * amount;
         }
-        
+        if (availablePopulation < populationToHeal) {
+            setMessage("Not enough available population to heal these units.");
+            return;
+        }
+    
+        const tasksToAdd = [];
+        const totalCost = { wood: 0, stone: 0, silver: 0 };
+    
+        for (const unitId in unitsToHeal) {
+            const amount = unitsToHeal[unitId];
+            if (amount > 0) {
+                const unit = unitConfig[unitId];
+                tasksToAdd.push({
+                    unitId,
+                    amount,
+                    cost: {
+                        wood: (unit.heal_cost.wood || 0) * amount,
+                        stone: (unit.heal_cost.stone || 0) * amount,
+                        silver: (unit.heal_cost.silver || 0) * amount,
+                    },
+                    time: (unit.heal_time || 0) * amount,
+                });
+                totalCost.wood += tasksToAdd[tasksToAdd.length - 1].cost.wood;
+                totalCost.stone += tasksToAdd[tasksToAdd.length - 1].cost.stone;
+                totalCost.silver += tasksToAdd[tasksToAdd.length - 1].cost.silver;
+            }
+        }
+    
+        if (tasksToAdd.length + currentQueue.length > 5) {
+            setMessage("Not enough space in the healing queue.");
+            return;
+        }
+    
         if (
             currentState.resources.wood >= totalCost.wood &&
             currentState.resources.stone >= totalCost.stone &&
             currentState.resources.silver >= totalCost.silver
         ) {
-            const newGameState = JSON.parse(JSON.stringify(currentState));
             newGameState.resources.wood -= totalCost.wood;
             newGameState.resources.stone -= totalCost.stone;
             newGameState.resources.silver -= totalCost.silver;
-
+    
             const newWounded = { ...newGameState.wounded };
-            for (const unitId in unitsToHeal) {
-                newWounded[unitId] -= unitsToHeal[unitId];
-                if (newWounded[unitId] <= 0) {
-                    delete newWounded[unitId];
+            for (const task of tasksToAdd) {
+                newWounded[task.unitId] -= task.amount;
+                if (newWounded[task.unitId] <= 0) {
+                    delete newWounded[task.unitId];
                 }
             }
             newGameState.wounded = newWounded;
-
+    
             let lastEndTime = Date.now();
             if (currentQueue.length > 0) {
                 const lastQueueItem = currentQueue[currentQueue.length - 1];
                 lastEndTime = lastQueueItem.endTime.toDate ? lastQueueItem.endTime.toDate().getTime() : new Date(lastQueueItem.endTime).getTime();
             }
-
-            const endTime = new Date(lastEndTime + totalTime * 1000);
-
-            for (const unitId in unitsToHeal) {
+    
+            for (const task of tasksToAdd) {
+                const endTime = new Date(lastEndTime + task.time * 1000);
                 const newQueueItem = {
-                    unitId,
-                    amount: unitsToHeal[unitId],
+                    unitId: task.unitId,
+                    amount: task.amount,
                     endTime,
                 };
-                 newGameState.healQueue = [...newGameState.healQueue, newQueueItem];
+                currentQueue.push(newQueueItem);
+                lastEndTime = endTime.getTime();
             }
-
+            newGameState.healQueue = currentQueue;
+    
             try {
                 await saveGameState(newGameState);
                 setCityGameState(newGameState);
@@ -450,9 +454,75 @@ const CityView = ({ showMap, worldId }) => {
                 console.error("Error starting healing:", error);
                 setMessage("Could not start healing. Please try again.");
             }
-
         } else {
             setMessage("Not enough resources to heal troops!");
+        }
+    };
+
+    const handleCancelHeal = async (itemIndex) => {
+        const currentState = cityGameState;
+        if (!currentState || !currentState.healQueue || itemIndex < 0 || itemIndex >= currentState.healQueue.length) {
+            return;
+        }
+
+        const newQueue = [...currentState.healQueue];
+        const canceledTask = newQueue.splice(itemIndex, 1)[0];
+        const unit = unitConfig[canceledTask.unitId];
+
+        const newResources = {
+            ...currentState.resources,
+            wood: currentState.resources.wood + (unit.heal_cost.wood * canceledTask.amount),
+            stone: currentState.resources.stone + (unit.heal_cost.stone * canceledTask.amount),
+            silver: currentState.resources.silver + (unit.heal_cost.silver * canceledTask.amount),
+        };
+        
+        const newWounded = { ...currentState.wounded };
+        newWounded[canceledTask.unitId] = (newWounded[canceledTask.unitId] || 0) + canceledTask.amount;
+
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+            
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const taskTime = (taskUnit.heal_time || 0) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+
+        const newGameState = { ...currentState, resources: newResources, wounded: newWounded, healQueue: newQueue };
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage(`Healing for ${canceledTask.amount} ${unit.name}s canceled and resources refunded.`);
+    };
+
+    const handleFireTroops = async (unitsToFire) => {
+        const currentState = cityGameState;
+        if (!currentState || !worldId || Object.keys(unitsToFire).length === 0) return;
+
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        const newUnits = { ...newGameState.units };
+
+        for (const unitId in unitsToFire) {
+            const amount = unitsToFire[unitId];
+            if (newUnits[unitId] && newUnits[unitId] >= amount) {
+                newUnits[unitId] -= amount;
+                if (newUnits[unitId] === 0) {
+                    delete newUnits[unitId];
+                }
+            }
+        }
+
+        newGameState.units = newUnits;
+
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+            setMessage("Units dismissed.");
+        } catch (error) {
+            console.error("Error firing units:", error);
+            setMessage("Could not dismiss units. Please try again.");
         }
     };
 
@@ -463,7 +533,6 @@ const CityView = ({ showMap, worldId }) => {
             newWorshipData[godName] = 0;
         }
         newWorshipData.lastFavorUpdate = Date.now();
-
         const newGameState = { ...cityGameState, god: godName, worship: newWorshipData };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
@@ -480,6 +549,7 @@ const CityView = ({ showMap, worldId }) => {
         newGameState.resources.wood += amounts.wood;
         newGameState.resources.stone += amounts.stone;
         newGameState.resources.silver += amounts.silver;
+
         if (amounts.population > 0) {
             const farmLevel = newGameState.buildings.farm.level;
             newGameState.buildings.farm.level = farmLevel + amounts.population;
@@ -505,7 +575,6 @@ const CityView = ({ showMap, worldId }) => {
         } else if (favorAmount > 0 && !newGameState.god) {
             setMessage("No god is currently worshipped to add favor.");
         }
-
 
         await saveGameState(newGameState);
         setMessage("Admin cheat applied!");
@@ -548,7 +617,6 @@ const CityView = ({ showMap, worldId }) => {
                     newGameState.resources[resource] = (newGameState.resources[resource] || 0) + power.effect.resources[resource];
                 }
                 break;
-            // Add more spell effects here in the future
             default:
                 setMessage("This spell's effect is not yet implemented.");
                 return;
@@ -577,7 +645,6 @@ const CityView = ({ showMap, worldId }) => {
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900">
             <Modal message={message} onClose={() => setMessage('')} />
-
             <CityHeader
                 cityGameState={cityGameState}
                 worldId={worldId}
@@ -586,20 +653,17 @@ const CityView = ({ showMap, worldId }) => {
                 setMessage={setMessage}
                 onOpenCheats={() => openModal('isCheatMenuOpen')}
             />
-
             <ResourceBar
                 resources={cityGameState.resources}
                 productionRates={productionRates}
                 availablePopulation={availablePopulation}
             />
-
             <CityViewContent
                 cityGameState={cityGameState}
                 handlePlotClick={handlePlotClick}
                 onOpenPowers={() => openModal('isDivinePowersOpen')}
                 gameSettings={gameSettings}
             />
-
             <CityModals
                 cityGameState={cityGameState}
                 worldId={worldId}
@@ -617,11 +681,14 @@ const CityView = ({ showMap, worldId }) => {
                 handleCancelBuild={handleCancelBuild}
                 handleTrainTroops={handleTrainTroops}
                 handleCancelTrain={handleCancelTrain}
+                handleFireTroops={handleFireTroops}
                 handleStartResearch={handleStartResearch}
                 handleCancelResearch={handleCancelResearch}
                 handleWorshipGod={handleWorshipGod}
                 handleCheat={handleCheat}
                 handleHealTroops={handleHealTroops}
+                handleCancelHeal={handleCancelHeal}
+                availablePopulation={availablePopulation}
                 modalState={modalState}
                 openModal={openModal}
                 closeModal={closeModal}

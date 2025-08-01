@@ -9,6 +9,8 @@
       "population": 1,
       "time": 30
     },
+    "heal_cost": { "wood": 15, "stone": 10, "silver": 6 },
+    "heal_time": 10,
     "attack": 10,
     "defense": 15,
     "speed": 5,
@@ -26,6 +28,8 @@
       "population": 1,
       "time": 45
     },
+    "heal_cost": { "wood": 9, "stone": 12, "silver": 10 },
+    "heal_time": 15,
     "attack": 12,
     "defense": 8,
     "speed": 6,
@@ -43,6 +47,8 @@
       "population": 1,
       "time": 25
     },
+    "heal_cost": { "wood": 8, "stone": 6, "silver": 5 },
+    "heal_time": 8,
     "attack": 8,
     "defense": 10,
     "speed": 7,
@@ -60,6 +66,8 @@
       "population": 2,
       "time": 60
     },
+    "heal_cost": { "wood": 21, "stone": 18, "silver": 12 },
+    "heal_time": 20,
     "attack": 15,
     "defense": 25,
     "speed": 4,
@@ -77,6 +85,8 @@
       "population": 3,
       "time": 90
     },
+    "heal_cost": { "wood": 24, "stone": 15, "silver": 21 },
+    "heal_time": 30,
     "attack": 20,
     "defense": 18,
     "speed": 10,

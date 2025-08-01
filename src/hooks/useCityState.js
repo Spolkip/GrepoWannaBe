@@ -1,16 +1,15 @@
 // src/hooks/useCityState.js
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
-import researchConfig from '../gameData/research.json'; // Import research config
+import researchConfig from '../gameData/research.json';
 
 const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
 
-export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => { // Added isInstantResearch, isInstantUnits
+export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
@@ -65,7 +64,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         };
     }, [isInstantBuild]);
     
-    // New function to get research cost and time
     const getResearchCost = useCallback((researchId) => {
         const research = researchConfig[researchId];
         if (!research) return null;
@@ -73,9 +71,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             wood: research.cost.wood,
             stone: research.cost.stone,
             silver: research.cost.silver,
-            time: isInstantResearch ? 1 : research.cost.time, // Apply instant research
+            time: isInstantResearch ? 1 : research.cost.time,
         };
-    }, [isInstantResearch]); // Dependency on the new prop
+    }, [isInstantResearch]);
 
     const calculateUsedPopulation = useCallback((buildings, units) => {
         let used = 0;
@@ -115,7 +113,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                     endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
                 }));
             }
-            if (dataToSave.researchQueue) { // Add researchQueue to save logic
+            if (dataToSave.researchQueue) {
                 dataToSave.researchQueue = dataToSave.researchQueue.map(task => ({
                     ...task,
                     endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
@@ -148,7 +146,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 if (!data.buildings.hospital) data.buildings.hospital = { level: 0 };
                 if (!data.buildQueue) data.buildQueue = [];
                 if (!data.unitQueue) data.unitQueue = [];
-                if (!data.researchQueue) data.researchQueue = []; // Initialize researchQueue
+                if (!data.researchQueue) data.researchQueue = [];
                 if (!data.healQueue) data.healQueue = [];
 
                 setCityGameState(data);

@@ -125,156 +125,151 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
         }
 
         // Distribute remaining losses proportionally among other units
-        const otherUnits = Object.keys(units).filter(id => id !== phalanx && id !== support && unitConfig[id]?.type === unitType);
-        if (remainingLosses > 0 && otherUnits.length > 0) {
-            let currentOtherUnitsTotal = otherUnits.reduce((sum, id) => sum + (units[id] || 0) - (losses[id] || 0), 0);
-            if (currentOtherUnitsTotal === 0) currentOtherUnitsTotal = 1; // Avoid division by zero
-
-            for (const unitId of otherUnits) {
+      // Distribute remaining losses proportionally among other units
+            const otherUnits = Object.keys(units).filter(id => id !== phalanx && id !== support && unitConfig[id]?.type === unitType);
+            if (remainingLosses > 0 && otherUnits.length > 0) {
+                let currentOtherUnitsTotal = otherUnits.reduce((sum, id) => sum + (units[id] || 0) - (losses[id] || 0), 0);
+                if (currentOtherUnitsTotal === 0) currentOtherUnitsTotal = 1; // Avoid division by zero
+                for (const unitId of otherUnits) {
+                    if (remainingLosses > 0) {
+                        const unitCount = (units[unitId] || 0) - (losses[unitId] || 0);
+                        const proportionalLoss = Math.floor(remainingLosses * (unitCount / currentOtherUnitsTotal));
+                        const actualLoss = Math.min(unitCount, proportionalLoss);
+                        losses[unitId] = (losses[unitId] || 0) + actualLoss;
+                        remainingLosses -= actualLoss;
+                    }
+                }
+                // Distribute any leftover losses to the largest remaining unit type
                 if (remainingLosses > 0) {
-                    const unitCount = (units[unitId] || 0) - (losses[unitId] || 0);
-                    const proportionalLoss = Math.floor(remainingLosses * (unitCount / currentOtherUnitsTotal));
-                    const actualLoss = Math.min(unitCount, proportionalLoss);
-                    losses[unitId] = (losses[unitId] || 0) + actualLoss;
-                    remainingLosses -= actualLoss;
+                    const largestRemainingUnit = otherUnits.reduce((largest, id) => {
+                        const currentCount = (units[id] || 0) - (losses[id] || 0);
+                        return currentCount > (units[largest] || 0) - (losses[largest] || 0) ? id : largest;
+                    }, otherUnits[0]);
+                    if (largestRemainingUnit) {
+                        losses[largestRemainingUnit] = (losses[largestRemainingUnit] || 0) + remainingLosses;
+                    }
                 }
             }
-            // Distribute any leftover losses to the largest remaining unit type
-            if (remainingLosses > 0) {
-                const largestRemainingUnit = otherUnits.reduce((largest, id) => {
-                    const currentCount = (units[id] || 0) - (losses[id] || 0);
-                    return currentCount > (units[largest] || 0) - (losses[largest] || 0) ? id : largest;
-                }, otherUnits[0]);
-                if (largestRemainingUnit) {
-                    losses[largestRemainingUnit] = (losses[largestRemainingUnit] || 0) + remainingLosses;
-                }
-            }
+            return losses;
+        };
+        const finalAttackerLosses = applyLosses(currentAttackingUnits, attackerLossRatio, attackerPhalanx, attackerSupport);
+        const finalDefenderLosses = applyLosses(currentDefendingUnits, defenderLossRatio, defenderPhalanx, defenderSupport);
+        // Update current units after losses for the next calculation (if multiple rounds were simulated)
+        for (const unitId in finalAttackerLosses) {
+            currentAttackingUnits[unitId] = Math.max(0, (currentAttackingUnits[unitId] || 0) - finalAttackerLosses[unitId]);
         }
-        return losses;
+        for (const unitId in finalDefenderLosses) {
+            currentDefendingUnits[unitId] = Math.max(0, (currentDefendingUnits[unitId] || 0) - finalDefenderLosses[unitId]);
+        }
+        // Recalculate power with remaining units to determine winner
+        const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, null, null).totalPower;
+        const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, null, null).totalPower;
+        // Attacker wins on a tie (e.g., 0 vs 0 power)
+        return {
+            attackerWon: finalAttackerPower >= finalDefenderPower,
+            attackerLosses: finalAttackerLosses,
+            defenderLosses: finalDefenderLosses,
+        };
     };
-
-    const finalAttackerLosses = applyLosses(currentAttackingUnits, attackerLossRatio, attackerPhalanx, attackerSupport);
-    const finalDefenderLosses = applyLosses(currentDefendingUnits, defenderLossRatio, defenderPhalanx, defenderSupport);
-
-    // Update current units after losses for the next calculation (if multiple rounds were simulated)
-    for (const unitId in finalAttackerLosses) {
-        currentAttackingUnits[unitId] = Math.max(0, (currentAttackingUnits[unitId] || 0) - finalAttackerLosses[unitId]);
+    export function getVillageTroops(villageData) {
+        if (villageData.troops && Object.keys(villageData.troops).length > 0) {
+            return villageData.troops;
+        }
+        const level = villageData.level || 1;
+        let troops = {};
+        switch (level) {
+            case 1:
+                troops = { swordsman: 15, archer: 10 };
+                break;
+            case 2:
+                troops = { swordsman: 25, archer: 15, slinger: 5 };
+                break;
+            case 3:
+                troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
+                break;
+            case 4:
+                troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
+                break;
+            case 5:
+                troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
+                break;
+            default:
+                troops = { swordsman: 15, archer: 10 };
+                break;
+        }
+        return troops;
     }
-    for (const unitId in finalDefenderLosses) {
-        currentDefendingUnits[unitId] = Math.max(0, (currentDefendingUnits[unitId] || 0) - finalDefenderLosses[unitId]);
-    }
-
-    // Recalculate power with remaining units to determine winner
-    const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, null, null).totalPower;
-    const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, null, null).totalPower;
-    
-    // Attacker wins on a tie (e.g., 0 vs 0 power)
-    return {
-        attackerWon: finalAttackerPower >= finalDefenderPower,
-        attackerLosses: finalAttackerLosses,
-        defenderLosses: finalDefenderLosses,
-    };
-};
-export function getVillageTroops(villageData) {
-    if (villageData.troops && Object.keys(villageData.troops).length > 0) {
-        return villageData.troops;
-    }
-
-    const level = villageData.level || 1;
-    let troops = {};
-    switch (level) {
-        case 1:
-            troops = { swordsman: 15, archer: 10 };
-            break;
-        case 2:
-            troops = { swordsman: 25, archer: 15, slinger: 5 };
-            break;
-        case 3:
-            troops = { swordsman: 40, archer: 25, slinger: 10, hoplite: 5 };
-            break;
-        case 4:
-            troops = { swordsman: 60, archer: 40, slinger: 20, hoplite: 15, cavalry: 5 };
-            break;
-        case 5:
-            troops = { swordsman: 100, archer: 75, slinger: 50, hoplite: 40, cavalry: 20 };
-            break;
-        default:
-            troops = { swordsman: 15, archer: 10 };
-            break;
-    }
-    return troops;
-}
-export function resolveCombat(attackingUnits, defendingUnits, defendingResources, isNavalAttack, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) {
-    let totalAttackerLosses = {};
-    let totalDefenderLosses = {};
-    let attackerWon = false;
-    let plunder = { wood: 0, stone: 0, silver: 0 };
-    let wounded = {};
-
-    if (isNavalAttack) {
-        const navalBattle = resolveBattle(attackingUnits, defendingUnits, 'naval', null, null, null, null); // No phalanx/support for naval
-        totalAttackerLosses = { ...navalBattle.attackerLosses };
-        totalDefenderLosses = { ...navalBattle.defenderLosses };
-
-        if (navalBattle.attackerWon) {
-            const survivingAttackers = { ...attackingUnits };
-            for (const unitId in totalAttackerLosses) {
-                survivingAttackers[unitId] = Math.max(0, (survivingAttackers[unitId] || 0) - totalAttackerLosses[unitId]);
+    export function resolveCombat(attackingUnits, defendingUnits, defendingResources, isNavalAttack, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) {
+        let totalAttackerLosses = {};
+        let totalDefenderLosses = {};
+        let attackerWon = false;
+        let plunder = { wood: 0, stone: 0, silver: 0 };
+        let wounded = {};
+        if (isNavalAttack) {
+            const navalBattle = resolveBattle(attackingUnits, defendingUnits, 'naval', null, null, null, null); // No phalanx/support for naval
+            totalAttackerLosses = { ...navalBattle.attackerLosses };
+            totalDefenderLosses = { ...navalBattle.defenderLosses };
+            if (navalBattle.attackerWon) {
+                const survivingAttackers = { ...attackingUnits };
+                for (const unitId in totalAttackerLosses) {
+                    survivingAttackers[unitId] = Math.max(0, (survivingAttackers[unitId] || 0) - totalAttackerLosses[unitId]);
+                }
+                const landBattle = resolveBattle(survivingAttackers, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
+                for (const unitId in landBattle.attackerLosses) {
+                    totalAttackerLosses[unitId] = (totalAttackerLosses[unitId] || 0) + landBattle.attackerLosses[unitId];
+                }
+                for (const unitId in landBattle.defenderLosses) {
+                    totalDefenderLosses[unitId] = (totalDefenderLosses[unitId] || 0) + landBattle.defenderLosses[unitId];
+                }
+                attackerWon = landBattle.attackerWon;
+                if (landBattle.attackerWon) {
+                    plunder.wood = Math.floor(defendingResources.wood * 0.25);
+                    plunder.stone = Math.floor(defendingResources.stone * 0.25);
+                    plunder.silver = Math.floor(defendingResources.silver * 0.25);
+                }
+            } else {
+                // If naval battle is lost, all land units on transport ships are lost
+                for (const unitId in attackingUnits) {
+                    if (unitConfig[unitId].type === 'land') {
+                        totalAttackerLosses[unitId] = (totalAttackerLosses[unitId] || 0) + attackingUnits[unitId];
+                    }
+                }
             }
-
-            const landBattle = resolveBattle(survivingAttackers, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
-            for (const unitId in landBattle.attackerLosses) {
-                totalAttackerLosses[unitId] = (totalAttackerLosses[unitId] || 0) + landBattle.attackerLosses[unitId];
-            }
-            for (const unitId in landBattle.defenderLosses) {
-                totalDefenderLosses[unitId] = (totalDefenderLosses[unitId] || 0) + landBattle.defenderLosses[unitId];
-            }
-            
+        } else {
+            const landBattle = resolveBattle(attackingUnits, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
+            totalAttackerLosses = landBattle.attackerLosses;
+            totalDefenderLosses = landBattle.defenderLosses;
             attackerWon = landBattle.attackerWon;
-
             if (landBattle.attackerWon) {
                 plunder.wood = Math.floor(defendingResources.wood * 0.25);
                 plunder.stone = Math.floor(defendingResources.stone * 0.25);
                 plunder.silver = Math.floor(defendingResources.silver * 0.25);
             }
-        } else {
-            // If naval battle is lost, all land units on transport ships are lost
-            for (const unitId in attackingUnits) {
-                if (unitConfig[unitId].type === 'land') {
-                    totalAttackerLosses[unitId] = (totalAttackerLosses[unitId] || 0) + attackingUnits[unitId];
+        }
+        // Calculate wounded troops from attacker losses
+        for (const unitId in totalAttackerLosses) {
+            const losses = totalAttackerLosses[unitId];
+            const unitType = unitConfig[unitId]?.type;
+            // Only land units can be wounded and healed in a hospital
+            if (unitType === 'land') {
+                const woundedCount = Math.floor(losses * 0.15); // 15% of losses become wounded
+                if (woundedCount > 0) {
+                    wounded[unitId] = woundedCount;
+                    totalAttackerLosses[unitId] = losses - woundedCount; // Reduce losses by the number of wounded
                 }
             }
         }
-    } else {
-        const landBattle = resolveBattle(attackingUnits, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
-        totalAttackerLosses = landBattle.attackerLosses;
-        totalDefenderLosses = landBattle.defenderLosses;
-        attackerWon = landBattle.attackerWon;
-        if (landBattle.attackerWon) {
-            plunder.wood = Math.floor(defendingResources.wood * 0.25);
-            plunder.stone = Math.floor(defendingResources.stone * 0.25);
-            plunder.silver = Math.floor(defendingResources.silver * 0.25);
-        }
+        return {
+            attackerWon,
+            attackerLosses: totalAttackerLosses,
+            defenderLosses: totalDefenderLosses,
+            plunder,
+            wounded,
+        };
     }
-
-    // Calculate wounded troops from attacker losses
-    for (const unitId in totalAttackerLosses) {
-        const losses = totalAttackerLosses[unitId];
-        const woundedCount = Math.floor(losses * 0.15); // 15% of losses become wounded
-        if (woundedCount > 0) {
-            wounded[unitId] = woundedCount;
-            totalAttackerLosses[unitId] = losses - woundedCount; // Reduce losses by the number of wounded
-        }
-    }
-
-    return {
-        attackerWon,
-        attackerLosses: totalAttackerLosses,
-        defenderLosses: totalDefenderLosses,
-        plunder,
-        wounded,
-    };
-}
+    /**
+     * Resolves a scouting mission.
+     * @param {object} targetGameState - The game state of the target city.
 
 /**
  * Resolves a scouting mission.
