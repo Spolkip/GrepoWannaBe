@@ -1,0 +1,45 @@
+.leaderboard-container {
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3;
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    color: #4a2c2a;
+    font-family: 'Inter', sans-serif;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table thead {
+    background-color: #1e3a8a;
+    color: #f0e68c;
+}
+
+.leaderboard-table th {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid #cd853f;
+}
+
+.leaderboard-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #d2b48c;
+}
+
+.player-name-btn {
+    background: none;
+    border: none;
+    color: #1e3a8a;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+}
+
+.player-name-btn:hover {
+    text-decoration: underline;
+}

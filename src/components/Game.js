@@ -375,7 +375,6 @@ const Game = ({ onBackToWorlds }) => {
                     💬
                 </button>
                 <Chat 
-                    worldId={worldId} 
                     isVisible={isChatOpen} 
                     onClose={() => setIsChatOpen(false)} 
                 />

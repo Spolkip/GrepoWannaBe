@@ -14,7 +14,9 @@ export const useModalState = () => {
         isDivinePowersOpen: false,
         divinePowersTarget: null,
         isProfileModalOpen: false,
-        isAllianceForumOpen: false, // #comment Add forum modal state
+        isAllianceForumOpen: false,
+        isLeaderboardOpen: false, // #comment Add leaderboard modal state
+        viewingProfileId: null, // #comment Add state for viewing other profiles
     });
 
     const openModal = (type, data) => {
@@ -29,8 +31,9 @@ export const useModalState = () => {
                 case 'allianceCreation': return { ...prevState, isAllianceCreationOpen: true };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: true };
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: true, divinePowersTarget: data?.targetCity || null };
-                case 'profile': return { ...prevState, isProfileModalOpen: true };
-                case 'allianceForum': return { ...prevState, isAllianceForumOpen: true }; // #comment Add forum modal open case
+                case 'profile': return { ...prevState, isProfileModalOpen: true, viewingProfileId: data?.userId || null };
+                case 'allianceForum': return { ...prevState, isAllianceForumOpen: true };
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: true }; // #comment Add leaderboard open case
                 default: return prevState;
             }
         });
@@ -48,8 +51,9 @@ export const useModalState = () => {
                 case 'allianceCreation': return { ...prevState, isAllianceCreationOpen: false };
                 case 'messages': return { ...prevState, isMessagesPanelOpen: false };
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: false, divinePowersTarget: null };
-                case 'profile': return { ...prevState, isProfileModalOpen: false };
-                case 'allianceForum': return { ...prevState, isAllianceForumOpen: false }; // #comment Add forum modal close case
+                case 'profile': return { ...prevState, isProfileModalOpen: false, viewingProfileId: null };
+                case 'allianceForum': return { ...prevState, isAllianceForumOpen: false };
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: false }; // #comment Add leaderboard close case
                 default: return prevState;
             }
         });

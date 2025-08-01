@@ -1,7 +1,6 @@
 - Ruins around the world to give you hidden researches.
 - Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
 - Add mythical troops and special building for them
-- Think of a way to do leaderboard,
 - Add population to resource buildings to produce more resources
 - Make the travel time smaller, a lot smaller for scouting and trading
 - add cities inside the island
@@ -25,3 +24,4 @@
 - you start with 1 slot, per 5 levels you get another slot, up to 6 slots, each time you put a worker it takes out from 3% from happiness for each
 - add a new variable called happiness to the city that you get as you upgrade senate
 - add creation of ranks of the guild and select permissions of the leader
+- if a player has a second town in the island to give get from the village 20% more resources per demand
