@@ -5,7 +5,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import './ProfileView.css';
 
-const ProfileView = ({ onClose, viewUserId }) => {
+const ProfileView = ({ onClose, viewUserId, onGoToCity }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
     const { worldId, gameState: ownGameState } = useGame();
     
@@ -20,7 +20,6 @@ const ProfileView = ({ onClose, viewUserId }) => {
 
     const isOwnProfile = !viewUserId || viewUserId === currentUser.uid;
 
-    // #comment fetch profile and game data for the user being viewed
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -51,7 +50,6 @@ const ProfileView = ({ onClose, viewUserId }) => {
         fetchData();
     }, [viewUserId, currentUser, worldId]);
 
-    // #comment handle updating the user's own profile
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         if (!isOwnProfile) return;
@@ -85,35 +83,46 @@ const ProfileView = ({ onClose, viewUserId }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className={`profile-view-container ${!isOwnProfile ? 'read-only' : ''}`} onClick={e => e.stopPropagation()}>
                 <div className="profile-header">
-                    <h2 className="font-title text-3xl">Player Profile</h2>
+                    <h2 className="font-title text-3xl">Profile of {displayProfile?.username}</h2>
                     <button onClick={onClose} className="close-button">&times;</button>
                 </div>
                 {message && <p className="message">{message}</p>}
+                
                 <div className="profile-content">
-                    <div className="profile-main-info">
-                        <img src={displayProfile?.imageUrl || 'https://placehold.co/100x100/2d3748/a0aec0?text=Avatar'} alt="Profile" className="profile-avatar" />
-                        <div className="profile-details">
-                            <div className="profile-field">
-                                <label>Username</label>
-                                <div className="display-field"><span>{displayProfile?.username}</span></div>
-                            </div>
-                            <div className="profile-field">
-                                <label>City</label>
-                                <div className="display-field"><span>{displayGame?.cityName}</span></div>
-                            </div>
-                        </div>
+                    <div className="flex justify-center mb-4">
+                        <img src={displayProfile?.imageUrl || 'https://placehold.co/150x150/1e3a8a/f0e68c?text=Avatar'} alt="Profile" className="w-36 h-36 rounded-full border-4 border-yellow-500 object-cover" />
                     </div>
 
                     <div className="profile-field">
-                        <label>Description</label>
-                        <div className="display-field description-text">
-                            <p>{displayProfile?.description || 'No description set.'}</p>
+                        <div className="display-field description-text text-center italic">
+                            <p>{displayProfile?.description || 'No description provided.'}</p>
                         </div>
                     </div>
                     
+                    <div className="mt-6">
+                        <h3 className="font-title text-2xl mb-2 text-yellow-400">Cities</h3>
+                        <div className="bg-gray-700 p-3 rounded-lg">
+                            {displayGame ? (
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold">{displayGame.cityName}</span>
+                                    {!isOwnProfile && displayGame.x !== undefined && (
+                                        <button 
+                                            onClick={() => onGoToCity(displayGame.x, displayGame.y)}
+                                            className="btn btn-primary text-xs px-3 py-1"
+                                        >
+                                            Go To City
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <p className="text-gray-400">No city in this world.</p>
+                            )}
+                        </div>
+                    </div>
+
                     {isOwnProfile && (
                         isEditing ? (
-                            <form onSubmit={handleUpdateProfile} className="edit-form">
+                            <form onSubmit={handleUpdateProfile} className="edit-form mt-4">
                                 <div className="profile-field">
                                     <label>Description</label>
                                     <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className="description-input" />
@@ -128,7 +137,7 @@ const ProfileView = ({ onClose, viewUserId }) => {
                                 </div>
                             </form>
                         ) : (
-                            <button onClick={() => setIsEditing(true)} className="btn btn-primary w-full mt-4">Edit Profile</button>
+                            <button onClick={() => setIsEditing(true)} className="btn btn-primary w-full mt-6">Edit Profile</button>
                         )
                     )}
                 </div>

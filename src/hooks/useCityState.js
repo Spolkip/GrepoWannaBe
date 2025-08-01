@@ -111,6 +111,30 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return used;
     }, [getUpgradeCost]);
 
+    const calculateTotalPoints = useCallback((gameState) => {
+        if (!gameState) return 0;
+        let points = 0;
+        if (gameState.buildings) {
+            for (const buildingId in gameState.buildings) {
+                const building = gameState.buildings[buildingId];
+                points += building.level * 10;
+            }
+        }
+        if (gameState.units) {
+            for (const unitId in gameState.units) {
+                const count = gameState.units[unitId];
+                const unit = unitConfig[unitId];
+                if (unit) {
+                    points += count * (unit.cost.population || 1);
+                }
+            }
+        }
+        if (gameState.research) {
+            points += Object.keys(gameState.research).length * 50;
+        }
+        return Math.floor(points);
+    }, []);
+
     const saveGameState = useCallback(async (stateToSave) => {
         if (!currentUser || !worldId || !stateToSave) return;
         try {
@@ -352,6 +376,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         getProductionRates,
         calculateUsedPopulation,
         saveGameState,
-        getResearchCost
+        getResearchCost,
+        calculateTotalPoints
     };
 };

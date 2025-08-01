@@ -20,6 +20,7 @@ import SettingsModal from './shared/SettingsModal';
 import DivinePowers from './city/DivinePowers';
 import ProfileView from './profile/ProfileView';
 import AllianceCreation from './alliance/AllianceCreation';
+import Leaderboard from './leaderboard/Leaderboard';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -335,6 +336,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             setMessage("Failed to cast the spell. Please try again.");
         }
     };
+
+    const handleGoToCityFromProfile = (x, y) => {
+        goToCoordinates(x, y);
+        closeModal('profile');
+    };
     
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
@@ -399,6 +405,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenMessages={() => openModal('messages')}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
                     onOpenProfile={() => openModal('profile')}
+                    onOpenLeaderboard={() => openModal('leaderboard')}
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
@@ -500,7 +507,17 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             )}
             
             {modalState.isProfileModalOpen && (
-                <ProfileView onClose={() => closeModal('profile')} />
+                <ProfileView 
+                    onClose={() => closeModal('profile')} 
+                    viewUserId={modalState.viewingProfileId} 
+                    onGoToCity={handleGoToCityFromProfile}
+                />
+            )}
+             {modalState.isLeaderboardOpen && (
+                <Leaderboard 
+                    onClose={() => closeModal('leaderboard')} 
+                    onOpenProfile={(userId) => openModal('profile', { userId })}
+                />
             )}
         </div>
     );

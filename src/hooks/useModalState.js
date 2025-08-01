@@ -1,6 +1,8 @@
 // src/hooks/useModalState.js
 import { useState } from 'react';
 
+// src/hooks/useModalState.js
+// #comment Add leaderboard modal state
 export const useModalState = () => {
     const [modalState, setModalState] = useState({
         selectedCity: null,
@@ -15,8 +17,8 @@ export const useModalState = () => {
         divinePowersTarget: null,
         isProfileModalOpen: false,
         isAllianceForumOpen: false,
-        isLeaderboardOpen: false, // #comment Add leaderboard modal state
-        viewingProfileId: null, // #comment Add state for viewing other profiles
+        isLeaderboardOpen: false, 
+        viewingProfileId: null, 
     });
 
     const openModal = (type, data) => {
@@ -33,7 +35,7 @@ export const useModalState = () => {
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: true, divinePowersTarget: data?.targetCity || null };
                 case 'profile': return { ...prevState, isProfileModalOpen: true, viewingProfileId: data?.userId || null };
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: true };
-                case 'leaderboard': return { ...prevState, isLeaderboardOpen: true }; // #comment Add leaderboard open case
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: true }; 
                 default: return prevState;
             }
         });
@@ -53,7 +55,7 @@ export const useModalState = () => {
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: false, divinePowersTarget: null };
                 case 'profile': return { ...prevState, isProfileModalOpen: false, viewingProfileId: null };
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: false };
-                case 'leaderboard': return { ...prevState, isLeaderboardOpen: false }; // #comment Add leaderboard close case
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: false }; 
                 default: return prevState;
             }
         });
