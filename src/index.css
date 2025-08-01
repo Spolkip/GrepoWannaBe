@@ -104,13 +104,18 @@ body {
 
 /* --- Map & Tile Styles --- */
 
+.map-background {
+    @apply bg-blue-800; /* Fallback color */
+    /* If you have a sea image, you can use this: */
+    /* @apply bg-[url('./images/sea.jpg')] bg-cover bg-center; */
+}
+
 .map-viewport {
-    @apply absolute inset-0 w-full h-full cursor-grab bg-[url('./images/sea.jpg')] bg-cover bg-center overflow-hidden;
+    @apply absolute inset-0 w-full h-full cursor-grab overflow-hidden;
 }
 .map-viewport:active {
     @apply cursor-grabbing;
 }
-
 .map-border {
     @apply absolute bg-red-500 pointer-events-none z-40 transition-opacity duration-200;
 }

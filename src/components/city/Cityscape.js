@@ -9,9 +9,9 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {
     <div
       style={{
         width: '2000px', // Large canvas for the city
-        height: '2000px',
+        height: '1200px',
         position: 'relative',
-        background: `linear-gradient(to bottom, #2a623d 70%, #1e3a8a 70%)`, // 70% land, 30% sea
+        background: `linear-gradient(to bottom, #2a623d 85%, #1e3a8a 25%)`, // 70% land, 30% sea
       }}
     >
       {buildingLayout.map((building) => {

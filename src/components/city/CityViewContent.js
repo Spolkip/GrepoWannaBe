@@ -12,7 +12,8 @@ buildingImageContext.keys().forEach((item) => {
     buildingImages[key] = buildingImageContext(item);
 });
 
-const CITYSCAPE_SIZE = 2000;
+const CITYSCAPE_WIDTH = 2000;
+const CITYSCAPE_HEIGHT = 1200;
 
 const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSettings }) => {
     // Panning Logic (moved from CityView.js)
@@ -25,8 +26,8 @@ const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSet
     const clampPan = useCallback((newPan) => {
         if (!viewportRef.current) return { x: 0, y: 0 };
         const { clientWidth, clientHeight } = viewportRef.current;
-        const minX = clientWidth - CITYSCAPE_SIZE;
-        const minY = clientHeight - CITYSCAPE_SIZE;
+        const minX = clientWidth - CITYSCAPE_WIDTH;
+        const minY = clientHeight - CITYSCAPE_HEIGHT;
         return {
             x: Math.max(minX, Math.min(0, newPan.x)),
             y: Math.max(minY, Math.min(0, newPan.y)),
@@ -36,7 +37,7 @@ const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSet
     useLayoutEffect(() => {
         if (!viewportRef.current) return;
         const { clientWidth, clientHeight } = viewportRef.current;
-        setPan(clampPan({ x: (clientWidth - CITYSCAPE_SIZE) / 2, y: (clientHeight - CITYSCAPE_SIZE) / 2 }));
+        setPan(clampPan({ x: (clientWidth - CITYSCAPE_WIDTH) / 2, y: (clientHeight - CITYSCAPE_HEIGHT) / 2 }));
     }, [clampPan]);
 
     useEffect(() => {

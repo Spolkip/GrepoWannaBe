@@ -402,7 +402,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     isAdmin={userProfile?.is_admin}
                     onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
                 />
-                <div className="main-content flex-grow relative">
+                <div className="main-content flex-grow relative map-background">
                     <div
                         className="map-viewport"
                         ref={viewportRef}

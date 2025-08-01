@@ -9,8 +9,8 @@ const BuildingSpot = ({ building, level, onClick, image }) => {
     const spotStyle = {
         top: `${position.y}px`,
         left: `${position.x}px`,
-        width: isCityWall ? '2000px' : '180px', // Increased width
-        height: isCityWall ? '100px' : '120px', // Increased height
+        width: isCityWall ? '2000px' : '200px',
+        height: isCityWall ? '150px' : '150px', // Increased height for the wall
         backgroundImage: level > 0 && image ? `url(${image})` : 'none',
         backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat',
@@ -20,7 +20,7 @@ const BuildingSpot = ({ building, level, onClick, image }) => {
     if (level === 0) {
         return (
              <div
-                className="building-spot absolute flex items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-black/20" // Removed border classes
+                className="building-spot absolute flex items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-black/20"
                 style={spotStyle}
                 onClick={onClick}
                 title={`Build ${name}`}
@@ -34,10 +34,10 @@ const BuildingSpot = ({ building, level, onClick, image }) => {
 
     return (
         <div
-            className="building-spot absolute flex flex-col items-center justify-center p-2 rounded-lg shadow-lg hover:bg-yellow-400/30 transition-colors duration-200 cursor-pointer"
+            className="building-spot absolute flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 cursor-pointer"
             style={{
                 ...spotStyle,
-                backgroundColor: isCityWall ? 'rgba(100, 80, 60, 0.7)' : (image ? 'transparent' : 'rgba(139, 69, 19, 0.7)'),
+                backgroundColor: image ? 'transparent' : 'rgba(139, 69, 19, 0.7)', // If there's an image, the background is transparent.
             }}
             onClick={onClick}
         >

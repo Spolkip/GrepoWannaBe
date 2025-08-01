@@ -5,7 +5,6 @@ import { useGame } from '../../contexts/GameContext';
 const ProfileView = ({ onClose }) => {
     const { userProfile, updateUserProfile } = useAuth();
     const { gameState } = useGame();
-    const [newUsername, setNewUsername] = useState(userProfile?.username || '');
     const [newDescription, setNewDescription] = useState(userProfile?.description || '');
     const [newImageUrl, setNewImageUrl] = useState(userProfile?.imageUrl || '');
     const [isEditing, setIsEditing] = useState(false);
@@ -14,7 +13,6 @@ const ProfileView = ({ onClose }) => {
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         const profileData = {
-            username: newUsername,
             description: newDescription,
             imageUrl: newImageUrl,
         };
@@ -64,10 +62,6 @@ const ProfileView = ({ onClose }) => {
                     
                     {isEditing ? (
                         <form onSubmit={handleUpdateProfile} className="space-y-4 bg-gray-700 p-4 rounded-lg">
-                            <div className="flex flex-col">
-                                <label className="text-gray-400 mb-1 text-sm font-bold">Username</label>
-                                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            </div>
                             <div className="flex flex-col">
                                 <label className="text-gray-400 mb-1 text-sm font-bold">Description</label>
                                 <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]" />

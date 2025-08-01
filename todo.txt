@@ -35,3 +35,5 @@ add invitation system to the alliance
 add alliance settings
 
 leader can recomment research
+
+enable grid doesnt work
