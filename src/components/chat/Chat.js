@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGame } from '../../contexts/GameContext';
 import './Chat.css';
 
-const Chat = ({ worldId, isVisible, onClose }) => {
+const Chat = ({ isVisible, onClose }) => {
     const { currentUser, userProfile } = useAuth();
+    const { worldId, playerAlliance } = useGame();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [activeTab, setActiveTab] = useState('world');
     const messagesEndRef = useRef(null);
 
     // Draggable state
@@ -16,28 +19,48 @@ const Chat = ({ worldId, isVisible, onClose }) => {
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const chatWindowRef = useRef(null);
 
-
+    // #comment fetch messages based on the active tab (world or alliance)
     useEffect(() => {
         if (!worldId) return;
 
-        const q = query(collection(db, 'worlds', worldId, 'chat'), orderBy('timestamp', 'asc'));
+        let chatCollectionRef;
+        if (activeTab === 'world') {
+            chatCollectionRef = collection(db, 'worlds', worldId, 'chat');
+        } else if (activeTab === 'alliance' && playerAlliance) {
+            chatCollectionRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'chat');
+        } else {
+            setMessages([]);
+            return;
+        }
+
+        const q = query(chatCollectionRef, orderBy('timestamp', 'asc'));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const msgs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setMessages(msgs);
         });
 
         return () => unsubscribe();
-    }, [worldId]);
+    }, [worldId, activeTab, playerAlliance]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // #comment send a new message to the currently active chat tab
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (newMessage.trim() === '' || !worldId || !currentUser || !userProfile) return;
 
-        await addDoc(collection(db, 'worlds', worldId, 'chat'), {
+        let chatCollectionRef;
+        if (activeTab === 'world') {
+            chatCollectionRef = collection(db, 'worlds', worldId, 'chat');
+        } else if (activeTab === 'alliance' && playerAlliance) {
+            chatCollectionRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'chat');
+        } else {
+            return; // Can't send message if no valid chat is selected
+        }
+
+        await addDoc(chatCollectionRef, {
             text: newMessage,
             timestamp: serverTimestamp(),
             uid: currentUser.uid,
@@ -47,6 +70,7 @@ const Chat = ({ worldId, isVisible, onClose }) => {
         setNewMessage('');
     };
     
+    // #comment handle mouse down for dragging the chat window
     const handleMouseDown = (e) => {
         if (e.target.classList.contains('chat-header')) {
             setIsDragging(true);
@@ -57,6 +81,7 @@ const Chat = ({ worldId, isVisible, onClose }) => {
         }
     };
 
+    // #comment handle mouse move for dragging
     const handleMouseMove = useCallback((e) => {
         if (isDragging) {
             setPosition({
@@ -66,6 +91,7 @@ const Chat = ({ worldId, isVisible, onClose }) => {
         }
     }, [isDragging, dragStart, setPosition]);
 
+    // #comment handle mouse up to stop dragging
     const handleMouseUp = () => {
         setIsDragging(false);
     };
@@ -95,8 +121,24 @@ const Chat = ({ worldId, isVisible, onClose }) => {
             style={{ top: `${position.y}px`, left: `${position.x}px` }}
         >
             <div className="chat-header" onMouseDown={handleMouseDown}>
-                <h4>World Chat</h4>
+                <h4>Chat</h4>
                 <button onClick={onClose} className="close-btn">&times;</button>
+            </div>
+            <div className="chat-tabs">
+                <button 
+                    className={`chat-tab ${activeTab === 'world' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('world')}
+                >
+                    World
+                </button>
+                <button 
+                    className={`chat-tab ${activeTab === 'alliance' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('alliance')}
+                    disabled={!playerAlliance}
+                    title={!playerAlliance ? "You are not in an alliance" : "Alliance Chat"}
+                >
+                    Alliance
+                </button>
             </div>
             <div className="messages-container">
                 {messages.map((msg) => (

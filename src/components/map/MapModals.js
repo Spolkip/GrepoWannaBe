@@ -7,6 +7,7 @@ import MovementsPanel from './MovementsPanel';
 import ReportsView from '../ReportsView';
 import MessagesView from '../messaging/MessagesView';
 import AllianceCreation from '../alliance/AllianceCreation';
+import AllianceForum from '../alliance/AllianceForum'; // #comment Import AllianceForum
 
 const MapModals = ({
     modalState,
@@ -15,7 +16,7 @@ const MapModals = ({
     playerCity,
     travelTimeInfo,
     handleSendMovement,
-    handleCancelMovement, // Added prop
+    handleCancelMovement,
     setMessage,
     goToCoordinates,
     handleActionClick,
@@ -70,7 +71,7 @@ const MapModals = ({
                     combinedSlots={combinedSlots}
                     villages={villages}
                     goToCoordinates={goToCoordinates}
-                    onCancel={handleCancelMovement} // Pass down the cancel handler
+                    onCancel={handleCancelMovement}
                     onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
                 />
@@ -87,6 +88,10 @@ const MapModals = ({
             )}
             {modalState.isAllianceCreationOpen && (
                 <AllianceCreation onClose={() => closeModal('allianceCreation')} />
+            )}
+            {/* #comment Render AllianceForum modal */}
+            {modalState.isAllianceForumOpen && (
+                <AllianceForum onClose={() => closeModal('allianceForum')} />
             )}
         </>
     );

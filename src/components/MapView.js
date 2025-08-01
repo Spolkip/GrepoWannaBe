@@ -19,7 +19,7 @@ import AllianceModal from './map/AllianceModal';
 import SettingsModal from './shared/SettingsModal';
 import DivinePowers from './city/DivinePowers';
 import ProfileView from './profile/ProfileView';
-import AllianceCreation from './alliance/AllianceCreation'; // Import AllianceCreation
+import AllianceCreation from './alliance/AllianceCreation';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -77,7 +77,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         setTravelTimeInfo,
         handleActionClick,
         handleSendMovement,
-        handleCancelMovement, // Get the new cancel handler
+        handleCancelMovement,
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
@@ -395,6 +395,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     onOpenMovements={() => openModal('movements')}
                     onOpenReports={() => openModal('reports')}
                     onOpenAlliance={handleOpenAlliance}
+                    onOpenForum={() => openModal('allianceForum')}
                     onOpenMessages={() => openModal('messages')}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
                     onOpenProfile={() => openModal('profile')}

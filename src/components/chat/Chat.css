@@ -57,6 +57,40 @@
     cursor: pointer;
 }
 
+.chat-tabs {
+    display: flex;
+    background-color: #1a202c;
+    border-bottom: 1px solid #4a5568;
+}
+
+.chat-tab {
+    flex-grow: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: #a0aec0;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
+.chat-tab:hover:not(:disabled) {
+    background-color: #2d3748;
+    color: white;
+}
+
+.chat-tab.active {
+    background-color: #2d3748;
+    color: white;
+    border-bottom: 2px solid #4299e1;
+}
+
+.chat-tab:disabled {
+    color: #718096;
+    cursor: not-allowed;
+    background-color: #1a202c;
+}
+
 .messages-container {
     flex-grow: 1;
     overflow-y: auto;

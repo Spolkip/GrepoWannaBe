@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement }) => {
+const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum }) => {
     return (
         <div className="sidebar">
             <h2 className="font-title text-2xl text-gray-200 mb-6 text-center">Menu</h2>
@@ -18,6 +18,7 @@ const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance
                 )}
             </button>
             <button onClick={onOpenAlliance} className="sidebar-button">Alliance</button>
+            <button onClick={onOpenForum} className="sidebar-button">Forum</button>
             <button 
                 onClick={onOpenMessages} 
                 className={`sidebar-button relative ${unreadMessagesCount > 0 ? 'glowing-border' : ''}`}
