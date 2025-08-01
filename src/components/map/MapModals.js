@@ -15,6 +15,7 @@ const MapModals = ({
     playerCity,
     travelTimeInfo,
     handleSendMovement,
+    handleCancelMovement, // Added prop
     setMessage,
     goToCoordinates,
     handleActionClick,
@@ -69,6 +70,7 @@ const MapModals = ({
                     combinedSlots={combinedSlots}
                     villages={villages}
                     goToCoordinates={goToCoordinates}
+                    onCancel={handleCancelMovement} // Pass down the cancel handler
                     onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
                 />

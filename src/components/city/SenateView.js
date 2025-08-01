@@ -48,7 +48,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         ['senate'],
         ['timber_camp', 'farm', 'quarry', 'warehouse'],
         ['silver_mine', 'barracks', 'temple', 'market'],
-        ['shipyard', 'academy', 'city_wall', 'cave']
+        ['shipyard', 'academy', 'city_wall', 'cave', 'hospital']
     ];
 
     const isBuildingInQueue = (buildingId) => (buildQueue || []).some(task => task.buildingId === buildingId);

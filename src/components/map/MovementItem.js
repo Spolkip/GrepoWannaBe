@@ -1,65 +1,96 @@
 // src/components/map/MovementItem.js
-import React from 'react';
-import Countdown from './Countdown'; // Import Countdown component
-import unitConfig from '../../gameData/units.json'; // Import unit configuration
+import React, { useState, useEffect } from 'react';
+import Countdown from './Countdown';
+import unitConfig from '../../gameData/units.json';
 
-// MovementItem component displays details of a single troop movement.
-const MovementItem = ({ movement, citySlots, onRush, isAdmin }) => {
-    // Destructure currentUser from useAuth, assuming it's available in the parent context
-    // For this standalone component, we'll assume currentUser is passed as a prop for simplicity
-    // or fetched from a context within this component if it were truly standalone.
-    // For now, let's assume it's passed from MapView.
-    const currentUser = movement.originOwnerId; // Simplified for display, actual check is in parent
+// Dynamically import all unit images
+const unitImages = {};
+const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+imageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    unitImages[key] = imageContext(item);
+});
+
+const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
+    const [isCancellable, setIsCancellable] = useState(false);
 
     const originCity = citySlots[movement.originCityId];
     const targetId = movement.targetCityId || movement.targetVillageId;
     const targetCity = citySlots[targetId];
 
-    const isOutgoing = movement.originOwnerId === currentUser; // Determine if movement is outgoing for current user
-
-    // Helper function to render details of units and resources involved in the movement
-    const renderDetails = () => {
-        let details = [];
-        if (movement.units) {
-            const units = Object.entries(movement.units).filter(([, count]) => count > 0);
-            if (units.length > 0) {
-                details.push(units.map(([id, count]) => `${count} ${unitConfig[id].name}`).join(', '));
-            }
-        }
-        if (movement.resources) {
-            const resources = Object.entries(movement.resources).filter(([, amount]) => amount > 0);
-             if (resources.length > 0) {
-                details.push(resources.map(([id, amount]) => `${amount} ${id}`).join(', '));
-            }
-        }
-        return details.join(' & ');
+    const movementTypes = {
+        attack: { icon: '⚔️' },
+        attack_village: { icon: '⚔️' },
+        reinforce: { icon: '🛡️' },
+        scout: { icon: '👁️' },
+        trade: { icon: '💰' },
+        return: { icon: '↩️' },
+        default: { icon: '➡️' }
     };
-    
-    // Determine the "from" and "to" cities based on movement status (moving or returning)
+    const config = movementTypes[movement.type] || movementTypes.default;
+
+    useEffect(() => {
+        const checkCancellable = () => {
+            if (movement.cancellableUntil?.toDate) {
+                const cancellableTime = movement.cancellableUntil.toDate();
+                setIsCancellable(new Date() < cancellableTime);
+            } else {
+                setIsCancellable(false);
+            }
+        };
+
+        checkCancellable();
+        const interval = setInterval(checkCancellable, 1000);
+        return () => clearInterval(interval);
+    }, [movement.cancellableUntil]);
+
     const fromCity = movement.status === 'returning' ? targetCity : originCity;
     const toCity = movement.status === 'returning' ? originCity : targetCity;
-    // Determine the action text (e.g., "Attack", "Reinforce", "Returning")
-    const actionText = movement.status === 'returning' ? 'Returning' : movement.type;
+    const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace('_', ' ');
+
+    const cancellableDate = movement.cancellableUntil?.toDate();
+    const arrivalDate = movement.arrivalTime?.toDate();
 
     return (
-        <div className={`bg-gray-700 p-4 rounded-lg border-l-4 ${isOutgoing ? 'border-red-500' : 'border-green-500'}`}>
-            <div className="flex justify-between items-center">
-                <div>
-                    <p className="font-bold text-lg text-white capitalize">{actionText}</p>
-                    <p className="text-sm text-gray-400">
-                        From: {fromCity?.cityName || fromCity?.name || 'Unknown'} To: {toCity?.cityName || toCity?.name || 'Unknown'}
-                    </p>
-                </div>
-                <div className="text-right">
-                    {/* Display countdown to arrival time */}
-                    <p className="text-white font-bold"><Countdown arrivalTime={movement.arrivalTime} /></p>
-                    <p className="text-xs text-gray-400">Arrival</p>
-                </div>
+        <div className="movement-item-row">
+            <span className="movement-type-icon">{config.icon}</span>
+            <div className="movement-details">
+                <p className="title capitalize">
+                    {actionText} to {toCity?.cityName || toCity?.name || 'Unknown'}
+                </p>
+                <p className="timing">
+                    <Countdown arrivalTime={movement.arrivalTime} />
+                    (Arrival: {arrivalDate ? arrivalDate.toLocaleTimeString() : 'N/A'})
+                    {cancellableDate && ` (Cancellable until: ${cancellableDate.toLocaleTimeString()})`}
+                </p>
             </div>
-            <p className="text-sm text-gray-300 mt-2">{renderDetails()}</p>
-            {/* Admin "Rush" button, visible only to admins */}
+            <button
+                onClick={() => onCancel(movement.id)}
+                disabled={!isCancellable}
+                className="cancel-button"
+                title={isCancellable ? "Cancel Movement" : "Cannot be cancelled"}
+            >
+                &times;
+            </button>
+            <div className="unit-icons-container">
+                {movement.units && Object.entries(movement.units).map(([unitId, count]) => {
+                    if (count > 0) {
+                        const unit = unitConfig[unitId];
+                        return (
+                            <img
+                                key={unitId}
+                                src={unitImages[unit.image]}
+                                alt={unit.name}
+                                className="unit-icon"
+                                title={`${count}x ${unit.name}`}
+                            />
+                        );
+                    }
+                    return null;
+                })}
+            </div>
             {isAdmin && (
-                <button onClick={() => onRush(movement.id)} className="btn btn-primary text-xs px-2 py-1 mt-2">Rush</button>
+                <button onClick={() => onRush(movement.id)} className="btn btn-primary text-xs px-2 py-1">Rush</button>
             )}
         </div>
     );

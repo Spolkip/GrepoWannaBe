@@ -77,6 +77,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         setTravelTimeInfo,
         handleActionClick,
         handleSendMovement,
+        handleCancelMovement, // Get the new cancel handler
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
@@ -460,6 +461,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 playerCity={playerCity}
                 travelTimeInfo={travelTimeInfo}
                 handleSendMovement={handleSendMovement}
+                handleCancelMovement={handleCancelMovement}
                 setMessage={setMessage}
                 goToCoordinates={goToCoordinates}
                 handleActionClick={handleActionClick}

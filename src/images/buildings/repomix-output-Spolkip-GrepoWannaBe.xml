@@ -5202,7 +5202,7 @@ const AuthScreen = () => {
                 {/* Front Side: Login */}
                 <div className="auth-card-face auth-card-front">
                     <div className="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md">
-                        <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Age of Empires</h1>
+                        <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Age of Nasos</h1>
                         <h2 className="text-2xl font-bold text-center text-white mb-6">Login</h2>
                         <form onSubmit={handleLogin}>
                             <div className="mb-4">
@@ -5227,7 +5227,7 @@ const AuthScreen = () => {
                 {/* Back Side: Register */}
                 <div className="auth-card-face auth-card-back">
                     <div className="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md">
-                        <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Age of Empires</h1>
+                        <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Age of Nasos</h1>
                         <h2 className="text-2xl font-bold text-center text-white mb-6">Register</h2>
                         <form onSubmit={handleRegister}>
                              <div className="mb-4">

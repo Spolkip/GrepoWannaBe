@@ -36,4 +36,18 @@ add alliance settings
 
 leader can recomment research
 
-enable grid doesnt work
+add quests that gives rewards
+
+add a way to get a second city
+
+add special buildings
+
+add a gameplay behind getting cities
+
+add a guild chat
+
+senate to happiness to people, it gives you more a buff on resource production
+
+if the city has the the whole island to be able to contruct a building that give buffs to the guild
+
+add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back

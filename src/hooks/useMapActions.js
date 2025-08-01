@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { db } from '../firebase/config';
-import { collection, writeBatch, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, getDoc, runTransaction } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateDistance, calculateTravelTime } from '../utils/travel';
 import unitConfig from '../gameData/units.json';
@@ -32,13 +32,11 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
     const handleSendMovement = async (movementDetails) => {
         const { mode, targetCity, units, resources, attackFormation } = movementDetails;
-        // Only restrict village interactions to same island
         if (targetCity.isVillageTarget && playerCity.islandId !== targetCity.islandId) {
             setMessage("You can only attack villages from a city on the same island.");
             return;
         }
 
-        // Cross-island checks for land units (require transport ships)
         const isCrossIsland = playerCity.islandId !== targetCity.islandId;
         let hasLandUnits = false, hasNavalUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
         for (const unitId in units) {
@@ -66,9 +64,10 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             : 10;
 
         const travelSeconds = calculateTravelTime(distance, slowestSpeed);
-        const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
+        const now = Date.now();
+        const arrivalTime = new Date(now + travelSeconds * 1000);
+        const cancellableUntil = new Date(now + 90 * 1000); // 90 seconds to cancel
 
-        // --- Correct movement type and fields for village attacks ---
         let movementData;
         if (mode === 'attack' && targetCity.isVillageTarget) {
             movementData = {
@@ -82,11 +81,12 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 resources: resources || {},
                 departureTime: serverTimestamp(),
                 arrivalTime,
+                cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid],
                 isVillageTarget: true,
-                isCrossIsland: false, // Village attacks are always same-island
+                isCrossIsland: false,
             };
         } else {
             movementData = {
@@ -102,18 +102,17 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 resources: resources || {},
                 departureTime: serverTimestamp(),
                 arrivalTime,
+                cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid, targetCity.ownerId].filter(id => id),
                 isVillageTarget: !!targetCity.isVillageTarget,
-                isCrossIsland, // Add the flag here
+                isCrossIsland,
             };
         }
 
         batch.set(newMovementRef, movementData);
 
-        // --- THIS IS THE FIX ---
-        // Prepare the updated state for units and resources
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const updatedUnits = { ...gameState.units };
         for (const unitId in units) {
@@ -132,16 +131,12 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             }
         }
         
-        // Add the update operation to the same batch
         batch.update(gameDocRef, {
             units: updatedUnits,
             resources: updatedResources,
             cave: updatedCave
         });
-        // --- END OF FIX ---
 
-
-        // Optimistically update the local state for immediate UI feedback
         const newGameState = {
             ...gameState,
             units: updatedUnits,
@@ -156,6 +151,60 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         } catch (error) {
             console.error("Error sending movement:", error);
             setMessage(`Failed to send movement: ${error.message}`);
+        }
+    };
+    
+    const handleCancelMovement = async (movementId) => {
+        const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const movementDoc = await transaction.get(movementRef);
+                const gameDoc = await transaction.get(gameDocRef);
+
+                if (!movementDoc.exists() || !gameDoc.exists()) {
+                    throw new Error("Movement or game data not found.");
+                }
+
+                const movementData = movementDoc.data();
+                const gameData = gameDoc.data();
+                
+                const cancellableUntil = movementData.cancellableUntil.toDate();
+                if (new Date() > cancellableUntil) {
+                    throw new Error("The grace period to cancel this movement has passed.");
+                }
+
+                // Refund units
+                const updatedUnits = { ...gameData.units };
+                for (const unitId in movementData.units) {
+                    updatedUnits[unitId] = (updatedUnits[unitId] || 0) + movementData.units[unitId];
+                }
+
+                // Refund resources (for trade/scout)
+                const updatedResources = { ...gameData.resources };
+                const updatedCave = { ...gameData.cave };
+                 if (movementData.type === 'scout') {
+                    if (movementData.resources && movementData.resources.silver) {
+                        updatedCave.silver = (updatedCave.silver || 0) + movementData.resources.silver;
+                    }
+                } else if (movementData.resources) {
+                    for (const resource in movementData.resources) {
+                        updatedResources[resource] = (updatedResources[resource] || 0) + movementData.resources[resource];
+                    }
+                }
+
+                transaction.update(gameDocRef, { 
+                    units: updatedUnits,
+                    resources: updatedResources,
+                    cave: updatedCave
+                });
+                transaction.delete(movementRef);
+            });
+            setMessage("Movement cancelled successfully.");
+        } catch (error) {
+            console.error("Error cancelling movement:", error);
+            setMessage(`Could not cancel movement: ${error.message}`);
         }
     };
 
@@ -220,6 +269,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         setTravelTimeInfo,
         handleActionClick,
         handleSendMovement,
+        handleCancelMovement,
         handleCreateDummyCity
     };
 };
