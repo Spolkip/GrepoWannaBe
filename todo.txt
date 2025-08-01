@@ -33,3 +33,5 @@ make market and adjust the trades accordingly
 add invitation system to the alliance
 
 add alliance settings
+
+leader can recomment research
