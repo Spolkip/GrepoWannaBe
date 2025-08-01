@@ -1,71 +1,105 @@
-.profile-view-container {
-    @apply bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg border-2 border-gray-600 text-white;
+.profile-papyrus {
+    @apply w-11/12 max-w-4xl relative p-4 flex flex-col;
+    height: 500px;
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3; /* wheat */
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    color: #4a2c2a;
 }
 
-.profile-header {
-    @apply flex justify-between items-center mb-4;
+.profile-close-button {
+    @apply absolute top-2 right-4 text-4xl leading-none cursor-pointer hover:text-red-700 transition-colors;
 }
 
-.profile-header .close-button {
-    @apply text-gray-400 text-3xl leading-none hover:text-white;
+.profile-grid {
+    @apply grid grid-cols-5 gap-4 h-full;
 }
 
-.message {
-    @apply text-center text-green-400 mb-4;
+.profile-left-column {
+    @apply col-span-2 flex flex-col gap-4;
 }
 
-.profile-content {
-    @apply space-y-4;
+.profile-right-column {
+    @apply col-span-3;
 }
 
-.profile-main-info {
-    @apply flex items-center gap-4 mb-4;
+.profile-box {
+    @apply p-3 rounded-sm flex flex-col;
+    background-color: rgba(210, 180, 140, 0.5); /* tan with transparency */
+    border: 1px solid #8B4513;
+}
+.profile-right-column .profile-box {
+    @apply h-full;
 }
 
-.profile-avatar {
-    @apply w-24 h-24 rounded-full border-2 border-gray-500 object-cover;
+.profile-box-header {
+    @apply font-bold text-center p-1 -m-3 mb-3;
+    background-color: #1e3a8a;
+    color: #f0e68c;
+    border-bottom: 1px solid #8B4513;
 }
 
-.profile-details {
-    @apply flex-grow space-y-2;
+.player-info-content {
+    @apply text-xl font-bold p-2;
 }
 
-.profile-field {
-    @apply flex flex-col;
+.player-stats {
+    @apply mt-auto pt-2 border-t border-solid;
+    border-color: #8B4513;
 }
 
-.profile-field label {
-    @apply text-gray-400 mb-1 text-sm font-bold;
+.stat-item {
+    @apply flex justify-between items-center py-1;
 }
 
-.display-field {
-    @apply bg-gray-700 p-3 rounded-lg min-h-[40px];
+.cities-list {
+    @apply flex-grow;
 }
 
-.display-field span {
-    @apply text-lg;
+.city-item {
+    @apply flex justify-between p-1 text-sm;
 }
 
-.description-text {
-    @apply text-gray-300 text-sm whitespace-pre-wrap;
+.city-name-btn {
+    @apply bg-transparent border-none font-bold cursor-pointer p-0 text-left;
+    color: #1e3a8a;
+}
+.city-name-btn:hover {
+    @apply underline;
 }
 
-.edit-form {
-    @apply space-y-4 bg-gray-700 p-4 rounded-lg;
+.profile-description-box {
+    @apply h-full flex flex-col items-center;
 }
 
-.username-input, .description-input {
-    @apply w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500;
+.profile-avatar-large {
+    @apply w-36 h-36 object-cover rounded-md mb-4;
+    border: 2px solid #8B4513;
 }
 
-.description-input {
-    @apply min-h-[80px];
+.profile-description-text {
+    @apply w-full flex-grow p-2 overflow-y-auto whitespace-pre-wrap text-sm;
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 1px solid #d2b48c;
 }
 
-.form-actions {
-    @apply flex justify-end gap-2 mt-4;
+.profile-edit-button {
+    @apply absolute bottom-4 right-4 font-bold py-2 px-4 rounded-md transition-transform hover:scale-105;
+    background: #8B4513;
+    color: #F5DEB3;
+    border: 1px solid #4a2c2a;
 }
 
-.profile-view-container.read-only .btn {
-    @apply hidden;
+.btn-cancel, .btn-save {
+    @apply font-bold py-1 px-3 rounded-md text-xs;
+    background: #8B4513;
+    color: #F5DEB3;
+    border: 1px solid #4a2c2a;
+}
+
+.btn-cancel:hover, .btn-save:hover {
+    @apply opacity-90;
 }
