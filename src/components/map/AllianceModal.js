@@ -1,11 +1,11 @@
 // src/components/map/AllianceModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import AllianceOverview from '../alliance/AllianceOverview';
 import AllianceMembers from '../alliance/AllianceMembers';
 import AllianceResearch from '../alliance/AllianceResearch';
 import AllianceDiplomacy from '../alliance/AllianceDiplomacy';
-import AllianceEvents from '../alliance/AllianceEvents'; // Import new component
+import AllianceEvents from '../alliance/AllianceEvents';
 import AllianceSettings from '../alliance/AllianceSettings';
 import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
@@ -15,14 +15,24 @@ const AllianceModal = ({ onClose }) => {
     const { playerAlliance, currentUser } = useGame();
     const [activeTab, setActiveTab] = useState('overview');
 
-    // This modal will now only render if the player is in an alliance.
-    // The decision to show the creation modal is handled in MapView.
+    // Added for debugging to check if the leader check is working
+    // This hook is now placed unconditionally at the top level of the component
+    useEffect(() => {
+        console.log('AllianceModal loaded.');
+        console.log('Current User:', currentUser);
+        console.log('Player Alliance:', playerAlliance);
+        const isLeader = currentUser && playerAlliance?.leader?.uid === currentUser?.uid;
+        console.log('Is Leader (from useEffect):', isLeader);
+    }, [currentUser, playerAlliance]);
+
+    // This modal will only render if the player is in an alliance.
     if (!playerAlliance) {
         return null;
     }
 
-    // Add null check for currentUser before checking uid
-    const isLeader = currentUser && playerAlliance.leader.uid === currentUser.uid;
+    // Determine if the current user is the alliance leader.
+    // The new tabs are only visible to the leader.
+    const isLeader = currentUser && playerAlliance?.leader?.uid === currentUser?.uid;
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -34,7 +44,7 @@ const AllianceModal = ({ onClose }) => {
                 return <AllianceResearch playerAlliance={playerAlliance} />;
             case 'diplomacy':
                 return <AllianceDiplomacy playerAlliance={playerAlliance} />;
-            case 'events': // Add new case
+            case 'events':
                 return <AllianceEvents playerAlliance={playerAlliance} />;
             case 'settings':
                 return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
