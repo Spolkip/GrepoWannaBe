@@ -6,10 +6,13 @@ import AllianceMembers from '../alliance/AllianceMembers';
 import AllianceResearch from '../alliance/AllianceResearch';
 import AllianceDiplomacy from '../alliance/AllianceDiplomacy';
 import AllianceEvents from '../alliance/AllianceEvents'; // Import new component
+import AllianceSettings from '../alliance/AllianceSettings';
+import AllianceInvitations from '../alliance/AllianceInvitations';
+import AllianceRanks from '../alliance/AllianceRanks';
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose }) => {
-    const { playerAlliance } = useGame();
+    const { playerAlliance, currentUser } = useGame();
     const [activeTab, setActiveTab] = useState('overview');
 
     // This modal will now only render if the player is in an alliance.
@@ -18,20 +21,29 @@ const AllianceModal = ({ onClose }) => {
         return null;
     }
 
+    // Add null check for currentUser before checking uid
+    const isLeader = currentUser && playerAlliance.leader.uid === currentUser.uid;
+
     const renderTabContent = () => {
         switch (activeTab) {
             case 'overview':
-                return <AllianceOverview />;
+                return <AllianceOverview playerAlliance={playerAlliance} isLeader={isLeader} />;
             case 'members':
-                return <AllianceMembers />;
+                return <AllianceMembers playerAlliance={playerAlliance} />;
             case 'research':
-                return <AllianceResearch />;
+                return <AllianceResearch playerAlliance={playerAlliance} />;
             case 'diplomacy':
-                return <AllianceDiplomacy />;
+                return <AllianceDiplomacy playerAlliance={playerAlliance} />;
             case 'events': // Add new case
-                return <AllianceEvents />;
+                return <AllianceEvents playerAlliance={playerAlliance} />;
+            case 'settings':
+                return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
+            case 'invitations':
+                return <AllianceInvitations alliance={playerAlliance} isLeader={isLeader} />;
+            case 'ranks':
+                return <AllianceRanks alliance={playerAlliance} isLeader={isLeader} />;
             default:
-                return <AllianceOverview />;
+                return <AllianceOverview playerAlliance={playerAlliance} isLeader={isLeader} />;
         }
     };
 
@@ -48,6 +60,13 @@ const AllianceModal = ({ onClose }) => {
                     <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
                     <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
                     <button onClick={() => setActiveTab('events')} className={activeTab === 'events' ? 'active' : ''}>Events</button> 
+                    {isLeader && (
+                        <>
+                            <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}>Settings</button>
+                            <button onClick={() => setActiveTab('invitations')} className={activeTab === 'invitations' ? 'active' : ''}>Invitations</button>
+                            <button onClick={() => setActiveTab('ranks')} className={activeTab === 'ranks' ? 'active' : ''}>Ranks</button>
+                        </>
+                    )}
                 </div>
                 <div className="alliance-modal-content">
                     {renderTabContent()}

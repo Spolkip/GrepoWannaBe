@@ -1,5 +1,3 @@
-// src/contexts/GameContext.js
-
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -55,9 +53,22 @@ export const GameProvider = ({ children, worldId }) => {
                     name,
                     tag: allianceId,
                     leader: { uid: currentUser.uid, username: userProfile.username },
-                    members: [{ uid: currentUser.uid, username: userProfile.username, rank: 'leader' }],
+                    members: [{ uid: currentUser.uid, username: userProfile.username, rank: 'Leader' }],
                     research: {},
-                    diplomacy: { allies: [], enemies: [] }
+                    diplomacy: { allies: [], enemies: [] },
+                    settings: {
+                        status: 'open', // New setting
+                        description: `A new alliance, '${name}', has been formed!`, // New setting
+                    },
+                    ranks: [
+                        { id: 'Leader', name: 'Leader', permissions: {
+                            manageRanks: true, manageSettings: true, manageDiplomacy: true, inviteMembers: true, kickMembers: true, recommendResearch: true
+                        }},
+                        { id: 'Member', name: 'Member', permissions: {
+                            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false
+                        }}
+                    ],
+                    invitations: {},
                 };
 
                 transaction.set(allianceDocRef, newAlliance);
@@ -119,14 +130,19 @@ export const GameProvider = ({ children, worldId }) => {
         }
     };
 
-    // #comment sends an alliance invitation message to a player
+    const updateAllianceSettings = async (settings) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            return;
+        }
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        await updateDoc(allianceDocRef, { settings });
+    };
+
     const sendAllianceInvitation = async (targetUserId) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
-            alert("Only the alliance leader can send invitations.");
             return;
         }
         if (!targetUserId) {
-            alert("Invalid target player.");
             return;
         }
     
@@ -179,15 +195,24 @@ export const GameProvider = ({ children, worldId }) => {
                 readBy: [],
             });
     
-            alert("Invitation sent!");
-    
         } catch (error) {
             console.error("Error sending invitation:", error);
-            alert("Failed to send invitation.");
         }
     };
 
-    // #comment handles a player accepting an alliance invitation
+    const revokeAllianceInvitation = async (invitedUserId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            return;
+        }
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const invitesRef = collection(allianceDocRef, 'invitations');
+        const q = query(invitesRef, where('invitedUserId', '==', invitedUserId));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            await deleteDoc(snapshot.docs[0].ref);
+        }
+    };
+
     const acceptAllianceInvitation = async (allianceId) => {
         if (!currentUser || !worldId) return;
     
@@ -228,7 +253,7 @@ export const GameProvider = ({ children, worldId }) => {
                 }
     
                 // Add player to the new alliance
-                const newMembers = [...newAllianceData.members, { uid: currentUser.uid, username: userProfile.username, rank: 'member' }];
+                const newMembers = [...newAllianceData.members, { uid: currentUser.uid, username: userProfile.username, rank: 'Member' }];
                 transaction.update(newAllianceDocRef, { members: newMembers });
     
                 // Update player's game data
@@ -242,11 +267,28 @@ export const GameProvider = ({ children, worldId }) => {
                     timestamp: serverTimestamp(),
                 });
             });
-            alert(`You have joined the alliance "${allianceId}"!`);
         } catch (error) {
             console.error("Error accepting invitation:", error);
             alert(`Failed to join alliance: ${error.message}`);
         }
+    };
+    
+    const createAllianceRank = async (rank) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) return;
+
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const newRanks = [...playerAlliance.ranks, rank];
+        await updateDoc(allianceDocRef, { ranks: newRanks });
+    };
+
+    const updateAllianceMemberRank = async (memberId, newRankId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) return;
+        
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const updatedMembers = playerAlliance.members.map(member =>
+            member.uid === memberId ? { ...member, rank: newRankId } : member
+        );
+        await updateDoc(allianceDocRef, { members: updatedMembers });
     };
 
     useEffect(() => {
@@ -390,8 +432,12 @@ export const GameProvider = ({ children, worldId }) => {
         donateToAllianceResearch, 
         createAlliance,
         gameSettings, setGameSettings,
+        updateAllianceSettings,
         sendAllianceInvitation,
-        acceptAllianceInvitation
+        revokeAllianceInvitation,
+        acceptAllianceInvitation,
+        createAllianceRank,
+        updateAllianceMemberRank,
     };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
