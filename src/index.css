@@ -104,18 +104,13 @@ body {
 
 /* --- Map & Tile Styles --- */
 
-.map-background {
-    @apply bg-blue-800; /* Fallback color */
-    /* If you have a sea image, you can use this: */
-    /* @apply bg-[url('./images/sea.jpg')] bg-cover bg-center; */
-}
-
 .map-viewport {
-    @apply absolute inset-0 w-full h-full cursor-grab overflow-hidden;
+    @apply absolute inset-0 w-full h-full cursor-grab bg-blue-800 overflow-hidden;
 }
 .map-viewport:active {
     @apply cursor-grabbing;
 }
+
 .map-border {
     @apply absolute bg-red-500 pointer-events-none z-40 transition-opacity duration-200;
 }
@@ -185,6 +180,22 @@ body {
 .other-village-plot { /* A village owned by another player */
     @apply bg-red-600 border border-red-400;
 }
+
+/* Ruin Styles */
+.ruin-slot {
+    @apply w-4 h-4 m-1 cursor-pointer relative transition-transform duration-150;
+    background-image: url('https://i.imgur.com/2gO3g8g.png'); /* Placeholder ruin icon */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.ruin-slot:hover {
+    @apply scale-150 ring-2 ring-yellow-300 z-20;
+}
+.ruin-slot:hover .map-object-tooltip {
+    @apply visible opacity-100;
+}
+
 
 /* --- Auth Card Flip --- */
 .perspective {

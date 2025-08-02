@@ -1,14 +1,4 @@
-- Ruins around the world to give you hidden researches.
-- Monuments that you have to sacrifice city lvls that gives op boosts, the others can also steal it from you.
-- Add mythical troops and special building for them
-- Add population to resource buildings to produce more resources
 - Make the travel time smaller, a lot smaller for scouting and trading
-- add cities inside the island
-- do mythic troops of the gods
-- make it so you can conquer other cities
-- different troops for different nationalities
-- add a request system
-- random names for villages
 - make market and adjust the trades accordingly
 - add alliance settings
 - leader can recommend research
@@ -25,3 +15,9 @@
 - add winds
 - make the island to generate random sizes but smaller
 - keep the messages and reports per world
+- add cities inside the island
+- do mythic troops of the gods
+- make it so you can conquer other cities
+- different troops for different nationalities
+- Add mythical troops and special building for them
+- add a request system

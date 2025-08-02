@@ -83,3 +83,32 @@ export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredV
         </div>
     );
 });
+
+export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultSettings }) => {
+    const { currentUser } = useAuth();
+    let ruinClass = 'ruin-slot';
+    let tooltipText = `Ruin: ${ruinData.name}`;
+
+    if (ruinData.ownerId) {
+        if (ruinData.ownerId === currentUser.uid) {
+            ruinClass += ' my-ruin';
+            tooltipText = `Conquered Ruin<br>Owner: You`;
+        } else {
+            ruinClass += ' conquered-ruin';
+            tooltipText = `Conquered Ruin<br>Owner: ${ruinData.ownerUsername}`;
+        }
+    }
+
+    const bgClass = gameSettings.showVisuals ? 'bg-blue-900' : 'bg-gray-900';
+    const borderClass = gameSettings.showGrid
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-950' : 'border-gray-800'}`
+        : 'border-r border-b border-transparent';
+
+    return (
+        <div className={`w-full h-full ${bgClass} ${borderClass} flex justify-center items-center`}>
+            <div onClick={(e) => onClick(e, ruinData)} className={ruinClass}>
+                <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
+            </div>
+        </div>
+    );
+});

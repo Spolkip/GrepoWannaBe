@@ -161,6 +161,96 @@ const Game = ({ onBackToWorlds }) => {
                     }
                     break;
                 }
+                case 'attack_ruin': {
+                    console.log(`Processing ruin attack: ${movement.id}`);
+                    const ruinRef = doc(db, 'worlds', worldId, 'ruins', movement.targetRuinId);
+                    const ruinSnap = await getDoc(ruinRef);
+
+                    if (!ruinSnap.exists()) {
+                        console.log(`Ruin ${movement.targetRuinId} not found.`);
+                        batch.delete(movementDoc.ref);
+                        const report = {
+                            type: 'attack_ruin',
+                            title: `Attack on vanished ruins`,
+                            timestamp: serverTimestamp(),
+                            outcome: { message: 'The ruins crumbled into the sea before your fleet arrived.' },
+                            read: false,
+                        };
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
+                        break;
+                    }
+
+                    const ruinData = ruinSnap.data();
+                    if (ruinData.ownerId) { // Check if already conquered
+                        batch.delete(movementDoc.ref); // Just delete the movement
+                        break;
+                    }
+                    
+                    const result = resolveCombat(movement.units, ruinData.troops, {}, true);
+
+                    if (result.attackerWon) {
+                        const newGameState = { ...originGameState };
+                        if (!newGameState.research) newGameState.research = {};
+                        newGameState.research[ruinData.researchReward] = true;
+                        batch.update(originOwnerRef, { research: newGameState.research });
+                        
+                        // #comment Mark ruin as conquered instead of deleting
+                        batch.update(ruinRef, { 
+                            ownerId: movement.originOwnerId, 
+                            ownerUsername: movement.originOwnerUsername 
+                        });
+
+                        // #comment Add to player's subcollection of conquered ruins
+                        const playerRuinRef = doc(db, `users/${movement.originOwnerId}/games/${worldId}/conqueredRuins`, movement.targetRuinId);
+                        batch.set(playerRuinRef, {
+                            conqueredAt: serverTimestamp(),
+                            researchReward: ruinData.researchReward
+                        });
+                    } else {
+                        // #comment Attacker lost, update ruin with surviving troops
+                        const survivingRuinTroops = { ...ruinData.troops };
+                        for (const unitId in result.defenderLosses) {
+                            survivingRuinTroops[unitId] = Math.max(0, (survivingRuinTroops[unitId] || 0) - result.defenderLosses[unitId]);
+                        }
+                        batch.update(ruinRef, { troops: survivingRuinTroops });
+                    }
+
+                    const attackerReport = {
+                        type: 'attack_ruin',
+                        title: `Attack on ${ruinData.name}`,
+                        timestamp: serverTimestamp(),
+                        outcome: result,
+                        attacker: { cityName: originGameState.cityName, units: movement.units, losses: result.attackerLosses },
+                        defender: { ruinName: ruinData.name, troops: ruinData.troops, losses: result.defenderLosses },
+                        reward: result.attackerWon ? ruinData.researchReward : null,
+                        read: false,
+                    };
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
+
+                    const survivingAttackers = {};
+                    let anySurvivors = false;
+                    for (const unitId in movement.units) {
+                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0) - (result.wounded[unitId] || 0);
+                        if (survivors > 0) {
+                            survivingAttackers[unitId] = survivors;
+                            anySurvivors = true;
+                        }
+                    }
+
+                    if (anySurvivors || Object.keys(result.wounded).length > 0) {
+                        const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
+                        const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
+                        batch.update(movementDoc.ref, {
+                            status: 'returning',
+                            units: survivingAttackers,
+                            wounded: result.wounded,
+                            arrivalTime: returnArrivalTime,
+                        });
+                    } else {
+                        batch.delete(movementDoc.ref);
+                    }
+                    break;
+                }
                 case 'attack': {
                     if (!targetGameState) {
                         console.log(`Target game state not found for movement ${movement.id}. Deleting.`);

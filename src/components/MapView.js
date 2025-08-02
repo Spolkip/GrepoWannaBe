@@ -37,7 +37,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, gameSettings, sendAllianceInvitation, acceptAllianceInvitation } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, conqueredRuins, gameSettings, sendAllianceInvitation, acceptAllianceInvitation } = useGame();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);
@@ -68,6 +68,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         movements,
         visibleSlots,
         villages,
+        ruins,
         invalidateChunkCache
     } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
 
@@ -165,6 +166,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     }, [visibleSlots, playerCity]);
     
     const onCitySlotClick = (e, slotData) => {
+        if (!playerCity) {
+            setMessage("Your city data is still loading. Please wait a moment.");
+            return;
+        }
         closeModal('village');
         if (isPlacingDummyCity && !slotData.ownerId) {
             handleCreateDummyCity(slotData.id, slotData).then(() => {
@@ -176,10 +181,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         if (slotData.ownerId === currentUser.uid) {
             showCity();
         } else if (slotData.ownerId) {
-            if (playerCity) {
-                const distance = calculateDistance(playerCity, slotData);
-                setTravelTimeInfo({ distance });
-            }
+            const distance = calculateDistance(playerCity, slotData);
+            setTravelTimeInfo({ distance });
             const cityDataWithAlliance = { ...slotData, playerAlliance };
             openModal('city', cityDataWithAlliance);
         } else {
@@ -188,6 +191,10 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     };
     
     const onVillageClick = (e, villageData) => {
+        if (!playerCity) {
+            setMessage("Your city data is still loading. Please wait a moment.");
+            return;
+        }
         closeModal('city');
         if (playerCity.islandId !== villageData.islandId) {
             setMessage("You can only interact with villages on islands where you have a city.");
@@ -199,7 +206,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         if (isConqueredByPlayer) {
             openModal('village', { ...villageData, ...conqueredVillages[villageData.id] });
         } else {
-            const distance = playerCity ? calculateDistance(playerCity, villageData) : Infinity;
+            const distance = calculateDistance(playerCity, villageData);
             setTravelTimeInfo({ distance });
             const targetData = {
                 id: villageData.id,
@@ -219,6 +226,34 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             };
             openModal('city', targetData);
         }
+    };
+
+    const onRuinClick = (e, ruinData) => {
+        if (!playerCity) {
+            setMessage("Your city data is still loading. Please wait a moment.");
+            return;
+        }
+        closeModal('city');
+        closeModal('village');
+        const distance = calculateDistance(playerCity, ruinData);
+        setTravelTimeInfo({ distance });
+
+        const isConqueredByYou = conqueredRuins && conqueredRuins[ruinData.id];
+
+        const targetData = {
+            id: ruinData.id,
+            name: ruinData.name,
+            cityName: ruinData.name,
+            ownerId: ruinData.ownerId || 'ruins',
+            ownerUsername: ruinData.ownerUsername || 'Ancient Guardians',
+            x: ruinData.x,
+            y: ruinData.y,
+            isRuinTarget: true,
+            troops: ruinData.troops,
+            researchReward: ruinData.researchReward,
+            isConqueredByYou: !!isConqueredByYou
+        };
+        openModal('city', targetData);
     };
 
     const handleRushMovement = useCallback(async (movementId) => {
@@ -393,8 +428,16 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             }
         });
 
+        Object.values(ruins).forEach(ruin => {
+            const x = Math.round(ruin.x);
+            const y = Math.round(ruin.y);
+            if (grid[y]?.[x]?.type === 'water') {
+                grid[y][x] = { type: 'ruin', data: ruin };
+            }
+        });
+
         return grid;
-    }, [worldState, combinedSlots, villages]);
+    }, [worldState, combinedSlots, villages, ruins]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900">
@@ -463,6 +506,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                                 viewportSize={viewportSize}
                                 onCitySlotClick={onCitySlotClick}
                                 onVillageClick={onVillageClick}
+                                onRuinClick={onRuinClick}
                                 isPlacingDummyCity={isPlacingDummyCity}
                                 movements={movements}
                                 combinedSlots={combinedSlots}

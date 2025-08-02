@@ -19,6 +19,7 @@ export const GameProvider = ({ children, worldId }) => {
     const [playerGod, setPlayerGod] = useState(null);
     const [playerAlliance, setPlayerAlliance] = useState(null);
     const [conqueredVillages, setConqueredVillages] = useState({});
+    const [conqueredRuins, setConqueredRuins] = useState({}); // #comment Add state for conquered ruins
     const [gameSettings, setGameSettings] = useState({
         animations: true,
         confirmActions: true,
@@ -260,6 +261,7 @@ export const GameProvider = ({ children, worldId }) => {
         let playerCityLoaded = false;
         let cityListenerUnsubscribe = () => {};
         let conqueredVillagesUnsubscribe = () => {};
+        let conqueredRuinsUnsubscribe = () => {}; // #comment Unsubscribe for ruins
         let allianceListenerUnsubscribe = () => {};
 
 
@@ -288,6 +290,7 @@ export const GameProvider = ({ children, worldId }) => {
         const unsubscribePlayer = onSnapshot(gameDocRef, async (docSnap) => {
             cityListenerUnsubscribe();
             conqueredVillagesUnsubscribe();
+            conqueredRuinsUnsubscribe(); // #comment Unsubscribe for ruins
             allianceListenerUnsubscribe();
 
             if (docSnap.exists() && docSnap.data().playerInfo) {
@@ -320,6 +323,17 @@ export const GameProvider = ({ children, worldId }) => {
                     setConqueredVillages(villagesData);
                 });
 
+                // #comment Listener for conquered ruins
+                const conqueredRuinsRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredRuins');
+                conqueredRuinsUnsubscribe = onSnapshot(conqueredRuinsRef, (snapshot) => {
+                    const ruinsData = {};
+                    snapshot.docs.forEach(doc => {
+                        ruinsData[doc.id] = { id: doc.id, ...doc.data() };
+                    });
+                    setConqueredRuins(ruinsData);
+                });
+
+
                 if (citySlotId) {
                     const cityDocRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
                     cityListenerUnsubscribe = onSnapshot(cityDocRef, (cityDataSnap) => {
@@ -340,6 +354,7 @@ export const GameProvider = ({ children, worldId }) => {
                 setPlayerGod(null);
                 setPlayerAlliance(null);
                 setConqueredVillages({});
+                setConqueredRuins({}); // #comment Reset conquered ruins
                 playerCityLoaded = true; 
             }
             playerStateLoaded = true;
@@ -356,6 +371,7 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeWorldMeta();
             cityListenerUnsubscribe();
             conqueredVillagesUnsubscribe();
+            conqueredRuinsUnsubscribe(); // #comment Unsubscribe for ruins
             allianceListenerUnsubscribe();
         };
     }, [currentUser, worldId]);
@@ -370,6 +386,7 @@ export const GameProvider = ({ children, worldId }) => {
         playerGod, setPlayerGod, 
         playerAlliance, setPlayerAlliance, 
         conqueredVillages, 
+        conqueredRuins, // #comment Provide conquered ruins in context
         donateToAllianceResearch, 
         createAlliance,
         gameSettings, setGameSettings,

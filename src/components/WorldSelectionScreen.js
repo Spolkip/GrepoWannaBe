@@ -4,7 +4,7 @@ import { signOut } from "firebase/auth";
 import { db, auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
-import { generateIslands, generateCitySlots, generateFarmingVillages } from '../utils/worldGeneration';
+import { generateIslands, generateCitySlots, generateFarmingVillages, generateRuins } from '../utils/worldGeneration';
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
     if (!message) return null;
@@ -102,6 +102,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
             const islands = generateIslands(worldWidth, worldHeight, islandCount);
             const citySlots = generateCitySlots(islands, worldWidth, worldHeight);
             const villages = generateFarmingVillages(islands, citySlots, worldWidth, worldHeight);
+            const ruins = generateRuins(islands, worldWidth, worldHeight);
 
             const worldData = {
                 name: newWorldName.trim(),
@@ -143,6 +144,21 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 await batch.commit();
             }
 
+            // Batch write ruins
+            const ruinsCollectionRef = collection(db, 'worlds', worldId, 'ruins');
+            const ruinEntries = Object.entries(ruins);
+            for (let i = 0; i < ruinEntries.length; i += batchSize) {
+                const batch = writeBatch(db);
+                const chunk = ruinEntries.slice(i, i + batchSize);
+                setMessage(`Creating world... writing ancient ruins ${i + chunk.length}/${ruinEntries.length}`);
+                for (const [ruinId, ruinData] of chunk) {
+                    const ruinDocRef = doc(ruinsCollectionRef, ruinId);
+                    batch.set(ruinDocRef, ruinData);
+                }
+                await batch.commit();
+            }
+
+
             setMessage('World created successfully!');
             onWorldSelected(worldId);
 
@@ -181,6 +197,11 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
             const villagesRef = collection(db, 'worlds', worldId, 'villages');
             while ((deletedCount = await deleteCollectionBatch(villagesRef)) > 0) {
                 console.log(`Deleted ${deletedCount} villages...`);
+            }
+
+            const ruinsRef = collection(db, 'worlds', worldId, 'ruins');
+             while ((deletedCount = await deleteCollectionBatch(ruinsRef)) > 0) {
+                console.log(`Deleted ${deletedCount} ruins...`);
             }
             
             // Delete the main world doc

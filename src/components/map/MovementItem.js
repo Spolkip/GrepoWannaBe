@@ -15,12 +15,13 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
     const [isCancellable, setIsCancellable] = useState(false);
 
     const originCity = citySlots[movement.originCityId];
-    const targetId = movement.targetCityId || movement.targetVillageId;
+    const targetId = movement.targetCityId || movement.targetVillageId || movement.targetRuinId;
     const targetCity = citySlots[targetId];
 
     const movementTypes = {
         attack: { icon: '⚔️' },
         attack_village: { icon: '⚔️' },
+        attack_ruin: { icon: '⚔️' },
         reinforce: { icon: '🛡️' },
         scout: { icon: '👁️' },
         trade: { icon: '💰' },
@@ -44,7 +45,6 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
         return () => clearInterval(interval);
     }, [movement.cancellableUntil]);
 
-    const fromCity = movement.status === 'returning' ? targetCity : originCity;
     const toCity = movement.status === 'returning' ? originCity : targetCity;
     const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace('_', ' ');
 

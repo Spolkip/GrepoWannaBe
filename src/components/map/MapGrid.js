@@ -1,12 +1,12 @@
 // src/components/map/MapGrid.js
 import React from 'react';
-import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile } from './Tiles';
+import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile } from './Tiles';
 import MovementIndicator from './MovementIndicator';
 
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
     if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
 
     const scaledTileSize = TILE_SIZE * zoom;
@@ -27,6 +27,9 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     break;
                 case 'village':
                     tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />;
+                    break;
+                case 'ruin':
+                    tileContent = <RuinTile ruinData={tile.data} onClick={onRuinClick} gameSettings={gameSettings} />;
                     break;
                 case 'land':
                     tileContent = <LandTile gameSettings={gameSettings} />;

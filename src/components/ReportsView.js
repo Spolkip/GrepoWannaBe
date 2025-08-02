@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
+import ruinsResearch from '../gameData/ruinsResearch.json';
 
 // Dynamically import all images from the images and its subfolders
 const images = {};
@@ -30,7 +31,7 @@ const ReportsView = ({ onClose }) => {
     const [selectedReport, setSelectedReport] = useState(null);
     const [activeTab, setActiveTab] = useState('Combat');
     const tabs = {
-        'Combat': ['attack', 'attack_village'],
+        'Combat': ['attack', 'attack_village', 'attack_ruin'],
         'Reinforce': ['reinforce'],
         'Trade': ['trade'],
         'Scout': ['scout', 'spy_caught'],
@@ -89,6 +90,7 @@ const ReportsView = ({ onClose }) => {
         switch (report.type) {
             case 'attack':
             case 'attack_village':
+            case 'attack_ruin':
                 return report.outcome?.attackerWon ? 'text-green-400' : 'text-red-400';
             case 'scout':
                 return report.scoutSucceeded ? 'text-green-400' : 'text-red-400';
@@ -111,7 +113,7 @@ const ReportsView = ({ onClose }) => {
 
     const getReportTitle = (report) => {
         let title = report.title || 'Untitled Report';
-        if (report.type === 'attack' || report.type === 'attack_village') {
+        if (report.type === 'attack' || report.type === 'attack_village' || report.type === 'attack_ruin') {
             title += report.outcome?.attackerWon ? ' (Victory)' : ' (Defeat)';
         }
         return title;
@@ -236,6 +238,48 @@ const ReportsView = ({ onClose }) => {
                             </div>
                         )}
                         <p className="text-gray-400 mt-4">No battle points received.</p>
+                    </div>
+                );
+            case 'attack_ruin':
+                return (
+                    <div className="flex flex-col items-center">
+                        <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-400' : 'text-red-400'}`}>
+                            {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
+                        </p>
+                        <div className="flex items-center justify-between w-full mb-4">
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
+                                <p className="text-sm text-gray-400">{report.originOwnerUsername || 'You'}</p>
+                            </div>
+                            <div className="w-1/3 text-center">
+                                <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
+                            </div>
+                            <div className="flex flex-col items-center w-1/3">
+                                <p className="font-bold text-lg">{defender.ruinName || 'Ancient Ruins'}</p>
+                                <p className="text-sm text-gray-400">Ancient Guardians</p>
+                            </div>
+                        </div>
+                        <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Attacker Units</h4>
+                                {renderTroopDisplay(attacker.units)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                                {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
+                                    <p className="mt-2 text-orange-400"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
+                                )}
+                            </div>
+                            <div className="p-3 bg-gray-700/50 rounded flex flex-col items-center">
+                                <h4 className="font-semibold text-lg text-yellow-300 mb-2">Guardian Units</h4>
+                                {renderTroopDisplay(defender.troops)}
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                            </div>
+                        </div>
+                        {report.reward && (
+                            <div className="w-full p-3 bg-green-800/30 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-green-300 mb-2">Research Unlocked!</h4>
+                                <p>{ruinsResearch[report.reward]?.name}</p>
+                            </div>
+                        )}
                     </div>
                 );
             case 'scout':

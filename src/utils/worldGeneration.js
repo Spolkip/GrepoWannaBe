@@ -114,6 +114,14 @@ function generateVillageTroops(level) {
     return { swordsman: 15, archer: 10 };
 }
 
+// #comment List of names for villages for more variety
+const villageNames = [
+    "Oakhaven", "Willow Creek", "Stonebridge", "Riverbend", "Greenfield", "Fairview",
+    "Maplewood", "Pinehurst", "Cedarbrook", "Elmwood", "Ashworth", "Birchwood",
+    "Silver Creek", "Goldcrest", "Ironwood", "Copperhill", "Crystal Falls", "Amberwood"
+];
+
+
 export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHeight) => {
     const villages = {};
     const occupiedSlots = new Set(Object.values(citySlots).map(slot => `${slot.x},${slot.y}`));
@@ -173,7 +181,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
                 x: tile.x,
                 y: tile.y,
                 islandId: islandId,
-                name: `Farming Village ${villageId}`,
+                name: villageNames[Math.floor(Math.random() * villageNames.length)],
                 level: level,
                 demandYield: {
                     wood: level * 50,
@@ -193,4 +201,49 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
     });
 
     return villages;
+};
+
+// #comment Generates ruins in water tiles
+export const generateRuins = (islands, worldWidth, worldHeight) => {
+    const ruins = {};
+    const ruinCount = Math.floor((worldWidth * worldHeight) / 500); // Adjust density as needed
+    const minDistanceFromLand = 3; // Minimum tiles away from any land tile
+
+    const isLand = (x, y) => {
+        for (const island of islands) {
+            const distSq = Math.pow(x - island.x, 2) + Math.pow(y - island.y, 2);
+            if (distSq <= Math.pow(island.radius + minDistanceFromLand, 2)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (let i = 0; i < ruinCount; i++) {
+        let x, y;
+        let attempts = 0;
+        do {
+            x = Math.floor(Math.random() * worldWidth);
+            y = Math.floor(Math.random() * worldHeight);
+            attempts++;
+        } while (isLand(x, y) && attempts < 100);
+
+        if (attempts < 100) {
+            const ruinId = `ruin-${x}-${y}`;
+            ruins[ruinId] = {
+                id: ruinId,
+                x,
+                y,
+                name: "Forgotten Ruins",
+                type: 'ruin', // To distinguish from villages
+                troops: {
+                    hoplite: 100 + Math.floor(Math.random() * 50),
+                    cavalry: 50 + Math.floor(Math.random() * 25),
+                    trireme: 20 + Math.floor(Math.random() * 10) // Naval defense
+                },
+                researchReward: `qol_research_${i % 3}` // Example reward cycles through the 3 QoL researches
+            };
+        }
+    }
+    return ruins;
 };

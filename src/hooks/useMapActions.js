@@ -34,14 +34,22 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         }
     }, [openModal, closeModal]);
 
-    const handleSendMovement = async (movementDetails) => {
+    const handleSendMovement = useCallback(async (movementDetails) => {
         const { mode, targetCity, units, resources, attackFormation } = movementDetails;
+
+        if (!playerCity) {
+            setMessage("Cannot send movement: Your city data could not be found.");
+            console.error("Attempted to send movement without playerCity data.");
+            return;
+        }
+
         if (targetCity.isVillageTarget && playerCity.islandId !== targetCity.islandId) {
             setMessage("You can only attack villages from a city on the same island.");
             return;
         }
 
-        const isCrossIsland = playerCity.islandId !== targetCity.islandId;
+        const isCrossIsland = targetCity.isRuinTarget ? true : playerCity.islandId !== targetCity.islandId;
+
         let hasLandUnits = false, hasNavalUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
         for (const unitId in units) {
             if (units[unitId] > 0) {
@@ -63,14 +71,23 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             return;
         }
 
-        const slowestSpeed = unitsBeingSent.length > 0
-            ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
-            : 10;
+        let travelSeconds;
 
-        const travelSeconds = calculateTravelTime(distance, slowestSpeed);
+        if (mode === 'scout' || mode === 'trade') {
+            const minTime = 60; // 1 minute
+            const maxTime = 3600; // 1 hour
+            // #comment Scale time with distance, but clamp it within the desired range.
+            travelSeconds = Math.max(minTime, Math.min(maxTime, distance * 30));
+        } else {
+             const slowestSpeed = unitsBeingSent.length > 0
+                ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
+                : 10; // Fallback speed for combat movements
+            travelSeconds = calculateTravelTime(distance, slowestSpeed);
+        }
+
         const now = Date.now();
         const arrivalTime = new Date(now + travelSeconds * 1000);
-        const cancellableUntil = new Date(now + 600 * 1000); // 10 minutes to cancel
+        const cancellableUntil = new Date(now + 60 * 1000); // 1 minute to cancel
 
         let movementData;
         if (mode === 'attack' && targetCity.isVillageTarget) {
@@ -91,6 +108,24 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 involvedParties: [currentUser.uid],
                 isVillageTarget: true,
                 isCrossIsland: false,
+            };
+        } else if (mode === 'attack' && targetCity.isRuinTarget) {
+            movementData = {
+                type: 'attack_ruin',
+                targetRuinId: targetCity.id,
+                originCityId: playerCity.id,
+                originOwnerId: currentUser.uid,
+                originCityName: playerCity.cityName,
+                originOwnerUsername: userProfile.username,
+                units,
+                departureTime: serverTimestamp(),
+                arrivalTime,
+                cancellableUntil,
+                status: 'moving',
+                attackFormation: attackFormation || {},
+                involvedParties: [currentUser.uid],
+                isRuinTarget: true,
+                isCrossIsland: true,
             };
         } else {
             movementData = {
@@ -156,10 +191,10 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             console.error("Error sending movement:", error);
             setMessage(`Failed to send movement: ${error.message}`);
         }
-    };
+    }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage]);
     
     // handles the cancellation of a movement
-    const handleCancelMovement = async (movementId) => {
+    const handleCancelMovement = useCallback(async (movementId) => {
         const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
     
         try {
@@ -194,9 +229,9 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             console.error("Error cancelling movement:", error);
             setMessage(`Could not cancel movement: ${error.message}`);
         }
-    };
+    }, [worldId, setMessage]);
 
-    const handleCreateDummyCity = async (citySlotId, slotData) => {
+    const handleCreateDummyCity = useCallback(async (citySlotId, slotData) => {
         if (!userProfile?.is_admin) {
             setMessage("You are not authorized to perform this action.");
             return;
@@ -248,7 +283,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             console.error("Error creating dummy city:", error);
             setMessage(`Failed to create dummy city: ${error.message}`);
         }
-    };
+    }, [userProfile, worldId, invalidateChunkCache, setMessage]);
 
     return {
         message,

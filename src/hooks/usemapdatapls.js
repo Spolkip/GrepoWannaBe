@@ -11,6 +11,7 @@ export const useMapData = (currentUser, worldId, worldState, pan, zoom, viewport
     const [cachedCitySlots, setCachedCitySlots] = useState({});
     const [visibleSlots, setVisibleSlots] = useState({});
     const [villages, setVillages] = useState({});
+    const [ruins, setRuins] = useState({});
 
 
     const invalidateChunkCache = useCallback((x, y) => {
@@ -42,9 +43,19 @@ export const useMapData = (currentUser, worldId, worldState, pan, zoom, viewport
             setVillages(villagesData);
         });
 
+        const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
+        const unsubscribeRuins = onSnapshot(ruinsColRef, (snapshot) => {
+            const ruinsData = {};
+            snapshot.docs.forEach(doc => {
+                ruinsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setRuins(ruinsData);
+        });
+
         return () => {
             unsubscribeMovements();
             unsubscribeVillages();
+            unsubscribeRuins();
         };
     }, [worldId, currentUser]);
 
@@ -115,6 +126,7 @@ export const useMapData = (currentUser, worldId, worldState, pan, zoom, viewport
         movements,
         visibleSlots,
         villages,
+        ruins,
         invalidateChunkCache
     };
 };
