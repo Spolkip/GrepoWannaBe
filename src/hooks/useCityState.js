@@ -9,6 +9,13 @@ import researchConfig from '../gameData/research.json';
 
 const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
 
+// #comment calculate market capacity based on level
+const getMarketCapacity = (level) => {
+    if (!level || level < 1) return 0;
+    const capacity = 500 + (level - 1) * 200; // Starts at 500, +200 per level
+    return Math.min(2500, capacity); // Capped at 2500
+};
+
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
     const [cityGameState, setCityGameState] = useState(null);
@@ -414,6 +421,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         getResearchCost,
         calculateTotalPoints,
         calculateHappiness,
-        getMaxWorkerSlots
+        getMaxWorkerSlots,
+        getMarketCapacity
     };
 };

@@ -27,7 +27,8 @@ const MapModals = ({
     handleRushMovement,
     userProfile,
     onCastSpell,
-    onActionClick
+    onActionClick,
+    marketCapacity
 }) => {
     return (
         <>
@@ -52,6 +53,7 @@ const MapModals = ({
                     onActionClick={handleActionClick}
                     playerCity={playerCity}
                     worldId={worldId}
+                    marketCapacity={marketCapacity}
                 />
             )}
             {modalState.actionDetails && (

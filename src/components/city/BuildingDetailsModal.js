@@ -1,7 +1,7 @@
 import React from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 
-const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProductionRates, getWarehouseCapacity, getFarmCapacity, onOpenBarracks, onOpenShipyard, onAddWorker, onRemoveWorker, availablePopulation, getMaxWorkerSlots }) => {
+const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProductionRates, getWarehouseCapacity, getFarmCapacity, onOpenBarracks, onOpenShipyard, onAddWorker, onRemoveWorker, availablePopulation, getMaxWorkerSlots, onOpenMarket }) => {
     const config = buildingConfig[buildingId];
     if (!config) return null;
 
@@ -85,6 +85,13 @@ const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProduction
                 {buildingId === 'shipyard' && (
                     <button onClick={onOpenShipyard} className="btn btn-primary w-full py-2">
                         Build Naval Units
+                    </button>
+                )}
+                
+                {/* #comment Add button to open market from details view */}
+                {buildingId === 'market' && (
+                    <button onClick={onOpenMarket} className="btn btn-primary w-full py-2">
+                        Open Market
                     </button>
                 )}
             </div>

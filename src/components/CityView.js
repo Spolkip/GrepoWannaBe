@@ -30,7 +30,8 @@ const CityView = ({ showMap, worldId }) => {
         saveGameState,
         getResearchCost,
         calculateHappiness,
-        getMaxWorkerSlots
+        getMaxWorkerSlots,
+        getMarketCapacity, // #comment Get market capacity function
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
     const [message, setMessage] = useState('');
     const [modalState, setModalState] = useState({
@@ -44,6 +45,7 @@ const CityView = ({ showMap, worldId }) => {
         isHospitalMenuOpen: false,
         isCheatMenuOpen: false,
         isDivinePowersOpen: false,
+        isMarketMenuOpen: false, // #comment Add state for market menu
     });
 
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
@@ -597,6 +599,7 @@ const CityView = ({ showMap, worldId }) => {
         setMessage("Admin cheat applied!");
     };
 
+    // #comment handle clicking on a building plot
     const handlePlotClick = (buildingId) => {
         const buildingData = cityGameState.buildings[buildingId];
         if (!buildingData || buildingData.level === 0) {
@@ -611,6 +614,7 @@ const CityView = ({ showMap, worldId }) => {
             case 'cave': openModal('isCaveMenuOpen'); break;
             case 'academy': openModal('isAcademyMenuOpen'); break;
             case 'hospital': openModal('isHospitalMenuOpen'); break;
+            case 'market': openModal('isMarketMenuOpen'); break; // #comment Open market menu
             default: setModalState(prev => ({ ...prev, selectedBuildingId: buildingId })); break;
         }
     };
@@ -715,6 +719,7 @@ const CityView = ({ showMap, worldId }) => {
                 onAddWorker={handleAddWorker}
                 onRemoveWorker={handleRemoveWorker}
                 getMaxWorkerSlots={getMaxWorkerSlots}
+                getMarketCapacity={getMarketCapacity} // #comment Pass market capacity function
             />
             {modalState.isDivinePowersOpen && (
                 <DivinePowers

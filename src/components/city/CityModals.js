@@ -8,7 +8,8 @@ import SenateView from './SenateView';
 import TempleMenu from './TempleMenu';
 import CaveMenu from './CaveMenu';
 import HospitalMenu from './HospitalMenu';
-import { AcademyMenu } from './AcademyMenu'; // Changed to named import
+import MarketMenu from './MarketMenu'; // #comment Import MarketMenu
+import { AcademyMenu } from './AcademyMenu';
 
 const CityModals = ({
   cityGameState,
@@ -41,7 +42,8 @@ const CityModals = ({
   setMessage,
   onAddWorker,
   onRemoveWorker,
-  getMaxWorkerSlots
+  getMaxWorkerSlots,
+  getMarketCapacity, // #comment Receive market capacity function
 }) => {
   const {
     selectedBuildingId,
@@ -52,10 +54,13 @@ const CityModals = ({
     isCaveMenuOpen,
     isAcademyMenuOpen,
     isHospitalMenuOpen,
-    isCheatMenuOpen
+    isCheatMenuOpen,
+    isMarketMenuOpen, // #comment Get market menu state
   } = modalState;
 
   if (!cityGameState) return null;
+
+  const marketCapacity = getMarketCapacity(cityGameState.buildings?.market?.level);
 
   return (
     <>
@@ -69,6 +74,7 @@ const CityModals = ({
           getFarmCapacity={getFarmCapacity}
           onOpenBarracks={() => { closeModal('selectedBuildingId'); openModal('isBarracksMenuOpen'); }}
           onOpenShipyard={() => { closeModal('selectedBuildingId'); openModal('isShipyardMenuOpen'); }}
+          onOpenMarket={() => { closeModal('selectedBuildingId'); openModal('isMarketMenuOpen'); }} // #comment Add handler to open market
           onAddWorker={onAddWorker}
           onRemoveWorker={onRemoveWorker}
           availablePopulation={availablePopulation}
@@ -148,6 +154,15 @@ const CityModals = ({
               getHospitalCapacity={getHospitalCapacity}
               availablePopulation={availablePopulation}
           />
+      )}
+      {/* #comment Conditionally render the MarketMenu */}
+      {isMarketMenuOpen && (
+        <MarketMenu
+            onClose={() => closeModal('isMarketMenuOpen')}
+            cityGameState={cityGameState}
+            worldId={worldId}
+            marketCapacity={marketCapacity}
+        />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (
         <AdminCheatMenu

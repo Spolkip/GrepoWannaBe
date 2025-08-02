@@ -10,7 +10,7 @@ import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
 
-const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
+const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
     const { currentUser } = useAuth();
     const { gameState, setGameState } = useGame();
     const [village, setVillage] = useState(initialVillage);
@@ -180,6 +180,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
 
     const handleTrade = async () => {
         if (isProcessing || !baseVillageData || tradeAmount <= 0) return;
+        if (tradeAmount > marketCapacity) {
+            setMessage(`Trade amount cannot exceed your market capacity of ${marketCapacity}.`);
+            return;
+        }
         setIsProcessing(true);
         setMessage('');
     
@@ -231,7 +235,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
     const cost = getUpgradeCost(village.level + 1);
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
 
-    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands], Math.floor(baseVillageData.resources[baseVillageData.supplies] * baseVillageData.tradeRatio)) : 0;
+    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands], Math.floor(baseVillageData.resources[baseVillageData.supplies] * baseVillageData.tradeRatio), marketCapacity) : 0;
 
     return (
         <div
@@ -311,7 +315,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId }) => {
                                         </div>
                                     </div>
                                     <p className="text-center text-gray-400 text-sm mb-4">
-                                        Trade Ratio: {baseVillageData.tradeRatio}:1
+                                        Trade Ratio: {baseVillageData.tradeRatio}:1 | Your Market Capacity: {marketCapacity}
                                     </p>
                                     <div className="bg-gray-700 p-4 rounded-lg">
                                         <div className="flex justify-between items-center mb-2">
