@@ -1,3 +1,4 @@
+// src/hooks/useCityState.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -270,7 +271,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             const currentState = gameStateRef.current;
             if (!currentUser || !worldId || (!currentState?.buildQueue?.length && !currentState?.unitQueue?.length && !currentState?.researchQueue?.length && !currentState?.healQueue?.length)) return;
 
-            const now = Date.Date();
+            const now = Date.now(); // Corrected from Date.Date()
 
             // Process Build Queue
             if (currentState.buildQueue && currentState.buildQueue.length > 0) {
