@@ -20,41 +20,52 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
             description,
             status,
         });
-        setMessage('Settings saved!');
+        setMessage('Settings saved successfully!');
+    };
+
+    const getStatusBadge = () => {
+        switch(status) {
+            case 'open': return <span className="status-badge status-open">Open</span>;
+            case 'invite_only': return <span className="status-badge status-invite_only">Invite Only</span>;
+            case 'closed': return <span className="status-badge status-closed">Closed</span>;
+            default: return null;
+        }
     };
 
     return (
-        <div className="p-4">
-            <h3 className="text-xl font-bold mb-4">Alliance Settings</h3>
-            {!isLeader && <p className="text-red-400 mb-4">You do not have permission to edit settings.</p>}
-            <div className="space-y-4">
-                <div>
-                    <label className="block font-semibold mb-1">Alliance Name</label>
+        <div className="settings-container">
+            <div className="settings-section">
+                <h3>Alliance Information</h3>
+                <div className="form-group">
+                    <label>Alliance Name</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Alliance Name"
-                        className="w-full bg-gray-900 p-2 rounded"
+                        className="settings-input"
                         disabled={!isLeader}
                     />
                 </div>
-                <div>
-                    <label className="block font-semibold mb-1">Alliance Description</label>
+                
+                <div className="form-group">
+                    <label>Alliance Description</label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Alliance Description"
-                        className="w-full h-24 bg-gray-900 p-2 rounded resize-none"
+                        className="settings-input settings-textarea"
                         disabled={!isLeader}
                     />
                 </div>
-                <div>
-                    <label className="block font-semibold mb-1">Alliance Status</label>
+            </div>
+
+            <div className="settings-section">
+                <h3>Membership Settings</h3>
+                <div className="form-group">
+                    <label>Alliance Status {getStatusBadge()}</label>
                     <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="w-full bg-gray-900 p-2 rounded"
+                        className="settings-input"
                         disabled={!isLeader}
                     >
                         <option value="open">Open (Anyone can join)</option>
@@ -62,13 +73,21 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
                         <option value="closed">Closed (Join by invite only)</option>
                     </select>
                 </div>
-                {isLeader && (
-                    <div className="flex justify-end gap-2">
-                        <button onClick={handleSave} className="btn btn-confirm">Save Settings</button>
-                    </div>
-                )}
-                {message && <p className="text-green-400 mt-2 text-sm">{message}</p>}
             </div>
+
+            {message && (
+                <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
+                    {message}
+                </div>
+            )}
+
+            {isLeader && (
+                <div className="actions">
+                    <button onClick={handleSave} className="save-button">
+                        Save Settings
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

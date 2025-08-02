@@ -1,28 +1,146 @@
 .alliance-modal {
-    @apply bg-gray-800 text-white rounded-lg shadow-xl w-full max-w-4xl border-2 border-gray-600 flex flex-col;
-    height: 80vh;
+    background: #1a1a2e;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid #4a4a6a;
+    display: flex;
+    flex-direction: column;
 }
 
 .alliance-modal-header {
-    @apply flex justify-between items-center p-4 border-b border-gray-700;
-}
-
-.alliance-modal-header .close-button {
-    @apply text-gray-400 text-3xl leading-none hover:text-white;
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e94560;
 }
 
 .alliance-modal-tabs {
-    @apply flex border-b border-gray-700;
+    display: flex;
+    background: #16213e;
+    border-bottom: 1px solid #4a4a6a;
+    overflow-x: auto;
 }
 
 .alliance-modal-tabs button {
-    @apply px-6 py-3 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none;
+    padding: 0.8rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: #b8c2cc;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+}
+
+.alliance-modal-tabs button:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .alliance-modal-tabs button.active {
-    @apply bg-gray-700 text-white border-b-2 border-blue-500;
+    color: #ffffff;
+    border-bottom: 3px solid #e94560;
+    background: rgba(233, 69, 96, 0.1);
 }
 
 .alliance-modal-content {
-    @apply p-6 overflow-y-auto;
+    padding: 1.5rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    background: #1a1a2e;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #b8c2cc;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-button:hover {
+    color: #e94560;
+}
+
+/* Settings specific styles */
+.settings-section {
+    background: rgba(15, 52, 96, 0.3);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #4a4a6a;
+}
+
+.settings-section h3 {
+    color: #e94560;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.settings-input {
+    width: 100%;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #4a4a6a;
+    border-radius: 4px;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+.settings-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.save-button {
+    background: #e94560;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.save-button:hover {
+    background: #d13752;
+}
+
+/* Status badge */
+.status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.status-open {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+.status-invite_only {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f1c40f;
+}
+
+.status-closed {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
 }
