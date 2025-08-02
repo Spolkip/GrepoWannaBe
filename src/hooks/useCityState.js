@@ -98,7 +98,8 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
           populationCost = 0;
         }
 
-        const calculatedTime = Math.floor(cost.time * Math.pow(1.5, level - 1));
+        // #comment Further reduced the time multiplier to make buildings construct faster.
+        const calculatedTime = Math.floor(cost.time * Math.pow(1.25, level - 1));
 
         return {
             wood: Math.floor(cost.wood * Math.pow(1.6, level - 1)),

@@ -71,23 +71,13 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             return;
         }
 
-        let travelSeconds;
+        const slowestSpeed = unitsBeingSent.length > 0
+            ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
+            : 10; // Fallback speed
 
-        if (mode === 'scout' || mode === 'trade') {
-            const minTime = 60; // 1 minute
-            const maxTime = 3600; // 1 hour
-            // #comment Scale time with distance, but clamp it within the desired range.
-            travelSeconds = Math.max(minTime, Math.min(maxTime, distance * 30));
-        } else {
-             const slowestSpeed = unitsBeingSent.length > 0
-                ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
-                : 10; // Fallback speed for combat movements
-            travelSeconds = calculateTravelTime(distance, slowestSpeed);
-        }
-
-        const now = Date.now();
-        const arrivalTime = new Date(now + travelSeconds * 1000);
-        const cancellableUntil = new Date(now + 60 * 1000); // 1 minute to cancel
+        const travelSeconds = calculateTravelTime(distance, slowestSpeed, mode);
+        const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
+        const cancellableUntil = new Date(Date.now() + 30 * 1000); // 30 seconds to cancel
 
         let movementData;
         if (mode === 'attack' && targetCity.isVillageTarget) {

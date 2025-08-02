@@ -1,20 +1,20 @@
-- Make the travel time smaller, a lot smaller for scouting and trading
 - make market and adjust the trades accordingly
 - add alliance settings
 - leader can recommend research
+- add seasons and weather
+- add winds
+- make the island to generate random sizes but smaller
+- add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
+- add the ui to glow and show it on the movement tab when you are getting attacked
+- add creation of ranks of the guild and select permissions of the leader
+
+- keep the messages and reports per world
 - add quests that gives rewards
 - add special buildings
 - add a gameplay behind getting cities
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
-- add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
 - add heroes that can do skills on battle and also give buffs
-- add the ui to glow and show it on the movement tab when you are getting attacked
-- add creation of ranks of the guild and select permissions of the leader
 - if a player has a second town in the island to give get from the village 20% more resources per demand
-- add seasons and weather
-- add winds
-- make the island to generate random sizes but smaller
-- keep the messages and reports per world
 - add cities inside the island
 - do mythic troops of the gods
 - make it so you can conquer other cities

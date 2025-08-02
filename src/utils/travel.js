@@ -12,14 +12,25 @@ export function calculateDistance(cityA, cityB) {
 }
 
 /**
- * Calculates the travel time in seconds based on distance and speed.
+ * Calculates the travel time in seconds based on distance, speed, and mode.
  * @param {number} distance - The distance to travel in map tiles.
  * @param {number} speed - The speed of the unit in tiles per hour.
+ * @param {string|null} mode - The type of movement (e.g., 'scout', 'trade').
  * @returns {number} The travel time in seconds.
  */
-export function calculateTravelTime(distance, speed) {
+export function calculateTravelTime(distance, speed, mode = null) {
+    // #comment Special fast calculation for scout and trade modes
+    if (mode === 'scout' || mode === 'trade') {
+        const minTime = 15; // 15 seconds minimum
+        const maxTime = 300; // 5 minutes maximum
+        const timePerTile = 15; // 15 seconds per tile, making nearby islands very fast to reach
+        return Math.max(minTime, Math.min(maxTime, distance * timePerTile));
+    }
+
+    // Regular calculation for other movements
     if (speed <= 0) return Infinity;
-    const hours = distance / speed;
+    const worldSpeedFactor = 5;
+    const hours = distance / (speed * worldSpeedFactor);
     return hours * 3600; // Convert hours to seconds
 }
 
