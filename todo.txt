@@ -1,5 +1,4 @@
-- make market and adjust the trades accordingly
-- add alliance settings
+- add alliance settings and a tab to see invited people and be able to revoke the invite
 - leader can recommend research
 - add seasons and weather
 - add winds
@@ -22,3 +21,5 @@
 - different troops for different nationalities
 - Add mythical troops and special building for them
 - add a request system
+
+- fix trainning
