@@ -1,5 +1,3 @@
-// src/components/MapView.js
-
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -83,7 +81,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         handleCreateDummyCity
     } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     
-    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
 
     const maxPopulation = useMemo(() => {
         return gameState?.buildings ? getFarmCapacity(gameState.buildings.farm?.level) : 0;
@@ -100,6 +98,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const happiness = useMemo(() => {
         return gameState?.buildings ? calculateHappiness(gameState.buildings) : 0;
     }, [gameState?.buildings, calculateHappiness]);
+    
+    // fix: Get market capacity to pass to modals
+    const marketCapacity = useMemo(() => {
+        return gameState?.buildings ? getMarketCapacity(gameState.buildings.market?.level) : 0;
+    }, [gameState?.buildings, getMarketCapacity]);
 
     const handleOpenAlliance = () => {
         if (playerAlliance) {
@@ -273,32 +276,32 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             setMessage("Not enough favor to cast this spell.");
             return;
         }
-    
+
         const batch = writeBatch(db);
-    
+
         // 1. Deduct favor from the caster
         const casterGameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const newWorship = { ...currentState.worship };
         newWorship[currentState.god] -= power.favorCost;
         batch.update(casterGameDocRef, { worship: newWorship });
-    
+
         // 2. Determine target
         const isSelfCast = !targetCity;
         const targetOwnerId = isSelfCast ? currentUser.uid : targetCity.ownerId;
         const targetGameDocRef = doc(db, `users/${targetOwnerId}/games`, worldId);
         const targetGameSnap = await getDoc(targetGameDocRef);
-    
+
         if (!targetGameSnap.exists()) {
             setMessage("Target city's game data not found.");
             await batch.commit(); // Still commit the favor cost deduction
             setGameState({ ...gameState, worship: newWorship });
             return;
         }
-    
+
         const targetGameState = targetGameSnap.data();
         let spellEffectMessage = '';
         let casterMessage = '';
-    
+
         // 3. Apply spell effect
         switch (power.effect.type) {
             case 'add_resources':
@@ -306,7 +309,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 const resourcesToAdd = power.effect.type === 'add_resources'
                     ? { [power.effect.resource]: power.effect.amount }
                     : power.effect.resources;
-                
+
                 const newResources = { ...targetGameState.resources };
                 let resourcesReceivedMessage = [];
                 for (const resource in resourcesToAdd) {
@@ -314,7 +317,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     resourcesReceivedMessage.push(`${resourcesToAdd[resource]} ${resource}`);
                 }
                 batch.update(targetGameDocRef, { resources: newResources });
-    
+
                 if (isSelfCast) {
                     casterMessage = `You have blessed yourself with ${resourcesReceivedMessage.join(' and ')}!`;
                 } else {
@@ -342,7 +345,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 setMessage("This spell's effect is not yet implemented for instant casting.");
                 return; // Don't commit batch if not implemented
         }
-    
+
         // 4. Create reports
         const casterReport = {
             type: 'spell_cast',
@@ -352,7 +355,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             read: false,
         };
         batch.set(doc(collection(db, `users/${currentUser.uid}/reports`)), casterReport);
-    
+
         if (!isSelfCast) {
             const targetReport = {
                 type: 'spell_received',
@@ -363,13 +366,13 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             };
             batch.set(doc(collection(db, `users/${targetOwnerId}/reports`)), targetReport);
         }
-    
+
         // 5. Commit batch and update local state
         try {
             await batch.commit();
             setMessage(`${power.name} has been cast!`);
             closeModal('divinePowers');
-            
+
             // Optimistically update local state for caster
             if (isSelfCast) {
                 const updatedSelfSnap = await getDoc(casterGameDocRef);
@@ -389,7 +392,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         goToCoordinates(x, y);
         closeModal('profile');
     };
-    
+
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -519,7 +522,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     </div>
                 </div>
             </div>
-            
+
             <MapModals
                 modalState={modalState}
                 closeModal={closeModal}
@@ -538,8 +541,9 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 handleRushMovement={handleRushMovement}
                 userProfile={userProfile}
                 onActionClick={handleMessageAction}
+                marketCapacity={marketCapacity} // fix: Pass marketCapacity to MapModals
             />
-            
+
             {modalState.isAllianceModalOpen && (
                 <AllianceModal onClose={() => closeModal('alliance')} />
             )}
@@ -564,7 +568,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     targetType={modalState.divinePowersTarget ? 'other' : 'self'}
                 />
             )}
-            
+
             {modalState.isProfileModalOpen && (
                 <ProfileView 
                     onClose={() => closeModal('profile')} 

@@ -1,4 +1,3 @@
-// src/components/map/MapModals.js
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
@@ -28,7 +27,7 @@ const MapModals = ({
     userProfile,
     onCastSpell,
     onActionClick,
-    marketCapacity
+    marketCapacity // fix: Add marketCapacity as a prop
 }) => {
     return (
         <>
@@ -53,7 +52,7 @@ const MapModals = ({
                     onActionClick={handleActionClick}
                     playerCity={playerCity}
                     worldId={worldId}
-                    marketCapacity={marketCapacity}
+                    marketCapacity={marketCapacity} // fix: Pass the prop down
                 />
             )}
             {modalState.actionDetails && (

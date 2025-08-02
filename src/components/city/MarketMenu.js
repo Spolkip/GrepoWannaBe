@@ -1,7 +1,7 @@
 // src/components/city/MarketMenu.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction, orderBy } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import './MarketMenu.css';
@@ -30,7 +30,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const [demandResource, setDemandResource] = useState('stone');
     const [demandAmount, setDemandAmount] = useState('');
 
-    // #comment fetch trade offers from firestore
+    // fetch trade offers from firestore
     useEffect(() => {
         if (!worldId) return;
         setLoading(true);
@@ -51,7 +51,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         return () => unsubscribe();
     }, [worldId, currentUser.uid]);
 
-    // #comment handle creation of a new trade offer
+    // handle creation of a new trade offer
     const handleCreateTrade = async (e) => {
         e.preventDefault();
         setError('');
@@ -113,7 +113,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         }
     };
 
-    // #comment handle accepting a trade from another player
+    // handle accepting a trade from another player
     const handleAcceptTrade = async (trade) => {
         setError('');
         if (cityGameState.resources[trade.demand.resource] < trade.demand.amount) {
@@ -161,7 +161,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         }
     };
 
-    // #comment handle canceling one of your own trades
+    // handle canceling one of your own trades
     const handleCancelTrade = async (trade) => {
         setError('');
         const tradeRef = doc(db, 'worlds', worldId, 'trades', trade.id);

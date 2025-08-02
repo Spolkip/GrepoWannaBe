@@ -1,4 +1,3 @@
-// spolkip/grepowannabe/GrepoWannaBe-5544cda57432422293cb198ff3dc712e3b3b7cd2/src/components/map/FarmingVillageModal.js
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
@@ -53,6 +52,63 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
             unsubscribeBaseVillage();
         };
     }, [worldId, village.id, currentUser]);
+
+    // #comment New useEffect for hourly resource generation
+    useEffect(() => {
+        if (!worldId || !village?.id || !baseVillageData) return;
+
+        const interval = setInterval(async () => {
+            const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const villageDoc = await transaction.get(villageRef);
+                    if (!villageDoc.exists()) throw new Error("Village not found.");
+                    const villageData = villageDoc.data();
+                    
+                    const lastUpdated = villageData.lastUpdated?.toDate() || new Date();
+                    const now = new Date();
+                    const elapsedHours = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+                    if (elapsedHours >= 1) {
+                        const newResources = { ...villageData.resources };
+                        const productionRate = getVillageProductionRate(villageData.level);
+                        const maxResources = getVillageMaxCapacity(villageData.level);
+                        
+                        Object.keys(newResources).forEach(resource => {
+                             newResources[resource] = Math.min(maxResources[resource], (newResources[resource] || 0) + productionRate[resource] * elapsedHours);
+                        });
+
+                        transaction.update(villageRef, { resources: newResources, lastUpdated: serverTimestamp() });
+                    }
+                });
+            } catch (error) {
+                console.error("Error updating village resources:", error);
+            }
+        }, 60000); // Check every minute
+        
+        return () => clearInterval(interval);
+    }, [worldId, village, baseVillageData]);
+    
+    // #comment Calculates the hourly production rate for a village based on its level.
+    const getVillageProductionRate = (level) => {
+        const rate = level * 100;
+        return {
+            wood: rate,
+            stone: rate,
+            silver: Math.floor(rate * 0.5)
+        };
+    };
+
+    // #comment Calculates the maximum resource capacity for a village based on its level.
+    const getVillageMaxCapacity = (level) => {
+        const capacity = 1000 + (level - 1) * 500;
+        return {
+            wood: capacity,
+            stone: capacity,
+            silver: capacity
+        };
+    };
 
     const demandOptions = [
         { name: '5 minutes', duration: 300, multiplier: 0.125 },
@@ -235,8 +291,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     const cost = getUpgradeCost(village.level + 1);
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
 
-    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands], Math.floor(baseVillageData.resources[baseVillageData.supplies] * baseVillageData.tradeRatio), marketCapacity) : 0;
-
+    // fix: Ensure all values are numbers to avoid NaN
+    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands] || 0, Math.floor((baseVillageData.resources?.[baseVillageData.supplies] || 0) * (baseVillageData.tradeRatio || 0)), marketCapacity || 0) : 0;
+    
     return (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
@@ -316,6 +373,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                                     </div>
                                     <p className="text-center text-gray-400 text-sm mb-4">
                                         Trade Ratio: {baseVillageData.tradeRatio}:1 | Your Market Capacity: {marketCapacity}
+                                        <span className="block mt-2 text-xs text-red-400 italic">
+                                            (Trade amount is also limited by the village's current supplies)
+                                        </span>
                                     </p>
                                     <div className="bg-gray-700 p-4 rounded-lg">
                                         <div className="flex justify-between items-center mb-2">
@@ -325,7 +385,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                                         <input
                                             type="range"
                                             min="0"
-                                            max={maxTradeAmount}
+                                            max={maxTradeAmount || 0}
                                             value={tradeAmount}
                                             onChange={(e) => setTradeAmount(Number(e.target.value))}
                                             className="w-full"
