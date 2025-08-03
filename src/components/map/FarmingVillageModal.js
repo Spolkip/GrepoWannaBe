@@ -216,7 +216,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
         const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
         const baseVillageRef = doc(db, 'worlds', worldId, 'villages', village.id);
-        const reportsRef = collection(db, 'users', currentUser.uid, 'reports');
+        const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
 
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
