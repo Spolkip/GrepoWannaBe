@@ -153,17 +153,7 @@ const Game = ({ onBackToWorlds }) => {
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
                         break;
                     }
-            if (result.attackerWon) {
-                console.log('Attacker won. Conquering/farming village.');
-                const playerVillageRef = doc(db, `users/${movement.originOwnerId}/games/${worldId}/conqueredVillages`, movement.targetVillageId);
-                
-                batch.set(playerVillageRef, { 
-                    level: villageData.level,
-                    lastCollected: serverTimestamp(),
-                    happiness: 100, // Start with full happiness
-                    happinessLastUpdated: serverTimestamp()
-                }, { merge: true });
-            }
+
                     const villageData = villageSnap.data();
                     const villageTroops = getVillageTroops(villageData);
                     const result = resolveCombat(movement.units, villageTroops, villageData.resources, false);
@@ -175,7 +165,9 @@ const Game = ({ onBackToWorlds }) => {
                         
                         batch.set(playerVillageRef, { 
                             level: villageData.level,
-                            lastCollected: serverTimestamp() 
+                            lastCollected: serverTimestamp(),
+                            happiness: 100,
+                            happinessLastUpdated: serverTimestamp()
                         }, { merge: true });
                     }
 
@@ -237,8 +229,8 @@ const Game = ({ onBackToWorlds }) => {
                     }
 
                     const ruinData = ruinSnap.data();
-                    if (ruinData.ownerId) { // Check if already conquered
-                        batch.delete(movementDoc.ref); // Just delete the movement
+                    if (ruinData.ownerId) {
+                        batch.delete(movementDoc.ref);
                         break;
                     }
                     
@@ -250,20 +242,17 @@ const Game = ({ onBackToWorlds }) => {
                         newGameState.research[ruinData.researchReward] = true;
                         batch.update(originOwnerRef, { research: newGameState.research });
                         
-                        // #comment Mark ruin as conquered instead of deleting
                         batch.update(ruinRef, { 
                             ownerId: movement.originOwnerId, 
                             ownerUsername: movement.originOwnerUsername 
                         });
 
-                        // #comment Add to player's subcollection of conquered ruins
                         const playerRuinRef = doc(db, `users/${movement.originOwnerId}/games/${worldId}/conqueredRuins`, movement.targetRuinId);
                         batch.set(playerRuinRef, {
                             conqueredAt: serverTimestamp(),
                             researchReward: ruinData.researchReward
                         });
                     } else {
-                        // #comment Attacker lost, update ruin with surviving troops
                         const survivingRuinTroops = { ...ruinData.troops };
                         for (const unitId in result.defenderLosses) {
                             survivingRuinTroops[unitId] = Math.max(0, (survivingRuinTroops[unitId] || 0) - result.defenderLosses[unitId]);

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, serverTimestamp, onSnapshot, updateDoc, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, onSnapshot, updateDoc, collection } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { resolveVillageRetaliation } from '../../utils/combat';
@@ -12,7 +12,7 @@ import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
 
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
-    const { currentUser, userProfile } = useAuth();
+    const { currentUser } = useAuth();
     const { gameState, setGameState } = useGame();
     const [village, setVillage] = useState(initialVillage);
     const [baseVillageData, setBaseVillageData] = useState(initialVillage);
@@ -145,7 +145,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
 
         try {
-            await runTransaction(db, async (transaction) => {
+            const newGameState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
                 const gameDoc = await transaction.get(gameDocRef);
                 if (!playerVillageDoc.exists() || !gameDoc.exists()) throw new Error("Your village or game state not found.");
@@ -177,20 +177,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     happiness: newHappiness,
                     happinessLastUpdated: serverTimestamp()
                 });
+                return { ...gameData, resources: newResources };
             });
 
-            const yieldAmount = {
-                wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * village.level),
-                stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * village.level),
-                silver: Math.floor((baseVillageData.demandYield.silver || 0) * option.multiplier * village.level),
-            };
-            const warehouseCapacity = 1000 * Math.pow(1.5, gameState.buildings.warehouse.level - 1);
-            const newLocalResources = { ...gameState.resources };
-            for (const [resource, amount] of Object.entries(yieldAmount)) {
-                newLocalResources[resource] = Math.min(warehouseCapacity, (newLocalResources[resource] || 0) + amount);
-            }
-            setGameState(prev => ({ ...prev, resources: newLocalResources }));
-
+            setGameState(newGameState);
             setMessage(`Successfully demanded resources! Village happiness decreased.`);
         } catch (error) {
             setMessage(`Failed to demand resources: ${error.message}`);
@@ -210,7 +200,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         const reportsRef = collection(db, 'users', currentUser.uid, 'reports');
 
         try {
-            await runTransaction(db, async (transaction) => {
+            const newGameState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
                 const gameDoc = await transaction.get(gameDocRef);
                 const baseVillageDoc = await transaction.get(baseVillageRef);
@@ -232,6 +222,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
 
                     const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt failed and the village revolted! You have lost control and suffered casualties.` }, attacker: { cityName: gameData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
+                    return { ...gameData, units: newUnits };
                 } else {
                     const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
                     const newPlayerResources = { ...gameData.resources };
@@ -250,8 +241,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     
                     const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: gameData.cityName }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
+                    return { ...gameData, resources: newPlayerResources };
                 }
             });
+            setGameState(newGameState);
             setMessage("Plunder successful! Resources have been seized.");
         } catch (error) {
             setMessage(`Plunder failed: ${error.message}`);
@@ -271,7 +264,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         const cost = getUpgradeCost(nextLevel);
 
         try {
-            await runTransaction(db, async (transaction) => {
+            const newGameState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
                 const gameDoc = await transaction.get(gameDocRef);
                 if (!playerVillageDoc.exists() || !gameDoc.exists()) throw new Error("Your village or game state could not be found.");
@@ -284,14 +277,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 const newResources = { wood: gameData.resources.wood - cost.wood, stone: gameData.resources.stone - cost.stone, silver: gameData.resources.silver - cost.silver };
                 transaction.update(gameDocRef, { resources: newResources });
                 transaction.update(playerVillageRef, { level: nextLevel });
+                return { ...gameData, resources: newResources };
             });
-            
-            const newLocalResources = {
-                wood: gameState.resources.wood - cost.wood,
-                stone: gameState.resources.stone - cost.stone,
-                silver: gameState.resources.silver - cost.silver,
-            };
-            setGameState(prev => ({ ...prev, resources: newLocalResources }));
+
+            setGameState(newGameState);
             setMessage(`Successfully upgraded village to level ${nextLevel}!`);
         } catch (error) {
             console.error("Error upgrading village: ", error);
@@ -314,7 +303,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
     
         try {
-            await runTransaction(db, async (transaction) => {
+            const newGameState = await runTransaction(db, async (transaction) => {
                 const gameDoc = await transaction.get(gameDocRef);
                 const villageDoc = await transaction.get(villageRef);
                 if (!gameDoc.exists() || !villageDoc.exists()) throw new Error("Game state or village data not found.");
@@ -338,13 +327,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     
                 transaction.update(gameDocRef, { resources: newPlayerResources });
                 transaction.update(villageRef, { resources: newVillageResources });
+                return { ...gameData, resources: newPlayerResources };
             });
             
-            const newLocalResources = { ...gameState.resources };
-            newLocalResources[baseVillageData.demands] -= tradeAmount;
-            newLocalResources[baseVillageData.supplies] += Math.floor(tradeAmount / baseVillageData.tradeRatio);
-            setGameState(prev => ({ ...prev, resources: newLocalResources }));
-
+            setGameState(newGameState);
             setMessage(`Successfully traded ${tradeAmount} ${baseVillageData.demands} for ${Math.floor(tradeAmount / baseVillageData.tradeRatio)} ${baseVillageData.supplies}.`);
             setTradeAmount(0);
         } catch (error) {
