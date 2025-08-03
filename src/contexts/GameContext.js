@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc, arrayUnion, arrayRemove, writeBatch } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -55,7 +55,7 @@ export const GameProvider = ({ children, worldId }) => {
                     leader: { uid: currentUser.uid, username: userProfile.username },
                     members: [{ uid: currentUser.uid, username: userProfile.username, rank: 'Leader' }],
                     research: {},
-                    diplomacy: { allies: [], enemies: [] },
+                    diplomacy: { allies: [], enemies: [], requests: [] },
                     settings: {
                         status: 'open', // New setting
                         description: `A new alliance, '${name}', has been formed!`, // New setting
@@ -68,11 +68,15 @@ export const GameProvider = ({ children, worldId }) => {
                             manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false
                         }}
                     ],
-                    invitations: {},
+                    applications: [],
                 };
 
                 transaction.set(allianceDocRef, newAlliance);
                 transaction.update(gameDocRef, { alliance: allianceId });
+                
+                // #comment Update city slot with new alliance tag
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', playerData.cityLocation.slotId);
+                transaction.update(citySlotRef, { alliance: allianceId, allianceName: name });
             });
 
             console.log("Alliance created successfully");
@@ -266,6 +270,10 @@ export const GameProvider = ({ children, worldId }) => {
                     text: `${userProfile.username} has joined the alliance.`,
                     timestamp: serverTimestamp(),
                 });
+                
+                // #comment Update city slot with new alliance tag
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
+                transaction.update(citySlotRef, { alliance: allianceId, allianceName: newAllianceData.name });
             });
         } catch (error) {
             console.error("Error accepting invitation:", error);
@@ -289,6 +297,248 @@ export const GameProvider = ({ children, worldId }) => {
             member.uid === memberId ? { ...member, rank: newRankId } : member
         );
         await updateDoc(allianceDocRef, { members: updatedMembers });
+    };
+
+    const applyToAlliance = async (allianceId) => {
+        if (!currentUser || !worldId || !userProfile) {
+            throw new Error("User or world not identified.");
+        }
+        if (playerAlliance) {
+            throw new Error("You are already in an alliance.");
+        }
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
+        await updateDoc(allianceRef, {
+            applications: arrayUnion({
+                userId: currentUser.uid,
+                username: userProfile.username,
+                timestamp: new Date()
+            })
+        });
+    };
+
+    // #comment Send an ally request to another alliance
+    const sendAllyRequest = async (targetAllianceId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+        if (playerAlliance.diplomacy?.allies?.some(a => a.id === targetAllianceId)) {
+            throw new Error("You are already allied with this alliance.");
+        }
+        if (playerAlliance.diplomacy?.enemies?.some(e => e.id === targetAllianceId)) {
+            throw new Error("You cannot send an ally request to an enemy.");
+        }
+        const targetAllianceRef = doc(db, 'worlds', worldId, 'alliances', targetAllianceId);
+        await updateDoc(targetAllianceRef, {
+            'diplomacy.requests': arrayUnion({
+                id: playerAlliance.id,
+                name: playerAlliance.name,
+                tag: playerAlliance.tag
+            })
+        });
+        // #comment Add event to own alliance log
+        const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        await addDoc(allianceEventsRef, {
+            type: 'diplomacy',
+            text: `An ally request was sent to [${targetAllianceId}].`,
+            timestamp: serverTimestamp(),
+        });
+    };
+
+    // #comment Declare another alliance as an enemy
+    const declareEnemy = async (targetAllianceId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+        if (playerAlliance.diplomacy?.allies?.some(a => a.id === targetAllianceId)) {
+            throw new Error("You cannot declare an ally as an enemy.");
+        }
+        if (playerAlliance.diplomacy?.enemies?.some(e => e.id === targetAllianceId)) {
+            throw new Error("This alliance is already an enemy.");
+        }
+        const ownAllianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const targetAllianceDoc = await getDoc(doc(db, 'worlds', worldId, 'alliances', targetAllianceId));
+        if (!targetAllianceDoc.exists()) {
+            throw new Error("Target alliance not found.");
+        }
+        const targetData = targetAllianceDoc.data();
+        await updateDoc(ownAllianceRef, {
+            'diplomacy.enemies': arrayUnion({
+                id: targetAllianceId,
+                name: targetData.name,
+                tag: targetData.tag
+            })
+        });
+        // #comment Add event to own alliance log
+        const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        await addDoc(allianceEventsRef, {
+            type: 'diplomacy',
+            text: `[${targetAllianceId}] has been declared an enemy.`,
+            timestamp: serverTimestamp(),
+        });
+    };
+
+    // #comment Handle responses to diplomatic requests
+    const handleDiplomacyResponse = async (targetAllianceId, action) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+        const ownAllianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const targetAllianceRef = doc(db, 'worlds', worldId, 'alliances', targetAllianceId);
+        const targetAllianceDoc = await getDoc(targetAllianceRef);
+        if (!targetAllianceDoc.exists()) throw new Error("Target alliance not found.");
+        const targetData = targetAllianceDoc.data();
+
+        const ownEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        const targetEventsRef = collection(db, 'worlds', worldId, 'alliances', targetAllianceId, 'events');
+
+        await runTransaction(db, async (transaction) => {
+            const ownAllianceDoc = await transaction.get(ownAllianceRef);
+            if (!ownAllianceDoc.exists()) throw new Error("Your alliance data not found.");
+            
+            const targetInfo = { id: targetAllianceId, name: targetData.name, tag: targetData.tag };
+            const ownInfo = { id: playerAlliance.id, name: playerAlliance.name, tag: playerAlliance.tag };
+
+            switch(action) {
+                case 'accept':
+                    transaction.update(ownAllianceRef, { 'diplomacy.requests': arrayRemove(targetInfo), 'diplomacy.allies': arrayUnion(targetInfo) });
+                    transaction.update(targetAllianceRef, { 'diplomacy.allies': arrayUnion(ownInfo) });
+                    addDoc(ownEventsRef, { type: 'diplomacy', text: `You are now allied with [${targetInfo.tag}].`, timestamp: serverTimestamp() });
+                    addDoc(targetEventsRef, { type: 'diplomacy', text: `You are now allied with [${ownInfo.tag}].`, timestamp: serverTimestamp() });
+                    break;
+                case 'reject':
+                    transaction.update(ownAllianceRef, { 'diplomacy.requests': arrayRemove(targetInfo) });
+                    addDoc(ownEventsRef, { type: 'diplomacy', text: `You rejected the ally request from [${targetInfo.tag}].`, timestamp: serverTimestamp() });
+                    break;
+                case 'removeAlly':
+                    transaction.update(ownAllianceRef, { 'diplomacy.allies': arrayRemove(targetInfo) });
+                    transaction.update(targetAllianceRef, { 'diplomacy.allies': arrayRemove(ownInfo) });
+                    addDoc(ownEventsRef, { type: 'diplomacy', text: `The alliance with [${targetInfo.tag}] has been terminated.`, timestamp: serverTimestamp() });
+                    addDoc(targetEventsRef, { type: 'diplomacy', text: `The alliance with [${ownInfo.tag}] has been terminated.`, timestamp: serverTimestamp() });
+                    break;
+                case 'removeEnemy':
+                    transaction.update(ownAllianceRef, { 'diplomacy.enemies': arrayRemove(targetInfo) });
+                    addDoc(ownEventsRef, { type: 'diplomacy', text: `You are no longer at war with [${targetInfo.tag}].`, timestamp: serverTimestamp() });
+                    break;
+                default:
+                    throw new Error("Invalid diplomacy action.");
+            }
+        });
+    };
+
+    // #comment Allow a player to leave their current alliance
+    const leaveAlliance = async () => {
+        if (!playerAlliance) throw new Error("You are not in an alliance.");
+        if (playerAlliance.leader.uid === currentUser.uid && playerAlliance.members.length > 1) {
+            throw new Error("Leaders must pass leadership before leaving.");
+        }
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        await runTransaction(db, async (transaction) => {
+            const gameData = (await transaction.get(gameRef)).data();
+            const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
+
+            if (playerAlliance.members.length === 1) {
+                transaction.delete(allianceRef);
+            } else {
+                const memberToRemove = playerAlliance.members.find(m => m.uid === currentUser.uid);
+                if (memberToRemove) {
+                    transaction.update(allianceRef, {
+                        members: arrayRemove(memberToRemove)
+                    });
+                }
+            }
+            transaction.update(gameRef, { alliance: null });
+            transaction.update(citySlotRef, { alliance: null, allianceName: null });
+        });
+    };
+
+    // #comment Allow the leader to disband the alliance
+    const disbandAlliance = async () => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You are not the leader of this alliance.");
+        }
+        
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const batch = writeBatch(db);
+
+        for (const member of playerAlliance.members) {
+            const gameRef = doc(db, `users/${member.uid}/games`, worldId);
+            const gameSnap = await getDoc(gameRef);
+            if (gameSnap.exists()) {
+                const gameData = gameSnap.data();
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
+                batch.update(gameRef, { alliance: null });
+                batch.update(citySlotRef, { alliance: null, allianceName: null });
+            }
+        }
+        batch.delete(allianceRef);
+        await batch.commit();
+    };
+
+    // #comment Join an open alliance
+    const joinOpenAlliance = async (allianceId) => {
+        if (!currentUser || !worldId || !userProfile) throw new Error("User or world not identified.");
+        if (playerAlliance) throw new Error("You are already in an alliance.");
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
+        const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        await runTransaction(db, async (transaction) => {
+            const allianceDoc = await transaction.get(allianceRef);
+            const gameDoc = await transaction.get(gameRef);
+            if (!allianceDoc.exists()) throw new Error("Alliance not found.");
+            if (!gameDoc.exists()) throw new Error("Your game data not found.");
+
+            const allianceData = allianceDoc.data();
+            const gameData = gameDoc.data();
+
+            if (allianceData.settings.status !== 'open') throw new Error("This alliance is not open for joining.");
+
+            transaction.update(allianceRef, {
+                members: arrayUnion({ uid: currentUser.uid, username: userProfile.username, rank: 'Member' })
+            });
+            transaction.update(gameRef, { alliance: allianceId });
+
+            const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
+            transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+        });
+    };
+
+    // #comment Handle an application to the alliance
+    const handleApplication = async (application, allianceId, action) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
+        const applicantGameRef = doc(db, `users/${application.userId}/games`, worldId);
+
+        await runTransaction(db, async (transaction) => {
+            const allianceDoc = await transaction.get(allianceRef);
+            const applicantGameDoc = await transaction.get(applicantGameRef);
+            if (!allianceDoc.exists() || !applicantGameDoc.exists()) throw new Error("Data not found.");
+
+            const allianceData = allianceDoc.data();
+            const applicantGameData = applicantGameDoc.data();
+
+            const appToRemove = allianceData.applications.find(app => app.userId === application.userId);
+            if (appToRemove) {
+                transaction.update(allianceRef, { applications: arrayRemove(appToRemove) });
+            }
+
+            if (action === 'accept') {
+                transaction.update(allianceRef, {
+                    members: arrayUnion({ uid: application.userId, username: application.username, rank: 'Member' })
+                });
+                transaction.update(applicantGameRef, { alliance: allianceId });
+                
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', applicantGameData.cityLocation.slotId);
+                transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+            }
+        });
     };
 
     useEffect(() => {
@@ -438,6 +688,14 @@ export const GameProvider = ({ children, worldId }) => {
         acceptAllianceInvitation,
         createAllianceRank,
         updateAllianceMemberRank,
+        applyToAlliance,
+        sendAllyRequest,
+        declareEnemy,
+        handleDiplomacyResponse,
+        leaveAlliance,
+        disbandAlliance,
+        joinOpenAlliance,
+        handleApplication,
     };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

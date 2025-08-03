@@ -1,8 +1,6 @@
-// src/hooks/useModalState.js
 import { useState } from 'react';
 
-// src/hooks/useModalState.js
-// #comment Add leaderboard modal state
+// #comment Add alliance profile modal state
 export const useModalState = () => {
     const [modalState, setModalState] = useState({
         selectedCity: null,
@@ -17,8 +15,10 @@ export const useModalState = () => {
         divinePowersTarget: null,
         isProfileModalOpen: false,
         isAllianceForumOpen: false,
-        isLeaderboardOpen: false, 
-        viewingProfileId: null, 
+        isLeaderboardOpen: false,
+        isAllianceProfileOpen: false,
+        viewingProfileId: null,
+        viewingAllianceId: null,
     });
 
     const openModal = (type, data) => {
@@ -35,7 +35,8 @@ export const useModalState = () => {
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: true, divinePowersTarget: data?.targetCity || null };
                 case 'profile': return { ...prevState, isProfileModalOpen: true, viewingProfileId: data?.userId || null };
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: true };
-                case 'leaderboard': return { ...prevState, isLeaderboardOpen: true }; 
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: true };
+                case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: true, viewingAllianceId: data?.allianceId || null };
                 default: return prevState;
             }
         });
@@ -55,7 +56,8 @@ export const useModalState = () => {
                 case 'divinePowers': return { ...prevState, isDivinePowersOpen: false, divinePowersTarget: null };
                 case 'profile': return { ...prevState, isProfileModalOpen: false, viewingProfileId: null };
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: false };
-                case 'leaderboard': return { ...prevState, isLeaderboardOpen: false }; 
+                case 'leaderboard': return { ...prevState, isLeaderboardOpen: false };
+                case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: false, viewingAllianceId: null };
                 default: return prevState;
             }
         });

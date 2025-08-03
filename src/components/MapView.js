@@ -19,6 +19,7 @@ import DivinePowers from './city/DivinePowers';
 import ProfileView from './profile/ProfileView';
 import AllianceCreation from './alliance/AllianceCreation';
 import Leaderboard from './leaderboard/Leaderboard';
+import AllianceProfile from './alliance/AllianceProfile';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -393,6 +394,14 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         closeModal('profile');
     };
 
+    const handleOpenProfile = (userId) => {
+        openModal('profile', { userId });
+    };
+
+    const handleOpenAllianceProfile = (allianceId) => {
+        openModal('allianceProfile', { allianceId });
+    };
+
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -540,6 +549,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 villages={villages}
                 handleRushMovement={handleRushMovement}
                 userProfile={userProfile}
+                onCastSpell={handleCastSpell}
                 onActionClick={handleMessageAction}
                 marketCapacity={marketCapacity} // fix: Pass marketCapacity to MapModals
             />
@@ -575,12 +585,21 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     viewUserId={modalState.viewingProfileId} 
                     onGoToCity={handleGoToCityFromProfile}
                     onInviteToAlliance={sendAllianceInvitation}
+                    onOpenAllianceProfile={handleOpenAllianceProfile}
                 />
             )}
              {modalState.isLeaderboardOpen && (
                 <Leaderboard 
                     onClose={() => closeModal('leaderboard')} 
-                    onOpenProfile={(userId) => openModal('profile', { userId })}
+                    onOpenProfile={handleOpenProfile}
+                    onOpenAllianceProfile={handleOpenAllianceProfile}
+                />
+            )}
+            {modalState.isAllianceProfileOpen && (
+                <AllianceProfile
+                    allianceId={modalState.viewingAllianceId}
+                    onClose={() => closeModal('allianceProfile')}
+                    onOpenProfile={handleOpenProfile}
                 />
             )}
         </div>

@@ -9,6 +9,7 @@ import AllianceEvents from '../alliance/AllianceEvents';
 import AllianceSettings from '../alliance/AllianceSettings';
 import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
+import AllianceProperties from '../alliance/AllianceProperties';
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose }) => {
@@ -38,6 +39,7 @@ const AllianceModal = ({ onClose }) => {
             case 'settings': return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
             case 'invitations': return <AllianceInvitations alliance={playerAlliance} isLeader={isLeader} />;
             case 'ranks': return <AllianceRanks alliance={playerAlliance} isLeader={isLeader} />;
+            case 'properties': return <AllianceProperties onClose={onClose} />;
             default: return <AllianceOverview />;
         }
     };
@@ -54,56 +56,17 @@ const AllianceModal = ({ onClose }) => {
                 </div>
                 
                 <div className="alliance-modal-tabs">
-                    <button 
-                        onClick={() => setActiveTab('overview')} 
-                        className={activeTab === 'overview' ? 'active' : ''}
-                    >
-                        Overview
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('members')} 
-                        className={activeTab === 'members' ? 'active' : ''}
-                    >
-                        Members
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('research')} 
-                        className={activeTab === 'research' ? 'active' : ''}
-                    >
-                        Research
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('diplomacy')} 
-                        className={activeTab === 'diplomacy' ? 'active' : ''}
-                    >
-                        Diplomacy
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('events')} 
-                        className={activeTab === 'events' ? 'active' : ''}
-                    >
-                        Events
-                    </button>
+                    <button onClick={() => setActiveTab('overview')} className={activeTab === 'overview' ? 'active' : ''}>Overview</button>
+                    <button onClick={() => setActiveTab('members')} className={activeTab === 'members' ? 'active' : ''}>Members</button>
+                    <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
+                    <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
+                    <button onClick={() => setActiveTab('events')} className={activeTab === 'events' ? 'active' : ''}>Events</button>
+                    <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}>Properties</button>
                     {isLeader && (
                         <>
-                            <button 
-                                onClick={() => setActiveTab('settings')} 
-                                className={activeTab === 'settings' ? 'active' : ''}
-                            >
-                                Settings
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('invitations')} 
-                                className={activeTab === 'invitations' ? 'active' : ''}
-                            >
-                                Invitations
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('ranks')} 
-                                className={activeTab === 'ranks' ? 'active' : ''}
-                            >
-                                Ranks
-                            </button>
+                            <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? 'active' : ''}>Settings</button>
+                            <button onClick={() => setActiveTab('invitations')} className={activeTab === 'invitations' ? 'active' : ''}>Invitations</button>
+                            <button onClick={() => setActiveTab('ranks')} className={activeTab === 'ranks' ? 'active' : ''}>Ranks</button>
                         </>
                     )}
                 </div>

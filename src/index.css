@@ -148,11 +148,17 @@ body {
 .my-city {
     @apply bg-yellow-400 border-2 border-yellow-200;
 }
-.other-city {
+.alliance-city { /* Your own alliance */
+    @apply bg-blue-500 border-2 border-blue-300;
+}
+.ally-city { /* Allied alliances */
+    @apply bg-green-500 border-2 border-green-300;
+}
+.enemy-city {
     @apply bg-red-500 border-2 border-red-300;
 }
-.alliance-city {
-    @apply bg-blue-500 border-2 border-blue-300;
+.neutral-city {
+    @apply bg-amber-700 border-2 border-amber-500;
 }
 .dummy-city-plot {
     @apply bg-purple-500 border-2 border-purple-300;
@@ -188,6 +194,12 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+}
+.ruin-slot.my-ruin {
+    filter: drop-shadow(0 0 5px #0ea5e9);
+}
+.ruin-slot.conquered-ruin {
+    filter: drop-shadow(0 0 5px #ef4444);
 }
 .ruin-slot:hover {
     @apply scale-150 ring-2 ring-yellow-300 z-20;

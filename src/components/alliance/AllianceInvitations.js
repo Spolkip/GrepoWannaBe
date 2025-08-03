@@ -1,24 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, getDocs, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getDocs, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useGame } from '../../contexts/GameContext';
-import { useAuth } from '../../contexts/AuthContext';
 
-const AllianceInvitations = ({ alliance, isLeader }) => {
-    const { worldId, playerAlliance, sendAllianceInvitation, revokeAllianceInvitation } = useGame();
-    const { userProfile } = useAuth();
+const AllianceInvitations = ({ isLeader }) => {
+    const { worldId, playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useGame();
     const [invitedPlayerName, setInvitedPlayerName] = useState('');
     const [pendingInvites, setPendingInvites] = useState([]);
+    const [applications, setApplications] = useState([]);
     const [message, setMessage] = useState('');
 
     useEffect(() => {
         if (!worldId || !playerAlliance?.id) return;
         const invitesRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'invitations');
-        const unsubscribe = onSnapshot(invitesRef, (snapshot) => {
+        const unsubscribeInvites = onSnapshot(invitesRef, (snapshot) => {
             const invitesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setPendingInvites(invitesData);
         });
-        return () => unsubscribe();
+        
+        // Listener for the alliance document to get applications
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const unsubscribeApplications = onSnapshot(allianceRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setApplications(docSnap.data().applications || []);
+            }
+        });
+
+        return () => {
+            unsubscribeInvites();
+            unsubscribeApplications();
+        };
     }, [worldId, playerAlliance]);
 
     const handleInvite = async () => {
@@ -57,11 +68,20 @@ const AllianceInvitations = ({ alliance, isLeader }) => {
         setMessage('Invitation revoked.');
     };
 
+    const onApplicationAction = async (application, action) => {
+        try {
+            await handleApplication(application, playerAlliance.id, action);
+            setMessage(`Application ${action}ed.`);
+        } catch (error) {
+            setMessage(`Error: ${error.message}`);
+        }
+    };
+
     const canInvite = isLeader;
 
     return (
         <div className="p-4">
-            <h3 className="text-xl font-bold mb-4">Invitations</h3>
+            <h3 className="text-xl font-bold mb-4">Invitations & Applications</h3>
             {!canInvite && <p className="text-red-400 mb-4">You do not have permission to manage invitations.</p>}
             {canInvite && (
                 <div className="mb-6 space-y-2">
@@ -78,22 +98,44 @@ const AllianceInvitations = ({ alliance, isLeader }) => {
                     </div>
                 </div>
             )}
-            <div className="mt-6">
-                <p className="font-semibold mb-2">Pending Invitations</p>
-                {pendingInvites.length > 0 ? (
-                    <ul className="space-y-2">
-                        {pendingInvites.map(invite => (
-                            <li key={invite.id} className="flex justify-between items-center bg-gray-700 p-2 rounded">
-                                <span>{invite.invitedUsername}</span>
-                                {canInvite && (
-                                    <button onClick={() => handleRevoke(invite.invitedUserId)} className="btn btn-danger text-sm px-2 py-1">Revoke</button>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p className="text-gray-400 text-sm italic">No invitations have been sent.</p>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <p className="font-semibold mb-2">Pending Invitations</p>
+                    {pendingInvites.length > 0 ? (
+                        <ul className="space-y-2">
+                            {pendingInvites.map(invite => (
+                                <li key={invite.id} className="flex justify-between items-center bg-gray-700 p-2 rounded">
+                                    <span>{invite.invitedUsername}</span>
+                                    {canInvite && (
+                                        <button onClick={() => handleRevoke(invite.invitedUserId)} className="btn btn-danger text-sm px-2 py-1">Revoke</button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-gray-400 text-sm italic">No invitations have been sent.</p>
+                    )}
+                </div>
+                <div>
+                    <p className="font-semibold mb-2">Applications</p>
+                    {applications.length > 0 ? (
+                        <ul className="space-y-2">
+                            {applications.map(app => (
+                                <li key={app.userId} className="flex justify-between items-center bg-gray-700 p-2 rounded">
+                                    <span>{app.username}</span>
+                                    {canInvite && (
+                                        <div className="flex gap-1">
+                                            <button onClick={() => onApplicationAction(app, 'accept')} className="btn btn-confirm text-xs px-2 py-1">Accept</button>
+                                            <button onClick={() => onApplicationAction(app, 'reject')} className="btn btn-danger text-xs px-2 py-1">Reject</button>
+                                        </div>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-gray-400 text-sm italic">No pending applications.</p>
+                    )}
+                </div>
             </div>
             {message && <p className="text-green-400 mt-2 text-sm">{message}</p>}
         </div>

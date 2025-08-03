@@ -7,7 +7,7 @@
 - add the ui to glow and show it on the movement tab when you are getting attacked
 - add creation of ranks of the guild and select permissions of the leader
 - fix diplomacy option
-
+- make everything per world except the account name 
 - keep the messages and reports per world
 - add quests that gives rewards
 - add special buildings
@@ -21,5 +21,3 @@
 - different troops for different nationalities
 - Add mythical troops and special building for them
 - add a request system
-
-- fix trainning

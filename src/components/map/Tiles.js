@@ -1,4 +1,3 @@
-// src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,13 +30,19 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
             slotClass = 'my-city';
             tooltipText = `Your City: ${slotData.cityName}`;
         } else if (playerAlliance && slotData.alliance === playerAlliance.tag) {
-            slotClass = 'alliance-city';
+            slotClass = 'alliance-city'; // Your own alliance members
             tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
+        } else if (playerAlliance && playerAlliance.diplomacy?.allies?.some(ally => ally.tag === slotData.alliance)) {
+            slotClass = 'ally-city'; // Allied alliances
+            tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
+        } else if (playerAlliance && playerAlliance.diplomacy?.enemies?.some(enemy => enemy.tag === slotData.alliance)) {
+            slotClass = 'enemy-city'; // Enemy alliances
+            tooltipText = `Enemy: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
         } else if (slotData.ownerId.startsWith('dummy_')) {
             slotClass = 'dummy-city-plot';
             tooltipText = `Dummy City: ${slotData.cityName}<br>Owner: ${ownerName}`;
         } else {
-            slotClass = 'other-city';
+            slotClass = 'neutral-city'; // Neutral players
             tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
         }
     } else if (isPlacingDummyCity) {

@@ -7,7 +7,7 @@ import { useCityState } from '../../hooks/useCityState';
 import unitConfig from '../../gameData/units.json';
 import './ProfileView.css';
 
-const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) => {
+const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
     const { worldId, gameState: ownGameState, playerAlliance } = useGame();
     const { calculateTotalPoints } = useCityState(worldId);
@@ -20,7 +20,6 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) =>
     const [newDescription, setNewDescription] = useState('');
     const [newImageUrl, setNewImageUrl] = useState('');
     const [isEditing, setIsEditing] = useState(false);
-    const [message, setMessage] = useState('');
 
     const isOwnProfile = !viewUserId || viewUserId === currentUser.uid;
 
@@ -48,7 +47,6 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) =>
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
-                setMessage("Could not load profile data.");
             }
             setLoading(false);
         };
@@ -66,11 +64,10 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) =>
         };
         try {
             await updateUserProfile(profileUpdateData);
-            setMessage('Profile updated successfully!');
+            console.log('Profile updated successfully!');
             setIsEditing(false);
         } catch (error) {
-            setMessage('Failed to update profile.');
-            console.error(error);
+            console.error("Failed to update profile.", error);
         }
     };
 
@@ -115,7 +112,14 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance }) =>
                         <div className="profile-box flex-grow">
                             <div className="profile-box-header">{displayProfile?.username}</div>
                             <div className="player-info-content">
-                                {displayGame?.alliance ? `[${displayGame.alliance}]` : 'No Alliance'}
+                                {displayGame?.alliance ? (
+                                    <button 
+                                        onClick={() => onOpenAllianceProfile(displayGame.alliance)}
+                                        className="text-blue-400 hover:underline font-bold"
+                                    >
+                                        [{displayGame.alliance}]
+                                    </button>
+                                ) : 'No Alliance'}
                             </div>
                             <div className="player-stats">
                                 <div className="stat-item"><span>⚔️ Attack Points</span> <span>{totalAttack.toLocaleString()}</span></div>

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../../firebase/config';
-import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useCityState } from '../../hooks/useCityState';
 import './Leaderboard.css';
 
-const Leaderboard = ({ onClose, onOpenProfile }) => {
+const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
     const { worldId } = useGame();
     const [playerLeaderboard, setPlayerLeaderboard] = useState([]);
     const [allianceLeaderboard, setAllianceLeaderboard] = useState([]);
@@ -122,7 +122,11 @@ const Leaderboard = ({ onClose, onOpenProfile }) => {
                 {allianceLeaderboard.map((alliance, index) => (
                     <tr key={alliance.id}>
                         <td className="text-center">{index + 1}</td>
-                        <td>{alliance.name}</td>
+                        <td>
+                            <button onClick={() => onOpenAllianceProfile(alliance.id)} className="player-name-btn">
+                                {alliance.name}
+                            </button>
+                        </td>
                         <td>{alliance.tag}</td>
                         <td className="text-center">{alliance.memberCount}</td>
                         <td className="text-right">{alliance.points.toLocaleString()}</td>
