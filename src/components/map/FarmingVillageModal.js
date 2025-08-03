@@ -88,25 +88,44 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         return () => clearInterval(interval);
     }, [worldId, village.id, baseVillageData]);
 
+    // #comment This useEffect now handles happiness regeneration periodically.
     useEffect(() => {
-        if (village?.happiness < 100) {
-            const happinessRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
-            const lastUpdated = village.happinessLastUpdated?.toDate() || new Date(0);
-            const now = new Date();
-            const elapsedHours = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-            
-            const happinessToRegen = elapsedHours * 2;
-            if (happinessToRegen > 0) {
-                const newHappiness = Math.min(100, (village.happiness || 0) + happinessToRegen);
-                if (newHappiness > village.happiness) {
-                    updateDoc(happinessRef, {
-                        happiness: newHappiness,
-                        happinessLastUpdated: serverTimestamp()
-                    });
-                }
+        const happinessRegenInterval = setInterval(async () => {
+            if (!worldId || !village?.id || !currentUser) return;
+    
+            const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
+    
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const villageDoc = await transaction.get(playerVillageRef);
+                    if (!villageDoc.exists()) return;
+    
+                    const villageData = villageDoc.data();
+                    if (villageData.happiness >= 100) return;
+    
+                    const lastUpdated = villageData.happinessLastUpdated?.toDate() || new Date();
+                    const now = new Date();
+                    const elapsedMinutes = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
+                    
+                    const happinessToRegen = elapsedMinutes * (2 / 60); // 2 happiness per hour
+    
+                    if (happinessToRegen > 0) {
+                        const newHappiness = Math.min(100, (villageData.happiness || 0) + happinessToRegen);
+                        if (newHappiness > villageData.happiness) {
+                            transaction.update(playerVillageRef, {
+                                happiness: newHappiness,
+                                happinessLastUpdated: serverTimestamp()
+                            });
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error regenerating village happiness:", error);
             }
-        }
-    }, [village, worldId, currentUser]);
+        }, 60000); // Run every minute
+    
+        return () => clearInterval(happinessRegenInterval);
+    }, [worldId, village?.id, currentUser]);
 
     const getVillageProductionRate = (level) => ({ wood: level * 100, stone: level * 100, silver: Math.floor(level * 50) });
     const getVillageMaxCapacity = (level) => ({ wood: 1000 + (level - 1) * 500, stone: 1000 + (level - 1) * 500, silver: 1000 + (level - 1) * 500 });
