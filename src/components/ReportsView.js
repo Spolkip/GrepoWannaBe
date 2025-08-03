@@ -1,13 +1,15 @@
+// src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
+import { useGame } from '../contexts/GameContext'; // Import useGame
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
 
-// Dynamically import all images from the images and its subfolders
+// (Image import logic remains the same)
 const images = {};
 const imageContexts = [
     require.context('../images', false, /\.(png|jpe?g|svg)$/),
@@ -25,8 +27,10 @@ imageContexts.forEach(context => {
     });
 });
 
+
 const ReportsView = ({ onClose }) => {
     const { currentUser } = useAuth();
+    const { worldId } = useGame(); // Get worldId from context
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
     const [activeTab, setActiveTab] = useState('Combat');
@@ -39,23 +43,25 @@ const ReportsView = ({ onClose }) => {
     };
 
     useEffect(() => {
-        if (!currentUser) return;
-        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), orderBy('timestamp', 'desc'));
+        if (!currentUser || !worldId) return;
+        // #comment Update query to be world-specific
+        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports'), orderBy('timestamp', 'desc'));
         const unsubscribe = onSnapshot(reportsQuery, (snapshot) => {
             const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setReports(reportsData);
         });
         return () => unsubscribe();
-    }, [currentUser]);
+    }, [currentUser, worldId]);
 
     useEffect(() => {
-        if (!currentUser || reports.length === 0) return;
+        if (!currentUser || !worldId || reports.length === 0) return;
         const unreadReports = reports.filter(report => !report.read);
         if (unreadReports.length > 0) {
             unreadReports.forEach(async (report) => {
                 if (report.id) {
                     try {
-                        const reportRef = doc(db, 'users', currentUser.uid, 'reports', report.id);
+                        // #comment Update path to be world-specific
+                        const reportRef = doc(db, 'users', currentUser.uid, 'worlds', worldId, 'reports', report.id);
                         await updateDoc(reportRef, { read: true });
                     } catch (error) {
                         console.error(`Failed to mark report ${report.id} as read:`, error);
@@ -63,18 +69,20 @@ const ReportsView = ({ onClose }) => {
                 }
             });
         }
-    }, [reports, currentUser]);
+    }, [reports, currentUser, worldId]);
 
     const handleSelectReport = async (report) => {
         setSelectedReport(report);
         if (!report.read) {
-            const reportRef = doc(db, 'users', currentUser.uid, 'reports', report.id);
+            // #comment Update path to be world-specific
+            const reportRef = doc(db, 'users', currentUser.uid, 'worlds', worldId, 'reports', report.id);
             await updateDoc(reportRef, { read: true });
         }
     };
 
     const handleDeleteReport = async (reportId) => {
-        const reportRef = doc(db, 'users', currentUser.uid, 'reports', reportId);
+        // #comment Update path to be world-specific
+        const reportRef = doc(db, 'users', currentUser.uid, 'worlds', worldId, 'reports', reportId);
         await deleteDoc(reportRef);
         if (selectedReport && selectedReport.id === reportId) {
             setSelectedReport(null);
@@ -86,6 +94,7 @@ const ReportsView = ({ onClose }) => {
         setSelectedReport(null);
     };
 
+    // (Rendering logic remains the same, no changes needed there)
     const getReportTitleColor = (report) => {
         switch (report.type) {
             case 'attack':

@@ -1,10 +1,11 @@
+// src/components/messaging/MessagesView.js
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../firebase/config';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { parseBBCode } from '../../utils/bbcodeParser';
-import './MessagesView.css'; // Import the new CSS file
+import './MessagesView.css';
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
@@ -18,7 +19,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser || !worldId) return;
 
         const conversationsQuery = query(
             collection(db, 'worlds', worldId, 'conversations'),
@@ -27,6 +28,8 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
 
         const unsubscribe = onSnapshot(conversationsQuery, (snapshot) => {
             const convos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // #comment Sort conversations by the most recent message
+            convos.sort((a, b) => (b.lastMessage?.timestamp?.toDate() || 0) - (a.lastMessage?.timestamp?.toDate() || 0));
             setConversations(convos);
         });
 
@@ -51,9 +54,16 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                 setMessages(msgs);
             });
 
+            // #comment Mark conversation as read
+            const convoRef = doc(db, 'worlds', worldId, 'conversations', selectedConversation.id);
+            updateDoc(convoRef, {
+                readBy: arrayUnion(currentUser.uid)
+            });
+
+
             return () => unsubscribe();
         }
-    }, [selectedConversation, worldId]);
+    }, [selectedConversation, worldId, currentUser.uid]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,8 +78,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         if (newMessage.trim() === '' || (!selectedConversation && !newRecipient)) return;
 
         let conversationId = selectedConversation?.id;
-        // Removed: let participants = selectedConversation?.participants;
-
+        
         if (isComposing) {
             const recipientQuery = query(collection(db, 'users'), where('username', '==', newRecipient));
             const recipientSnapshot = await getDocs(recipientQuery);
@@ -79,17 +88,22 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             }
             const recipientData = recipientSnapshot.docs[0].data();
             const recipientId = recipientSnapshot.docs[0].id;
+            
+            if (recipientId === currentUser.uid) {
+                alert("You cannot send a message to yourself.");
+                return;
+            }
 
             const convoQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
-                where('participants', '==', [currentUser.uid, recipientId].sort())
+                where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
             );
             const convoSnapshot = await getDocs(convoQuery);
 
             if (convoSnapshot.empty) {
                 const newConvoRef = doc(collection(db, 'worlds', worldId, 'conversations'));
                 await setDoc(newConvoRef, {
-                    participants: [currentUser.uid, recipientId].sort(),
+                    participants: [currentUser.uid, recipientId],
                     participantUsernames: {
                         [currentUser.uid]: userProfile.username,
                         [recipientId]: recipientData.username,
@@ -105,7 +119,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             } else {
                 conversationId = convoSnapshot.docs[0].id;
             }
-            // Removed: participants = [currentUser.uid, recipientId];
         }
 
         const convoRef = doc(db, 'worlds', worldId, 'conversations', conversationId);
@@ -116,14 +129,14 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             timestamp: serverTimestamp(),
         });
 
-        await setDoc(convoRef, {
+        await updateDoc(convoRef, {
             lastMessage: {
                 text: newMessage,
                 senderId: currentUser.uid,
                 timestamp: serverTimestamp(),
             },
             readBy: [currentUser.uid],
-        }, { merge: true });
+        });
 
         setNewMessage('');
         if (isComposing) {
@@ -134,10 +147,23 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         }
     };
 
-    const handleCompose = (recipientId = null, recipientUsername = null) => {
+    const handleCompose = async (recipientId = null, recipientUsername = null) => {
+        if (recipientId && recipientUsername) {
+            // #comment Check if a conversation already exists
+            const convoQuery = query(
+                collection(db, 'worlds', worldId, 'conversations'),
+                where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
+            );
+            const convoSnapshot = await getDocs(convoQuery);
+            if (!convoSnapshot.empty) {
+                setSelectedConversation({ id: convoSnapshot.docs[0].id, ...convoSnapshot.docs[0].data() });
+                setIsComposing(false);
+                return;
+            }
+        }
         setSelectedConversation(null);
         setIsComposing(true);
-        if (recipientId && recipientUsername) {
+        if (recipientUsername) {
             setNewRecipient(recipientUsername);
         }
     };
@@ -175,16 +201,18 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                             </button>
                         </div>
                         <ul className="overflow-y-auto">
-                            {conversations.map(convo => (
+                            {conversations.map(convo => {
+                                const isUnread = convo.lastMessage?.senderId !== currentUser.uid && !convo.readBy.includes(currentUser.uid);
+                                return (
                                 <li
                                     key={convo.id}
-                                    className={`papyrus-list-item ${selectedConversation?.id === convo.id ? 'selected' : ''}`}
+                                    className={`papyrus-list-item ${selectedConversation?.id === convo.id ? 'selected' : ''} ${isUnread ? 'font-bold' : ''}`}
                                     onClick={() => handleSelectConversation(convo)}
                                 >
-                                    <p className="font-bold font-title text-lg">{getOtherParticipant(convo)}</p>
+                                    <p className="font-title text-lg">{getOtherParticipant(convo)}</p>
                                     <p className="text-sm truncate">{convo.lastMessage?.text}</p>
                                 </li>
-                            ))}
+                            )})}
                         </ul>
                     </div>
                     

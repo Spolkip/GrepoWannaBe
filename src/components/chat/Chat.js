@@ -1,3 +1,4 @@
+// src/components/chat/Chat.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';

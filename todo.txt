@@ -1,7 +1,8 @@
 - make everything per world except the account name 
+- add the support of two cities
+- add a gameplay behind getting cities
 - add quests that gives rewards
 - add special buildings
-- add a gameplay behind getting cities
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
 - add heroes that can do skills on battle and also give buffs
 - if a player has a second town in the island to give get from the village 20% more resources per demand
