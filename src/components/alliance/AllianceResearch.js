@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { useAuth } from '../../contexts/AuthContext';
 import allianceResearch from '../../gameData/allianceResearch.json';
 
 const AllianceResearch = () => {
-    const { playerAlliance, donateToAllianceResearch } = useGame();
+    const { playerAlliance, donateToAllianceResearch, recommendAllianceResearch } = useGame();
+    const { currentUser } = useAuth();
     const [donation, setDonation] = useState({ wood: 0, stone: 0, silver: 0 });
     const [selectedResearch, setSelectedResearch] = useState(null);
+    const [message, setMessage] = useState('');
+
+    const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+    const rank = playerAlliance.ranks.find(r => r.id === member?.rank);
+    const canRecommend = rank?.permissions?.recommendResearch;
 
     const handleDonationChange = (e) => {
         setDonation({ ...donation, [e.target.name]: parseInt(e.target.value) || 0 });
@@ -16,10 +23,22 @@ const AllianceResearch = () => {
         setDonation({ wood: 0, stone: 0, silver: 0 });
     };
 
+    const handleRecommend = async (researchId) => {
+        try {
+            await recommendAllianceResearch(researchId);
+            setMessage('Research recommendation updated!');
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            setMessage(`Error: ${error.message}`);
+            setTimeout(() => setMessage(''), 3000);
+        }
+    };
+
     return (
         <div>
             <h3 className="text-xl font-bold mb-2">Alliance Research</h3>
-            <div className="grid grid-cols-2 gap-4">
+            {message && <p className="text-center text-yellow-300 mb-4">{message}</p>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(allianceResearch).map(([id, research]) => {
                     const level = playerAlliance.research[id]?.level || 0;
                     const progress = playerAlliance.research[id]?.progress || {};
@@ -28,12 +47,13 @@ const AllianceResearch = () => {
                         stone: Math.floor(research.baseCost.stone * Math.pow(research.costMultiplier, level)),
                         silver: Math.floor(research.baseCost.silver * Math.pow(research.costMultiplier, level)),
                     };
+                    const isRecommended = playerAlliance.recommendedResearch === id;
 
                     return (
-                        <div key={id} className="p-4 bg-gray-700 rounded">
+                        <div key={id} className={`p-4 rounded-lg transition-all ${isRecommended ? 'bg-yellow-800/30 border-2 border-yellow-500' : 'bg-gray-700'}`}>
                             <h4 className="font-bold">{research.name} (Level {level})</h4>
                             <p className="text-sm text-gray-400">{research.description}</p>
-                            {level < research.maxLevel && (
+                            {level < research.maxLevel ? (
                                 <>
                                     <div className="my-2">
                                         <p>Progress:</p>
@@ -41,8 +61,17 @@ const AllianceResearch = () => {
                                         <p className="text-xs">Stone: {progress.stone || 0} / {cost.stone}</p>
                                         <p className="text-xs">Silver: {progress.silver || 0} / {cost.silver}</p>
                                     </div>
-                                    <button onClick={() => setSelectedResearch(id)} className="btn btn-sm btn-primary">Donate</button>
+                                    <div className="flex gap-2 mt-2">
+                                        <button onClick={() => setSelectedResearch(id)} className="btn btn-sm btn-primary">Donate</button>
+                                        {canRecommend && (
+                                            <button onClick={() => handleRecommend(id)} className="btn btn-sm btn-secondary">
+                                                {isRecommended ? 'Recommended' : 'Recommend'}
+                                            </button>
+                                        )}
+                                    </div>
                                 </>
+                            ) : (
+                                <p className="text-green-400 font-bold mt-2">Max Level Reached</p>
                             )}
                         </div>
                     );

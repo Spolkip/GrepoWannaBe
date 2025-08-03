@@ -42,7 +42,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
 
     // #comment Generates a comma-separated string of permissions for the tooltip
     const getPermissionsText = (permissions) => {
-        const enabledPermissions = Object.entries(permissions)
+        const enabledPermissions = Object.entries(permissions || {})
             .filter(([, value]) => value)
             .map(([key]) => key.replace(/([A-Z])/g, ' $1').toLowerCase());
         

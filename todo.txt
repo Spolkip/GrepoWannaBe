@@ -1,5 +1,3 @@
-- add alliance settings and a tab to see invited people and be able to revoke the invite
-- leader can recommend research
 - add seasons and weather
 - add winds
 - make the island to generate random sizes but smaller

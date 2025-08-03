@@ -2,6 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc, arrayUnion, arrayRemove, writeBatch } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
+import allianceResearch from '../gameData/allianceResearch.json';
 
 const GameContext = createContext();
 
@@ -131,6 +132,36 @@ export const GameProvider = ({ children, worldId }) => {
         } catch (error) {
             alert(`Donation failed: ${error.message}`);
             console.error("Donation error:", error);
+        }
+    };
+
+    const recommendAllianceResearch = async (researchId) => {
+        if (!playerAlliance || !currentUser || !userProfile) return;
+    
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        if (!member) throw new Error("You are not a member of this alliance.");
+    
+        const rank = playerAlliance.ranks.find(r => r.id === member.rank);
+        if (!rank || !rank.permissions.recommendResearch) {
+            throw new Error("You do not have permission to recommend research.");
+        }
+    
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const eventsRef = collection(allianceRef, 'events');
+    
+        try {
+            await runTransaction(db, async (transaction) => {
+                transaction.update(allianceRef, { recommendedResearch: researchId });
+                const researchName = allianceResearch[researchId]?.name || 'a research';
+                transaction.set(doc(eventsRef), {
+                    type: 'research_recommendation',
+                    text: `${userProfile.username} has recommended focusing on ${researchName}.`,
+                    timestamp: serverTimestamp(),
+                });
+            });
+        } catch (error) {
+            console.error("Error recommending research:", error);
+            throw error; // Re-throw to be caught in the component
         }
     };
 
@@ -718,6 +749,7 @@ export const GameProvider = ({ children, worldId }) => {
         disbandAlliance,
         joinOpenAlliance,
         handleApplication,
+        recommendAllianceResearch,
     };
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
