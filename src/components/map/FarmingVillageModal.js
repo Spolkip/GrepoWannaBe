@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, serverTimestamp, onSnapshot, updateDoc, collection } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, onSnapshot, collection } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { resolveVillageRetaliation } from '../../utils/combat';
@@ -131,10 +131,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     const getVillageMaxCapacity = (level) => ({ wood: 1000 + (level - 1) * 500, stone: 1000 + (level - 1) * 500, silver: 1000 + (level - 1) * 500 });
 
     const demandOptions = [
-        { name: '5 minutes', duration: 300, multiplier: 0.125, happinessCost: 2 },
-        { name: '40 minutes', duration: 2400, multiplier: 1, happinessCost: 5 },
-        { name: '2 hours', duration: 7200, multiplier: 3, happinessCost: 10 },
-        { name: '4 hours', duration: 14400, multiplier: 4, happinessCost: 15 },
+        { name: '5 minutes', duration: 300, multiplier: 0.125, happinessCost: 0 },
+        { name: '40 minutes', duration: 2400, multiplier: 1, happinessCost: 2 },
+        { name: '2 hours', duration: 7200, multiplier: 3, happinessCost: 5 },
+        { name: '4 hours', duration: 14400, multiplier: 4, happinessCost: 10 },
     ];
 
     useEffect(() => {

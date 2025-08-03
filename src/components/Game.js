@@ -5,7 +5,7 @@ import CityView from './CityView';
 import MapView from './MapView';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { resolveCombat, resolveScouting, getVillageTroops, resolveVillageRetaliation } from '../utils/combat';
+import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import LoadingScreen from './shared/LoadingScreen';
 import Chat from './chat/Chat';
 import { useCityState } from '../hooks/useCityState';
@@ -126,7 +126,7 @@ const Game = ({ onBackToWorlds }) => {
                 wounded: movement.wounded || {},
                 read: false,
             };
-            batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), returnReport);
+            batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), returnReport);
             batch.update(originOwnerRef, { units: newUnits, resources: newResources, wounded: newWounded });
             batch.delete(movementDoc.ref);
             console.log(`Movement ${movement.id} processed and deleted.`);
@@ -150,7 +150,7 @@ const Game = ({ onBackToWorlds }) => {
                             outcome: { message: 'The village was no longer there.' },
                             read: false,
                         };
-                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), report);
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
                         break;
                     }
 
@@ -180,7 +180,7 @@ const Game = ({ onBackToWorlds }) => {
                         defender: { villageName: villageData.name, troops: villageTroops, losses: result.defenderLosses },
                         read: false,
                     };
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
 
                     const survivingAttackers = {};
                     let anySurvivors = false;
@@ -224,7 +224,7 @@ const Game = ({ onBackToWorlds }) => {
                             outcome: { message: 'The ruins crumbled into the sea before your fleet arrived.' },
                             read: false,
                         };
-                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), report);
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
                         break;
                     }
 
@@ -270,7 +270,7 @@ const Game = ({ onBackToWorlds }) => {
                         reward: result.attackerWon ? ruinData.researchReward : null,
                         read: false,
                     };
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
 
                     const survivingAttackers = {};
                     let anySurvivors = false;
@@ -341,8 +341,8 @@ const Game = ({ onBackToWorlds }) => {
                         outcome: { ...result, attackerWon: !result.attackerWon } 
                     };
 
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
-                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), defenderReport);
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), attackerReport);
+                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), defenderReport);
 
                     const survivingAttackers = {};
                     let anySurvivors = false;
@@ -388,7 +388,7 @@ const Game = ({ onBackToWorlds }) => {
                             targetOwnerUsername: movement.ownerUsername,
                             read: false, 
                         };
-                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), scoutReport);
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), scoutReport);
                     } else {
                         const failedScoutAttackerReport = {
                             type: 'scout',
@@ -398,7 +398,7 @@ const Game = ({ onBackToWorlds }) => {
                             message: result.message,
                             read: false,
                         };
-                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), failedScoutAttackerReport);
+                        batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), failedScoutAttackerReport);
 
                         const newDefenderCave = { ...targetGameState.cave, silver: (targetGameState.cave?.silver || 0) + result.silverGained };
                         batch.update(targetOwnerRef, { cave: newDefenderCave });
@@ -411,7 +411,7 @@ const Game = ({ onBackToWorlds }) => {
                             silverGained: result.silverGained,
                             read: false,
                         };
-                        batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), spyCaughtReport);
+                        batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), spyCaughtReport);
                     }
                     batch.delete(movementDoc.ref);
                     break;
@@ -429,10 +429,10 @@ const Game = ({ onBackToWorlds }) => {
                     batch.update(targetOwnerRef, { units: newTargetUnits });
 
                     const reinforceReport = { type: 'reinforce', title: `Reinforcement to ${targetGameState.cityName}`, timestamp: serverTimestamp(), units: movement.units, read: false };
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), reinforceReport);
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), reinforceReport);
 
                     const arrivalReport = { type: 'reinforce', title: `Reinforcements from ${originGameState.cityName}`, timestamp: serverTimestamp(), units: movement.units, read: false };
-                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
+                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), arrivalReport);
 
                     batch.delete(movementDoc.ref);
                     break;
@@ -450,10 +450,10 @@ const Game = ({ onBackToWorlds }) => {
                     batch.update(targetOwnerRef, { resources: newTargetResources });
 
                     const tradeReport = { type: 'trade', title: `Trade to ${targetGameState.cityName}`, timestamp: serverTimestamp(), resources: movement.resources, read: false };
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), tradeReport);
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), tradeReport);
 
                     const arrivalReport = { type: 'trade', title: `Trade from ${originGameState.cityName}`, timestamp: serverTimestamp(), resources: movement.resources, read: false };
-                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
+                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/reports`)), arrivalReport);
 
                     batch.delete(movementDoc.ref);
                     break;

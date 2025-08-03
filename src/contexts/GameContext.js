@@ -197,7 +197,7 @@ export const GameProvider = ({ children, worldId }) => {
     
             const conversationQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
-                where('participants', 'in', [[currentUser.uid, targetUserId], [targetUserId, currentUser.uid]])
+                where('participants', '==', [currentUser.uid, targetUserId].sort())
             );
             const conversationSnapshot = await getDocs(conversationQuery);
     

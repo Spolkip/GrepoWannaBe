@@ -1,5 +1,5 @@
 // src/components/messaging/MessagesView.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,6 +17,27 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [newRecipient, setNewRecipient] = useState('');
     const [isComposing, setIsComposing] = useState(false);
     const messagesEndRef = useRef(null);
+
+    const handleCompose = useCallback(async (recipientId = null, recipientUsername = null) => {
+        if (recipientId && recipientUsername) {
+            // #comment Check if a conversation already exists
+            const convoQuery = query(
+                collection(db, 'worlds', worldId, 'conversations'),
+                where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
+            );
+            const convoSnapshot = await getDocs(convoQuery);
+            if (!convoSnapshot.empty) {
+                setSelectedConversation({ id: convoSnapshot.docs[0].id, ...convoSnapshot.docs[0].data() });
+                setIsComposing(false);
+                return;
+            }
+        }
+        setSelectedConversation(null);
+        setIsComposing(true);
+        if (recipientUsername) {
+            setNewRecipient(recipientUsername);
+        }
+    }, [currentUser, worldId]);
 
     useEffect(() => {
         if (!currentUser || !worldId) return;
@@ -40,7 +61,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         if (initialRecipientId && initialRecipientUsername) {
             handleCompose(initialRecipientId, initialRecipientUsername);
         }
-    }, [initialRecipientId, initialRecipientUsername]);
+    }, [initialRecipientId, initialRecipientUsername, handleCompose]);
 
     useEffect(() => {
         if (selectedConversation) {
@@ -144,27 +165,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             setNewRecipient('');
             const newConvo = await getDoc(convoRef);
             setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
-        }
-    };
-
-    const handleCompose = async (recipientId = null, recipientUsername = null) => {
-        if (recipientId && recipientUsername) {
-            // #comment Check if a conversation already exists
-            const convoQuery = query(
-                collection(db, 'worlds', worldId, 'conversations'),
-                where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
-            );
-            const convoSnapshot = await getDocs(convoQuery);
-            if (!convoSnapshot.empty) {
-                setSelectedConversation({ id: convoSnapshot.docs[0].id, ...convoSnapshot.docs[0].data() });
-                setIsComposing(false);
-                return;
-            }
-        }
-        setSelectedConversation(null);
-        setIsComposing(true);
-        if (recipientUsername) {
-            setNewRecipient(recipientUsername);
         }
     };
 

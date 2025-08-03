@@ -132,8 +132,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     };
 
     useEffect(() => {
-        if (!currentUser || !worldId) return;
-        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports'), where('read', '==', false));
+        if (!currentUser) return;
+        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), where('read', '==', false));
         const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
             setUnreadReportsCount(snapshot.size);
         });
@@ -360,7 +360,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             outcome: { message: casterMessage },
             read: false,
         };
-        batch.set(doc(collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports')), casterReport);
+        batch.set(doc(collection(db, `users/${currentUser.uid}/reports`)), casterReport);
 
         if (!isSelfCast) {
             const targetReport = {
@@ -370,7 +370,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 outcome: { message: spellEffectMessage, from: playerCity.cityName },
                 read: false,
             };
-            batch.set(doc(collection(db, `users/${targetOwnerId}/worlds/${worldId}/reports`)), targetReport);
+            batch.set(doc(collection(db, `users/${targetOwnerId}/reports`)), targetReport);
         }
 
         try {
