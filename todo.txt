@@ -1,6 +1,4 @@
-- add seasons and weather
 - add winds
-- make the island to generate random sizes but smaller
 - add the option on villages to attack them for more resources but there will be a chance to lose the village and get attacked back
 - add the ui to glow and show it on the movement tab when you are getting attacked
 - add creation of ranks of the guild and select permissions of the leader

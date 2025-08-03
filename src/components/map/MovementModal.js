@@ -22,9 +22,51 @@ imageContexts.forEach(context => {
     });
 });
 
+// #comment Displays the current weather and wind conditions
+const WindInfo = ({ weather }) => {
+    const [windRange, setWindRange] = useState('');
+    const weatherIcons = {
+        Clear: '☀️',
+        Rainy: '🌧️',
+        Windy: '💨',
+        Foggy: '🌫️',
+        Stormy: '⛈️',
+    };
+
+    useEffect(() => {
+        let range = '';
+        switch (weather) {
+            case 'Clear':
+                range = '0-3 knots';
+                break;
+            case 'Windy':
+                range = '3-6 knots';
+                break;
+            case 'Rainy':
+                range = '6-9 knots';
+                break;
+            case 'Stormy':
+                range = '9-10 knots';
+                break;
+            default:
+                range = 'N/A';
+                break;
+        }
+        setWindRange(range);
+    }, [weather]);
+
+    return (
+        <div className="text-gray-400 text-sm mt-2 flex items-center justify-center">
+            <span>{weatherIcons[weather]} {weather} | Wind: {windRange}</span>
+        </div>
+    );
+};
+
+
 // MovementModal component allows players to send units or resources for various actions.
 const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlayerUnits, playerResources: initialPlayerResources, travelTimeInfo, onSend, onClose, setMessage }) => {
-    const { gameState } = useGame();
+    const { gameState, worldState } = useGame();
+    const [windSpeed, setWindSpeed] = useState(0);
 
     const currentUnits = initialPlayerUnits || gameState?.units || {};
     const currentResources = initialPlayerResources || gameState?.resources || {};
@@ -36,6 +78,22 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
         mid: '',
         back: ''
     });
+
+    useEffect(() => {
+        if (worldState?.weather) {
+            let min = 0, max = 0;
+            switch (worldState.weather) {
+                case 'Clear': min = 0; max = 3; break;
+                case 'Windy': min = 3; max = 6; break;
+                case 'Rainy': min = 6; max = 9; break;
+                case 'Stormy': min = 9; max = 10; break;
+                default: break;
+            }
+            // #comment Calculate a random wind speed within the weather's range for this specific movement
+            setWindSpeed(Math.random() * (max - min) + min);
+        }
+    }, [worldState?.weather]);
+
 
     const transportCapacity = useMemo(() => {
         let capacity = 0;
@@ -107,9 +165,16 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
 
     const finalTravelTime = useMemo(() => {
         if (!travelTimeInfo?.distance || !slowestSpeed) return 'N/A';
-        const timeInSeconds = calculateTravelTime(travelTimeInfo.distance, slowestSpeed);
+
+        const hasLandUnits = Object.keys(selectedUnits).some(unitId => unitConfig[unitId]?.type === 'land' && selectedUnits[unitId] > 0);
+        const hasNavalUnits = Object.keys(selectedUnits).some(unitId => unitConfig[unitId]?.type === 'naval' && selectedUnits[unitId] > 0);
+        const unitTypes = [];
+        if (hasLandUnits) unitTypes.push('land');
+        if (hasNavalUnits) unitTypes.push('naval');
+
+        const timeInSeconds = calculateTravelTime(travelTimeInfo.distance, slowestSpeed, mode, worldState, unitTypes, windSpeed);
         return formatTravelTime(timeInSeconds);
-    }, [slowestSpeed, travelTimeInfo?.distance]);
+    }, [slowestSpeed, travelTimeInfo?.distance, mode, worldState, selectedUnits, windSpeed]);
 
     const handleSend = () => {
         let totalUnitsSelected = Object.values(selectedUnits).reduce((sum, count) => sum + count, 0);
@@ -350,6 +415,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                     {renderContent()}
                 </div>
                 <p className="text-gray-400 mt-4">Travel Time: <span className="font-bold text-yellow-300">{finalTravelTime}</span></p>
+                {worldState?.weather && <WindInfo weather={worldState.weather} />}
                 <button onClick={handleSend} className="btn btn-primary w-full py-2 mt-6">
                     Send
                 </button>

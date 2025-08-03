@@ -1,3 +1,4 @@
+// src/components/MapView.js
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -491,6 +492,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                             availablePopulation={availablePopulation} 
                             maxPopulation={maxPopulation} 
                             happiness={happiness}
+                            worldState={worldState}
                         />
                         <SideInfoPanel 
                             gameState={gameState} 

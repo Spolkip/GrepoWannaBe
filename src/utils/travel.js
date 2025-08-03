@@ -1,3 +1,4 @@
+// src/utils/travel.js
 /**
  * Calculates the Euclidean distance between two points (cities).
  * @param {object} cityA - The starting city with x, y coordinates.
@@ -12,13 +13,16 @@ export function calculateDistance(cityA, cityB) {
 }
 
 /**
- * Calculates the travel time in seconds based on distance, speed, and mode.
- * @param {number} distance - The distance to travel in map tiles.
- * @param {number} speed - The speed of the unit in tiles per hour.
- * @param {string|null} mode - The type of movement (e.g., 'scout', 'trade').
+ * Calculates the travel time in seconds based on distance, speed, and conditions.
+ * @param {number} distance - The distance to travel.
+ * @param {number} speed - The base speed of the slowest unit.
+ * @param {string|null} mode - The type of movement.
+ * @param {object|null} worldState - The current state of the world (for season/weather).
+ * @param {Array<string>} unitTypes - An array of unit types in the army ('land', 'naval').
+ * @param {number} windSpeed - A random wind speed value (0-10) based on weather.
  * @returns {number} The travel time in seconds.
  */
-export function calculateTravelTime(distance, speed, mode = null) {
+export function calculateTravelTime(distance, speed, mode = null, worldState = null, unitTypes = [], windSpeed = 0) {
     // #comment Special fast calculation for scout and trade modes
     if (mode === 'scout' || mode === 'trade') {
         const minTime = 15; // 15 seconds minimum
@@ -27,12 +31,58 @@ export function calculateTravelTime(distance, speed, mode = null) {
         return Math.max(minTime, Math.min(maxTime, distance * timePerTile));
     }
 
+    let modifiedSpeed = speed;
+    const hasLand = unitTypes.includes('land');
+    const hasNaval = unitTypes.includes('naval');
+
+    if (worldState) {
+        // #comment Season effects on LAND units
+        if (hasLand) {
+            switch(worldState.season) {
+                case 'Summer':
+                    modifiedSpeed *= 1.1; // 10% faster on dry summer roads
+                    break;
+                case 'Winter':
+                    modifiedSpeed *= 0.8; // 20% slower in snow/mud
+                    break;
+                default: // Spring, Autumn
+                    break;
+            }
+        }
+
+        // #comment Weather effects on units
+        if (hasNaval) {
+            // #comment Wind speed modifier for naval units.
+            // A speed of 5 is neutral. Lower is a headwind (slower), higher is a tailwind (faster).
+            // Max headwind (0 knots) = -25% speed. Max tailwind (10 knots) = +25% speed.
+            const windModifier = 1 + ((windSpeed - 5) / 10) * 0.5; // Ranges from 0.75 to 1.25
+            modifiedSpeed *= windModifier;
+        }
+
+        switch(worldState.weather) {
+            case 'Rainy':
+                if (hasLand) modifiedSpeed *= 0.9; // 10% slower on muddy ground
+                break;
+            case 'Stormy':
+                // #comment Storms have a general large penalty on top of wind effects
+                if (hasNaval) modifiedSpeed *= 0.8; // Additional 20% penalty
+                if (hasLand) modifiedSpeed *= 0.8;
+                break;
+            case 'Foggy':
+                modifiedSpeed *= 0.75; // 25% slower for everyone due to low visibility
+                break;
+            default: // Clear, Windy
+                break;
+        }
+    }
+
     // Regular calculation for other movements
-    if (speed <= 0) return Infinity;
+    if (modifiedSpeed <= 0) return Infinity;
     const worldSpeedFactor = 5;
-    const hours = distance / (speed * worldSpeedFactor);
+    const hours = distance / (modifiedSpeed * worldSpeedFactor);
     return hours * 3600; // Convert hours to seconds
 }
+
 
 /**
  * Formats a duration in seconds into a readable HH:MM:SS format.

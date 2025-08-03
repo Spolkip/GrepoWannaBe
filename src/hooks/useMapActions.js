@@ -11,7 +11,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCache) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, gameState, playerCity, setGameState } = useGame();
+    const { worldId, gameState, playerCity, setGameState, worldState } = useGame();
     const [message, setMessage] = useState('');
     const [travelTimeInfo, setTravelTimeInfo] = useState(null);
 
@@ -61,6 +61,10 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         if (isCrossIsland && hasLandUnits && !hasNavalUnits) { setMessage("Ground troops cannot travel across the sea without transport ships."); return; }
         if (isCrossIsland && hasLandUnits && totalTransportCapacity < totalLandUnitsToSend) { setMessage(`Not enough transport ship capacity. Need ${totalLandUnitsToSend - totalTransportCapacity} more capacity.`); return; }
 
+        const unitTypes = [];
+        if (hasLandUnits) unitTypes.push('land');
+        if (hasNavalUnits) unitTypes.push('naval');
+
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
         const distance = calculateDistance(playerCity, targetCity);
@@ -75,7 +79,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
             : 10; // Fallback speed
 
-        const travelSeconds = calculateTravelTime(distance, slowestSpeed, mode);
+        const travelSeconds = calculateTravelTime(distance, slowestSpeed, mode, worldState, unitTypes);
         const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
         const cancellableUntil = new Date(Date.now() + 30 * 1000); // 30 seconds to cancel
 
@@ -181,7 +185,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             console.error("Error sending movement:", error);
             setMessage(`Failed to send movement: ${error.message}`);
         }
-    }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage]);
+    }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage, worldState]);
     
     // handles the cancellation of a movement
     const handleCancelMovement = useCallback(async (movementId) => {

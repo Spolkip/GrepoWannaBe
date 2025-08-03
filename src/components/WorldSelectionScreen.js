@@ -1,3 +1,4 @@
+// src/components/WorldSelectionScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, doc, writeBatch, serverTimestamp, getDoc, deleteDoc, query, limit } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
@@ -109,7 +110,11 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 islands,
                 width: worldWidth,
                 height: worldHeight,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                season: 'Spring',
+                weather: 'Clear',
+                seasonLastUpdate: serverTimestamp(),
+                weatherLastUpdate: serverTimestamp()
             };
 
             await writeBatch(db).set(worldDocRef, worldData).commit();
