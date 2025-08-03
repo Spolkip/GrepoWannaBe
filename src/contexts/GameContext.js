@@ -322,6 +322,10 @@ export const GameProvider = ({ children, worldId }) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
             throw new Error("You don't have permission to do this.");
         }
+        // #comment Prevent sending a request to your own alliance
+        if (playerAlliance.tag.toUpperCase() === targetAllianceId.toUpperCase()) {
+            throw new Error("You cannot send an ally request to your own alliance.");
+        }
         if (playerAlliance.diplomacy?.allies?.some(a => a.id === targetAllianceId)) {
             throw new Error("You are already allied with this alliance.");
         }

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 
 const AllianceRanks = ({ alliance, isLeader }) => {
-    const { createAllianceRank, updateAllianceMemberRank, currentUser } = useGame();
+    const { createAllianceRank, updateAllianceMemberRank } = useGame();
     const [newRankName, setNewRankName] = useState('');
     const [newRankPermissions, setNewRankPermissions] = useState({
         manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false
@@ -40,11 +40,16 @@ const AllianceRanks = ({ alliance, isLeader }) => {
         updateAllianceMemberRank(memberId, newRankId);
     };
 
+    // #comment Generates a comma-separated string of permissions for the tooltip
     const getPermissionsText = (permissions) => {
-        return Object.entries(permissions)
+        const enabledPermissions = Object.entries(permissions)
             .filter(([, value]) => value)
-            .map(([key]) => key.replace(/([A-Z])/g, ' $1').toLowerCase())
-            .join(', ');
+            .map(([key]) => key.replace(/([A-Z])/g, ' $1').toLowerCase());
+        
+        if (enabledPermissions.length === 0) {
+            return 'No special permissions.';
+        }
+        return `Permissions: ${enabledPermissions.join(', ')}`;
     };
 
     const sortedMembers = useMemo(() => {
@@ -65,11 +70,8 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                     <h4 className="font-semibold text-lg mb-2">Current Ranks</h4>
                     <ul className="space-y-2">
                         {alliance.ranks.map(rank => (
-                            <li key={rank.id} className="bg-gray-700 p-2 rounded">
+                            <li key={rank.id} className="bg-gray-700 p-3 rounded" title={getPermissionsText(rank.permissions)}>
                                 <p className="font-bold">{rank.name}</p>
-                                <p className="text-sm text-gray-400">
-                                    {getPermissionsText(rank.permissions) || 'No special permissions.'}
-                                </p>
                             </li>
                         ))}
                     </ul>

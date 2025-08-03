@@ -5,7 +5,6 @@ import AllianceOverview from '../alliance/AllianceOverview';
 import AllianceMembers from '../alliance/AllianceMembers';
 import AllianceResearch from '../alliance/AllianceResearch';
 import AllianceDiplomacy from '../alliance/AllianceDiplomacy';
-import AllianceEvents from '../alliance/AllianceEvents';
 import AllianceSettings from '../alliance/AllianceSettings';
 import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
@@ -35,7 +34,6 @@ const AllianceModal = ({ onClose }) => {
             case 'members': return <AllianceMembers />;
             case 'research': return <AllianceResearch />;
             case 'diplomacy': return <AllianceDiplomacy />;
-            case 'events': return <AllianceEvents />;
             case 'settings': return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
             case 'invitations': return <AllianceInvitations alliance={playerAlliance} isLeader={isLeader} />;
             case 'ranks': return <AllianceRanks alliance={playerAlliance} isLeader={isLeader} />;
@@ -60,7 +58,6 @@ const AllianceModal = ({ onClose }) => {
                     <button onClick={() => setActiveTab('members')} className={activeTab === 'members' ? 'active' : ''}>Members</button>
                     <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
                     <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
-                    <button onClick={() => setActiveTab('events')} className={activeTab === 'events' ? 'active' : ''}>Events</button>
                     <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}>Properties</button>
                     {isLeader && (
                         <>

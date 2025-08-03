@@ -25,6 +25,12 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
 
+    // #comment For debugging: This will log the alliance data the component receives.
+    // #comment Check your browser's developer console on both accounts to see the difference.
+    if (slotData.ownerId !== currentUser.uid && slotData.alliance) {
+        console.log(`Rendering tile for ${slotData.cityName}. Your alliance data:`, playerAlliance);
+    }
+
     if (slotData.ownerId) {
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
@@ -32,15 +38,18 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             tooltipText = `Your City: ${slotData.cityName}`;
-        } else if (playerAlliance && cityAllianceTag) {
-            // #comment Check diplomacy status if the player and the city's owner are in alliances
+        } else if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
+            // #comment Safely check for diplomacy and allies/enemies arrays before checking them
+            const allies = playerAlliance.diplomacy?.allies || [];
+            const enemies = playerAlliance.diplomacy?.enemies || [];
+
             if (cityAllianceTag.toUpperCase() === playerAlliance.tag.toUpperCase()) {
                 slotClass = 'alliance-city'; // Your own alliance members
                 tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
-            } else if (playerAlliance.diplomacy?.allies?.some(ally => ally.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
+            } else if (allies.some(ally => ally && ally.tag && ally.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
                 slotClass = 'ally-city'; // Allied alliances
                 tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
-            } else if (playerAlliance.diplomacy?.enemies?.some(enemy => enemy.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
+            } else if (enemies.some(enemy => enemy && enemy.tag && enemy.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
                 slotClass = 'enemy-city'; // Enemy alliances
                 tooltipText = `Enemy: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
             } else {
