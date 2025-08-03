@@ -1,12 +1,22 @@
 // src/components/map/SidebarNav.js
 import React from 'react';
 
-const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard }) => {
+const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, isUnderAttack, incomingAttackCount }) => {
     return (
         <div className="sidebar">
             <h2 className="font-title text-2xl text-gray-200 mb-6 text-center">Menu</h2>
             <button onClick={onGoToCity} className="sidebar-button">City View</button>
-            <button onClick={onOpenMovements} className="sidebar-button">Movements</button>
+            <button 
+                onClick={onOpenMovements} 
+                className={`sidebar-button relative ${isUnderAttack ? 'glowing-attack' : ''}`}
+            >
+                Movements
+                {isUnderAttack && (
+                    <span className="absolute top-1 right-1 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {incomingAttackCount}
+                    </span>
+                )}
+            </button>
             <button 
                 onClick={onOpenReports} 
                 className={`sidebar-button relative ${unreadReportsCount > 0 ? 'glowing-border' : ''}`}

@@ -101,6 +101,55 @@ body {
     }
 }
 
+/* --- Glowing Effect for Attack Alert --- */
+.glowing-attack {
+    animation: glowing-attack-animation 1.5s infinite;
+    border: 1px solid transparent; /* Base border */
+}
+
+@keyframes glowing-attack-animation {
+    0% {
+        border-color: #ef4444; /* red-500 */
+        box-shadow: 0 0 5px #ef4444;
+    }
+    50% {
+        border-color: #f87171; /* red-400 */
+        box-shadow: 0 0 20px #f87171, 0 0 10px #f87171 inset;
+    }
+    100% {
+        border-color: #ef4444; /* red-500 */
+        box-shadow: 0 0 5px #ef4444;
+    }
+}
+
+/* --- Screen Glow for Attack Alert --- */
+.screen-glow-attack {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none; /* Allows clicks to pass through */
+    z-index: 9999;
+    animation: screen-glow-animation 1.5s infinite;
+    border: 4px solid transparent;
+}
+
+@keyframes screen-glow-animation {
+    0% {
+        border-color: rgba(239, 68, 68, 0.5); /* red-500 with opacity */
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+    50% {
+        border-color: rgba(248, 113, 113, 0.8); /* red-400 with opacity */
+        box-shadow: 0 0 40px rgba(248, 113, 113, 0.8), 0 0 20px rgba(248, 113, 113, 0.8) inset;
+    }
+    100% {
+        border-color: rgba(239, 68, 68, 0.5); /* red-500 with opacity */
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+}
+
 
 /* --- Map & Tile Styles --- */
 

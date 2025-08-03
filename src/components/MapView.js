@@ -101,10 +101,19 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         return gameState?.buildings ? calculateHappiness(gameState.buildings) : 0;
     }, [gameState?.buildings, calculateHappiness]);
     
-    // fix: Get market capacity to pass to modals
     const marketCapacity = useMemo(() => {
         return gameState?.buildings ? getMarketCapacity(gameState.buildings.market?.level) : 0;
     }, [gameState?.buildings, getMarketCapacity]);
+
+    const incomingAttackCount = useMemo(() => {
+        if (!movements || !playerCity) return 0;
+        return movements.filter(movement =>
+            (movement.type === 'attack' && movement.targetCityId === playerCity.id && movement.status === 'moving') ||
+            (movement.type === 'attack_village' && movement.targetVillageId && conqueredVillages[movement.targetVillageId] && movement.status === 'moving')
+        ).length;
+    }, [movements, playerCity, conqueredVillages]);
+
+    const isUnderAttack = incomingAttackCount > 0;
 
     const handleOpenAlliance = () => {
         if (playerAlliance) {
@@ -119,7 +128,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             await acceptAllianceInvitation(id);
         } else if (type === 'decline_invite') {
             alert("Invitation declined. (This will be fully implemented later)");
-            // #comment In the future, this would update the message or delete the invitation.
         }
     };
 
@@ -281,13 +289,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
 
         const batch = writeBatch(db);
 
-        // 1. Deduct favor from the caster
         const casterGameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const newWorship = { ...currentState.worship };
         newWorship[currentState.god] -= power.favorCost;
         batch.update(casterGameDocRef, { worship: newWorship });
 
-        // 2. Determine target
         const isSelfCast = !targetCity;
         const targetOwnerId = isSelfCast ? currentUser.uid : targetCity.ownerId;
         const targetGameDocRef = doc(db, `users/${targetOwnerId}/games`, worldId);
@@ -295,7 +301,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
 
         if (!targetGameSnap.exists()) {
             setMessage("Target city's game data not found.");
-            await batch.commit(); // Still commit the favor cost deduction
+            await batch.commit();
             setGameState({ ...gameState, worship: newWorship });
             return;
         }
@@ -304,7 +310,6 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         let spellEffectMessage = '';
         let casterMessage = '';
 
-        // 3. Apply spell effect
         switch (power.effect.type) {
             case 'add_resources':
             case 'add_multiple_resources': {
@@ -329,7 +334,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 break;
             }
             case 'damage_building': {
-                if (isSelfCast) break; // This spell should not be self-cast
+                if (isSelfCast) break;
                 const buildings = { ...targetGameState.buildings };
                 const buildingKeys = Object.keys(buildings).filter(b => buildings[b].level > 0);
                 if (buildingKeys.length > 0) {
@@ -345,10 +350,9 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             }
             default:
                 setMessage("This spell's effect is not yet implemented for instant casting.");
-                return; // Don't commit batch if not implemented
+                return;
         }
 
-        // 4. Create reports
         const casterReport = {
             type: 'spell_cast',
             title: `Spell cast: ${power.name}`,
@@ -369,13 +373,11 @@ const MapView = ({ showCity, onBackToWorlds }) => {
             batch.set(doc(collection(db, `users/${targetOwnerId}/reports`)), targetReport);
         }
 
-        // 5. Commit batch and update local state
         try {
             await batch.commit();
             setMessage(`${power.name} has been cast!`);
             closeModal('divinePowers');
 
-            // Optimistically update local state for caster
             if (isSelfCast) {
                 const updatedSelfSnap = await getDoc(casterGameDocRef);
                 if (updatedSelfSnap.exists()) {
@@ -454,6 +456,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900">
+            {isUnderAttack && <div className="screen-glow-attack"></div>}
             <Modal message={message} onClose={() => setMessage('')} />
             <header className="flex-shrink-0 flex justify-between items-center p-2 bg-gray-800 shadow-lg border-b border-gray-700 z-30">
                 <h1 className="font-title text-2xl text-gray-300">World Map</h1>
@@ -479,6 +482,8 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     unreadMessagesCount={unreadMessagesCount}
                     isAdmin={userProfile?.is_admin}
                     onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
+                    isUnderAttack={isUnderAttack}
+                    incomingAttackCount={incomingAttackCount}
                 />
                 <div className="main-content flex-grow relative map-background">
                     <div
@@ -553,7 +558,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 userProfile={userProfile}
                 onCastSpell={handleCastSpell}
                 onActionClick={handleMessageAction}
-                marketCapacity={marketCapacity} // fix: Pass marketCapacity to MapModals
+                marketCapacity={marketCapacity}
             />
 
             {modalState.isAllianceModalOpen && (
