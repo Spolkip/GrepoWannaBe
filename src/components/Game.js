@@ -153,7 +153,17 @@ const Game = ({ onBackToWorlds }) => {
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/reports`)), report);
                         break;
                     }
-
+            if (result.attackerWon) {
+                console.log('Attacker won. Conquering/farming village.');
+                const playerVillageRef = doc(db, `users/${movement.originOwnerId}/games/${worldId}/conqueredVillages`, movement.targetVillageId);
+                
+                batch.set(playerVillageRef, { 
+                    level: villageData.level,
+                    lastCollected: serverTimestamp(),
+                    happiness: 100, // Start with full happiness
+                    happinessLastUpdated: serverTimestamp()
+                }, { merge: true });
+            }
                     const villageData = villageSnap.data();
                     const villageTroops = getVillageTroops(villageData);
                     const result = resolveCombat(movement.units, villageTroops, villageData.resources, false);

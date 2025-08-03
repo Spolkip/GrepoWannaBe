@@ -88,11 +88,12 @@ export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredV
     let villageClass = 'neutral-village';
     let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
 
-    const isConqueredByPlayer = conqueredVillages && conqueredVillages[villageData.id];
+    const conqueredData = conqueredVillages ? conqueredVillages[villageData.id] : null;
 
-    if (isConqueredByPlayer) {
+    if (conqueredData) {
         villageClass = 'my-village';
-        tooltipText = `Your Village: ${villageData.name}`;
+        const happiness = conqueredData.happiness !== undefined ? conqueredData.happiness : 100;
+        tooltipText = `Your Village: ${villageData.name}<br>Happiness: ${Math.floor(happiness)}%`;
     }
 
     const backgroundClass = gameSettings.showVisuals ? 'bg-green-500' : 'bg-gray-800';

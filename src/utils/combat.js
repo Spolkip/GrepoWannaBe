@@ -287,7 +287,32 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         wounded,
     };
 }
+export function resolveVillageRetaliation(playerUnits) {
+    const losses = {};
+    if (!playerUnits) return losses;
 
+    const totalPopulation = Object.entries(playerUnits).reduce((sum, [id, count]) => {
+        return sum + (unitConfig[id]?.cost.population || 0) * count;
+    }, 0);
+
+    if (totalPopulation === 0) return losses;
+
+    // #comment village retaliation causes a flat 5% loss of total army population value
+    let populationToLose = totalPopulation * 0.05;
+
+    // #comment distribute losses proportionally among land units
+    for (const unitId in playerUnits) {
+        if (unitConfig[unitId]?.type === 'land') {
+            const unitPopulation = unitConfig[unitId].cost.population;
+            if (unitPopulation > 0) {
+                const unitProportion = (unitPopulation * playerUnits[unitId]) / totalPopulation;
+                const unitsToLose = Math.round((populationToLose / unitPopulation) * unitProportion);
+                losses[unitId] = Math.min(playerUnits[unitId], unitsToLose);
+            }
+        }
+    }
+    return losses;
+}
 /**
  * Resolves a scouting mission.
  * @param {object} targetGameState - The game state of the target city.
@@ -328,4 +353,5 @@ export function resolveScouting(targetGameState, attackingSilver) {
             silverGained: silverGainedByDefender
         };
     }
+    
 }
