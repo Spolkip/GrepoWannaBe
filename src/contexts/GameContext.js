@@ -385,20 +385,26 @@ export const GameProvider = ({ children, worldId }) => {
         }
         const ownAllianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const targetAllianceRef = doc(db, 'worlds', worldId, 'alliances', targetAllianceId);
-        const targetAllianceDoc = await getDoc(targetAllianceRef);
-        if (!targetAllianceDoc.exists()) throw new Error("Target alliance not found.");
-        const targetData = targetAllianceDoc.data();
-
+    
         const ownEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
         const targetEventsRef = collection(db, 'worlds', worldId, 'alliances', targetAllianceId, 'events');
-
+    
         await runTransaction(db, async (transaction) => {
             const ownAllianceDoc = await transaction.get(ownAllianceRef);
+            const targetAllianceDoc = await transaction.get(targetAllianceRef);
+    
             if (!ownAllianceDoc.exists()) throw new Error("Your alliance data not found.");
+            if (!targetAllianceDoc.exists()) throw new Error("Target alliance not found.");
             
+            const ownData = ownAllianceDoc.data();
+            const targetData = targetAllianceDoc.data();
+    
             const targetInfo = { id: targetAllianceId, name: targetData.name, tag: targetData.tag };
-            const ownInfo = { id: playerAlliance.id, name: playerAlliance.name, tag: playerAlliance.tag };
-
+            const ownInfo = { id: playerAlliance.id, name: ownData.name, tag: ownData.tag };
+    
+            const ownDiplomacy = ownData.diplomacy || { allies: [], enemies: [], requests: [] };
+            const targetDiplomacy = targetData.diplomacy || { allies: [], enemies: [], requests: [] };
+    
             switch(action) {
                 case 'accept':
                     transaction.update(ownAllianceRef, { 'diplomacy.requests': arrayRemove(targetInfo), 'diplomacy.allies': arrayUnion(targetInfo) });
@@ -411,13 +417,25 @@ export const GameProvider = ({ children, worldId }) => {
                     addDoc(ownEventsRef, { type: 'diplomacy', text: `You rejected the ally request from [${targetInfo.tag}].`, timestamp: serverTimestamp() });
                     break;
                 case 'removeAlly':
-                    transaction.update(ownAllianceRef, { 'diplomacy.allies': arrayRemove(targetInfo) });
-                    transaction.update(targetAllianceRef, { 'diplomacy.allies': arrayRemove(ownInfo) });
+                    // #comment Find the exact object to remove for Firestore's arrayRemove
+                    const allyInOwnList = ownDiplomacy.allies.find(a => a.id === targetAllianceId);
+                    const allyInTargetList = targetDiplomacy.allies.find(a => a.id === playerAlliance.id);
+    
+                    if (allyInOwnList) {
+                        transaction.update(ownAllianceRef, { 'diplomacy.allies': arrayRemove(allyInOwnList) });
+                    }
+                    if (allyInTargetList) {
+                        transaction.update(targetAllianceRef, { 'diplomacy.allies': arrayRemove(allyInTargetList) });
+                    }
+                    
                     addDoc(ownEventsRef, { type: 'diplomacy', text: `The alliance with [${targetInfo.tag}] has been terminated.`, timestamp: serverTimestamp() });
                     addDoc(targetEventsRef, { type: 'diplomacy', text: `The alliance with [${ownInfo.tag}] has been terminated.`, timestamp: serverTimestamp() });
                     break;
                 case 'removeEnemy':
-                    transaction.update(ownAllianceRef, { 'diplomacy.enemies': arrayRemove(targetInfo) });
+                    const enemyInOwnList = ownDiplomacy.enemies.find(e => e.id === targetAllianceId);
+                    if (enemyInOwnList) {
+                        transaction.update(ownAllianceRef, { 'diplomacy.enemies': arrayRemove(enemyInOwnList) });
+                    }
                     addDoc(ownEventsRef, { type: 'diplomacy', text: `You are no longer at war with [${targetInfo.tag}].`, timestamp: serverTimestamp() });
                     break;
                 default:
