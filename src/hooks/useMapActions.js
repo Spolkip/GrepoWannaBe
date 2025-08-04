@@ -49,20 +49,27 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         const isCrossIsland = targetCity.isRuinTarget ? true : playerCity.islandId !== targetCity.islandId;
 
-        let hasLandUnits = false, hasNavalUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
+        let hasLandUnits = false, hasNavalUnits = false, hasFlyingUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
         for (const unitId in units) {
             if (units[unitId] > 0) {
                 const config = unitConfig[unitId];
-                if (config.type === 'land') { hasLandUnits = true; totalLandUnitsToSend += units[unitId]; }
+                if (config.type === 'land') { 
+                    hasLandUnits = true; 
+                    totalLandUnitsToSend += units[unitId];
+                    if (config.flying) {
+                        hasFlyingUnits = true;
+                    }
+                }
                 else if (config.type === 'naval') { hasNavalUnits = true; totalTransportCapacity += (config.capacity || 0) * units[unitId]; }
             }
         }
-        if (isCrossIsland && hasLandUnits && !hasNavalUnits) { setMessage("Ground troops cannot travel across the sea without transport ships."); return; }
-        if (isCrossIsland && hasLandUnits && totalTransportCapacity < totalLandUnitsToSend) { setMessage(`Not enough transport ship capacity. Need ${totalLandUnitsToSend - totalTransportCapacity} more capacity.`); return; }
+        if (isCrossIsland && hasLandUnits && !hasNavalUnits && !hasFlyingUnits) { setMessage("Ground troops cannot travel across the sea without transport ships."); return; }
+        if (isCrossIsland && hasLandUnits && totalTransportCapacity < totalLandUnitsToSend && !hasFlyingUnits) { setMessage(`Not enough transport ship capacity. Need ${totalLandUnitsToSend - totalTransportCapacity} more capacity.`); return; }
 
         const unitTypes = [];
         if (hasLandUnits) unitTypes.push('land');
         if (hasNavalUnits) unitTypes.push('naval');
+        if (hasFlyingUnits) unitTypes.push('flying');
 
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));

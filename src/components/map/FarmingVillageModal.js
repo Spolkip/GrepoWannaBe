@@ -11,6 +11,13 @@ import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
 
+const demandOptions = [
+    { name: '5 minutes', duration: 300, multiplier: 0.125, happinessCost: 0 },
+    { name: '40 minutes', duration: 2400, multiplier: 1, happinessCost: 2 },
+    { name: '2 hours', duration: 7200, multiplier: 3, happinessCost: 5 },
+    { name: '4 hours', duration: 14400, multiplier: 4, happinessCost: 10 },
+];
+
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
     const { currentUser } = useAuth();
     const { gameState, setGameState, countCitiesOnIsland, activeCityId } = useGame();
@@ -130,13 +137,6 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     const getVillageProductionRate = (level) => ({ wood: level * 100, stone: level * 100, silver: Math.floor(level * 50) });
     const getVillageMaxCapacity = (level) => ({ wood: 1000 + (level - 1) * 500, stone: 1000 + (level - 1) * 500, silver: 1000 + (level - 1) * 500 });
 
-    const demandOptions = [
-        { name: '5 minutes', duration: 300, multiplier: 0.125, happinessCost: 0 },
-        { name: '40 minutes', duration: 2400, multiplier: 1, happinessCost: 2 },
-        { name: '2 hours', duration: 7200, multiplier: 3, happinessCost: 5 },
-        { name: '4 hours', duration: 14400, multiplier: 4, happinessCost: 10 },
-    ];
-
     useEffect(() => {
         if (village && village.lastCollected) {
             const updateTimer = () => {
@@ -253,10 +253,24 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 const villageData = playerVillageDoc.data();
                 const cityData = cityDoc.data();
                 const baseData = baseVillageDoc.data();
-                const currentHappiness = villageData.happiness || 100;
-                const revoltChance = (100 - currentHappiness) / 100;
+                const currentHappiness = villageData.happiness !== undefined ? villageData.happiness : 100;
+                
+                // Plunder always yields resources, regardless of revolt outcome
+                const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
+                const newPlayerResources = { ...cityData.resources };
+                const newVillageResources = { ...baseData.resources };
+                const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
 
-                if (Math.random() < revoltChance) {
+                for(const res in plunderAmount) {
+                    newPlayerResources[res] = Math.min(warehouseCapacity, newPlayerResources[res] + plunderAmount[res]);
+                    newVillageResources[res] -= plunderAmount[res];
+                }
+                
+                transaction.update(cityDocRef, { resources: newPlayerResources });
+                transaction.update(baseVillageRef, { resources: newVillageResources });
+
+                // Check for revolt: guaranteed if happiness is low
+                if (currentHappiness <= 40) {
                     const retaliationLosses = resolveVillageRetaliation(cityData.units);
                     const newUnits = { ...cityData.units };
                     for(const unitId in retaliationLosses) newUnits[unitId] -= retaliationLosses[unitId];
@@ -264,23 +278,12 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     transaction.update(cityDocRef, { units: newUnits });
                     transaction.delete(playerVillageRef);
 
-                    const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt failed and the village revolted! You have lost control and suffered casualties.` }, attacker: { cityName: cityData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
+                    const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt on a low-happiness village caused a revolt! You have lost control and suffered casualties, but secured the resources.`, plunder: plunderAmount }, attacker: { cityName: cityData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
-                    return { ...cityData, units: newUnits };
+                    return { ...cityData, units: newUnits, resources: newPlayerResources };
                 } else {
-                    const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
-                    const newPlayerResources = { ...cityData.resources };
-                    const newVillageResources = { ...baseData.resources };
-                    const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
-
-                    for(const res in plunderAmount) {
-                        newPlayerResources[res] = Math.min(warehouseCapacity, newPlayerResources[res] + plunderAmount[res]);
-                        newVillageResources[res] -= plunderAmount[res];
-                    }
-                    
+                    // Successful plunder, no revolt
                     const newHappiness = Math.max(0, currentHappiness - 40);
-                    transaction.update(cityDocRef, { resources: newPlayerResources });
-                    transaction.update(baseVillageRef, { resources: newVillageResources });
                     transaction.update(playerVillageRef, { happiness: newHappiness, happinessLastUpdated: serverTimestamp() });
                     
                     const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: cityData.cityName }, defender: { villageName: baseData.name }, read: false };
@@ -393,7 +396,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl text-center border border-gray-600 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-yellow-400">{`Farming Village: ${baseVillageData?.name || village.name} (Level ${village.level})`}</h2>
-                    <h3 className="text-xl font-semibold text-white">Happiness: <span className="text-green-400">{Math.floor(village.happiness || 100)}%</span></h3>
+                    <h3 className="text-xl font-semibold text-white">Happiness: <span className="text-green-400">{Math.floor(village.happiness !== undefined ? village.happiness : 100)}%</span></h3>
                 </div>
                 <div className="flex border-b border-gray-600 my-4">
                     <button onClick={() => setActiveTab('demand')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'demand' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Demand</button>
@@ -441,8 +444,8 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                             <h4 className="font-bold text-lg text-center mb-2 text-red-400">Plunder Village</h4>
                             <p className="text-center text-gray-400 text-sm mb-4">Forcefully take resources from the village. This action is much faster and yields more than demanding, but it will significantly lower happiness and risks a revolt.</p>
                             <div className="bg-gray-900 p-4 rounded-lg">
-                                <p className="mb-2">Current Happiness: <span className="font-bold text-green-400">{Math.floor(village.happiness || 100)}%</span></p>
-                                <p className="text-xs text-gray-500 mb-4">The lower the happiness, the higher the chance the village will revolt, causing you to lose it and some of your troops.</p>
+                                <p className="mb-2">Current Happiness: <span className="font-bold text-green-400">{Math.floor(village.happiness !== undefined ? village.happiness : 100)}%</span></p>
+                                <p className="text-xs text-gray-500 mb-4">Plundering a village with 40% or less happiness will cause it to revolt, and you will lose control of it.</p>
                                 <button onClick={handlePlunder} disabled={isProcessing} className="btn btn-danger w-full text-lg py-2">{isProcessing ? 'Plundering...' : 'Launch Plunder Raid (-40 Happiness)'}</button>
                             </div>
                         </div>

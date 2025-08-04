@@ -10,6 +10,7 @@ import CaveMenu from './CaveMenu';
 import HospitalMenu from './HospitalMenu';
 import MarketMenu from './MarketMenu'; // #comment Import MarketMenu
 import { AcademyMenu } from './AcademyMenu';
+import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new DivineTempleMenu
 
 const CityModals = ({
   cityGameState,
@@ -110,14 +111,11 @@ const CityModals = ({
         />
       )}
        {isDivineTempleMenuOpen && (
-        <BarracksMenu
-          menuType="divine_temple"
+        <DivineTempleMenu
           resources={cityGameState.resources}
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
-          onFire={handleFireTroops}
           onClose={() => closeModal('isDivineTempleMenuOpen')}
-          buildings={cityGameState.buildings}
           unitQueue={cityGameState.unitQueue}
           onCancelTrain={handleCancelTrain}
           cityGameState={cityGameState}

@@ -195,14 +195,20 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         const unsubscribe = onSnapshot(cityDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // #comment Initialize any missing fields to prevent errors
+                
+                // #comment Ensure all top-level properties and buildings exist to prevent crashes
+                if (!data.buildings) data.buildings = {};
+                for (const buildingId in buildingConfig) {
+                    if (!data.buildings[buildingId]) {
+                        data.buildings[buildingId] = { level: 0 };
+                    }
+                }
+
                 if (!data.units) data.units = {};
                 if (!data.wounded) data.wounded = {};
                 if (!data.worship) data.worship = {};
                 if (!data.cave) data.cave = { silver: 0 }; 
                 if (!data.research) data.research = {};
-                if (!data.buildings.cave) data.buildings.cave = { level: 1 };
-                if (!data.buildings.hospital) data.buildings.hospital = { level: 0 };
                 if (!data.buildQueue) data.buildQueue = [];
                 if (!data.unitQueue) data.unitQueue = [];
                 if (!data.researchQueue) data.researchQueue = [];
@@ -279,7 +285,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
             processSingleQueue('buildQueue', (completed) => {
                 const newBuildings = updates.buildings || { ...currentState.buildings };
-                completed.forEach(task => { newBuildings[task.buildingId].level = task.level; });
+                completed.forEach(task => {
+                    // FIX: Ensure the building object exists before trying to set its level.
+                    if (!newBuildings[task.buildingId]) {
+                        newBuildings[task.buildingId] = { level: 0 };
+                    }
+                    newBuildings[task.buildingId].level = task.level;
+                });
                 updates.buildings = newBuildings;
             });
 

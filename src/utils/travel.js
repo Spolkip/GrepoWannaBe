@@ -34,6 +34,7 @@ export function calculateTravelTime(distance, speed, mode = null, worldState = n
     let modifiedSpeed = speed;
     const hasLand = unitTypes.includes('land');
     const hasNaval = unitTypes.includes('naval');
+    const hasFlying = unitTypes.includes('flying');
 
     if (worldState) {
         // #comment Season effects on LAND units
@@ -51,7 +52,7 @@ export function calculateTravelTime(distance, speed, mode = null, worldState = n
         }
 
         // #comment Weather effects on units
-        if (hasNaval) {
+        if (hasNaval || hasFlying) {
             // #comment Wind speed modifier for naval units.
             // A speed of 5 is neutral. Lower is a headwind (slower), higher is a tailwind (faster).
             // Max headwind (0 knots) = -25% speed. Max tailwind (10 knots) = +25% speed.
@@ -65,7 +66,7 @@ export function calculateTravelTime(distance, speed, mode = null, worldState = n
                 break;
             case 'Stormy':
                 // #comment Storms have a general large penalty on top of wind effects
-                if (hasNaval) modifiedSpeed *= 0.8; // Additional 20% penalty
+                if (hasNaval || hasFlying) modifiedSpeed *= 0.8; // Additional 20% penalty
                 if (hasLand) modifiedSpeed *= 0.8;
                 break;
             case 'Foggy':

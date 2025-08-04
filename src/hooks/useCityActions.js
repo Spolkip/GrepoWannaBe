@@ -295,8 +295,12 @@ export const useCityActions = ({
             setMessage("Naval units can only be built in the Shipyard.");
             return;
         }
-        if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0)) {
+        if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0) && !unit.mythical) {
             setMessage("Land units can only be trained in the Barracks.");
+            return;
+        }
+        if (unit.mythical && (!currentState.buildings.divine_temple || currentState.buildings.divine_temple.level === 0)) {
+            setMessage("Mythical units can only be trained in the Divine Temple.");
             return;
         }
 
@@ -677,6 +681,7 @@ export const useCityActions = ({
             case 'barracks': openModal('isBarracksMenuOpen'); break;
             case 'shipyard': openModal('isShipyardMenuOpen'); break;
             case 'temple': openModal('isTempleMenuOpen'); break;
+            case 'divine_temple': openModal('isDivineTempleMenuOpen'); break;
             case 'cave': openModal('isCaveMenuOpen'); break;
             case 'academy': openModal('isAcademyMenuOpen'); break;
             case 'hospital': openModal('isHospitalMenuOpen'); break;

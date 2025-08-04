@@ -22,7 +22,8 @@ const UnitStats = ({ unit }) => (
 
 const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose, cityGameState, unitQueue, onCancelTrain }) => {
     const [activeTab, setActiveTab] = useState('train');
-    const landUnits = Object.keys(unitConfig).filter(id => unitConfig[id].type === 'land');
+    // #comment Filter out mythical units from the barracks training list.
+    const landUnits = Object.keys(unitConfig).filter(id => unitConfig[id].type === 'land' && !unitConfig[id].mythical);
     const [selectedUnitId, setSelectedUnitId] = useState(landUnits[0] || null);
     const [trainAmount, setTrainAmount] = useState(1);
     const [fireAmounts, setFireAmounts] = useState({});

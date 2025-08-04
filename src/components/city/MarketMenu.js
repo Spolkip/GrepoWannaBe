@@ -1,7 +1,7 @@
 // src/components/city/MarketMenu.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction, orderBy } from 'firebase/firestore';
+import { collection, query,onSnapshot, serverTimestamp, doc, runTransaction, orderBy } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import './MarketMenu.css';
@@ -17,7 +17,7 @@ const resourceImages = {
 
 const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const { currentUser, userProfile } = useAuth();
-    const { setGameState } = useGame();
+    const { activeCityId } = useGame(); // #comment Get activeCityId to reference the correct city document
     const [activeTab, setActiveTab] = useState('marketplace');
     const [trades, setTrades] = useState([]);
     const [myTrades, setMyTrades] = useState([]);
@@ -30,7 +30,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const [demandResource, setDemandResource] = useState('stone');
     const [demandAmount, setDemandAmount] = useState('');
 
-    // fetch trade offers from firestore
+    // #comment fetch trade offers from firestore
     useEffect(() => {
         if (!worldId) return;
         setLoading(true);
@@ -51,7 +51,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         return () => unsubscribe();
     }, [worldId, currentUser.uid]);
 
-    // handle creation of a new trade offer
+    // #comment handle creation of a new trade offer
     const handleCreateTrade = async (e) => {
         e.preventDefault();
         setError('');
@@ -75,15 +75,15 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
             return;
         }
 
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
         const tradesRef = collection(db, 'worlds', worldId, 'trades');
 
         try {
             await runTransaction(db, async (transaction) => {
-                const gameDoc = await transaction.get(gameDocRef);
-                if (!gameDoc.exists()) throw new Error("Game data not found.");
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) throw new Error("City data not found.");
 
-                const currentResources = gameDoc.data().resources;
+                const currentResources = cityDoc.data().resources;
                 if (currentResources[offerResource] < offerAmountNum) {
                     throw new Error(`Not enough ${offerResource}.`);
                 }
@@ -92,11 +92,12 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
                     ...currentResources,
                     [offerResource]: currentResources[offerResource] - offerAmountNum,
                 };
-                transaction.update(gameDocRef, { resources: newResources });
+                transaction.update(cityDocRef, { resources: newResources });
 
                 const newTrade = {
                     playerId: currentUser.uid,
                     playerName: userProfile.username,
+                    originCityId: activeCityId, // #comment Store which city made the offer
                     offer: { resource: offerResource, amount: offerAmountNum },
                     demand: { resource: demandResource, amount: demandAmountNum },
                     createdAt: serverTimestamp(),
@@ -113,7 +114,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         }
     };
 
-    // handle accepting a trade from another player
+    // #comment handle accepting a trade from another player
     const handleAcceptTrade = async (trade) => {
         setError('');
         if (cityGameState.resources[trade.demand.resource] < trade.demand.amount) {
@@ -122,20 +123,20 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         }
 
         const tradeRef = doc(db, 'worlds', worldId, 'trades', trade.id);
-        const myGameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
-        const theirGameRef = doc(db, `users/${trade.playerId}/games`, worldId);
+        const myCityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+        const theirCityRef = doc(db, `users/${trade.playerId}/games`, worldId, 'cities', trade.originCityId);
 
         try {
             await runTransaction(db, async (transaction) => {
                 const tradeDoc = await transaction.get(tradeRef);
                 if (!tradeDoc.exists()) throw new Error("This trade is no longer available.");
 
-                const myGameDoc = await transaction.get(myGameRef);
-                const theirGameDoc = await transaction.get(theirGameRef);
-                if (!myGameDoc.exists() || !theirGameDoc.exists()) throw new Error("Could not find player data for this trade.");
+                const myCityDoc = await transaction.get(myCityRef);
+                const theirCityDoc = await transaction.get(theirCityRef);
+                if (!myCityDoc.exists() || !theirCityDoc.exists()) throw new Error("Could not find player data for this trade.");
 
-                const myResources = myGameDoc.data().resources;
-                const theirResources = theirGameDoc.data().resources;
+                const myResources = myCityDoc.data().resources;
+                const theirResources = theirCityDoc.data().resources;
 
                 if (myResources[trade.demand.resource] < trade.demand.amount) {
                     throw new Error(`You do not have enough ${trade.demand.resource}.`);
@@ -145,12 +146,12 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
                 const myNewResources = { ...myResources };
                 myNewResources[trade.demand.resource] -= trade.demand.amount;
                 myNewResources[trade.offer.resource] = (myNewResources[trade.offer.resource] || 0) + trade.offer.amount;
-                transaction.update(myGameRef, { resources: myNewResources });
+                transaction.update(myCityRef, { resources: myNewResources });
 
                 // Update their resources
                 const theirNewResources = { ...theirResources };
                 theirNewResources[trade.demand.resource] = (theirNewResources[trade.demand.resource] || 0) + trade.demand.amount;
-                transaction.update(theirGameRef, { resources: theirNewResources });
+                transaction.update(theirCityRef, { resources: theirNewResources });
 
                 // Delete the trade
                 transaction.delete(tradeRef);
@@ -161,25 +162,25 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
         }
     };
 
-    // handle canceling one of your own trades
+    // #comment handle canceling one of your own trades
     const handleCancelTrade = async (trade) => {
         setError('');
         const tradeRef = doc(db, 'worlds', worldId, 'trades', trade.id);
-        const myGameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const myCityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', trade.originCityId);
 
         try {
             await runTransaction(db, async (transaction) => {
                 const tradeDoc = await transaction.get(tradeRef);
                 if (!tradeDoc.exists()) throw new Error("This trade no longer exists.");
 
-                const myGameDoc = await transaction.get(myGameRef);
-                if (!myGameDoc.exists()) throw new Error("Your game data could not be found.");
+                const myCityDoc = await transaction.get(myCityRef);
+                if (!myCityDoc.exists()) throw new Error("Your city data could not be found.");
 
-                const myResources = myGameDoc.data().resources;
+                const myResources = myCityDoc.data().resources;
                 const myNewResources = { ...myResources };
                 myNewResources[trade.offer.resource] = (myNewResources[trade.offer.resource] || 0) + trade.offer.amount;
 
-                transaction.update(myGameRef, { resources: myNewResources });
+                transaction.update(myCityRef, { resources: myNewResources });
                 transaction.delete(tradeRef);
             });
         } catch (error) {

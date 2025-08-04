@@ -250,7 +250,13 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
     
     const renderContent = () => {
         const landUnitsList = Object.keys(unitConfig)
-            .filter(unitId => unitConfig[unitId].type === 'land')
+            .filter(unitId => {
+                const unit = unitConfig[unitId];
+                if (unit.type !== 'land') return false;
+                if (!unit.mythical) return true; // Always include non-mythical land units
+                // Include mythical units only if they belong to the worshipped god
+                return unit.mythical && unit.god === gameState.god;
+            })
             .map(unitId => ({
                 id: unitId,
                 ...unitConfig[unitId],

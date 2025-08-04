@@ -1,27 +1,24 @@
-// src/hooks/useCityModalManager.js
+// src/hooks/useGameManager.js
 import { useState } from 'react';
+import { useGame } from '../contexts/GameContext';
 
-/**
- * #comment Manages the state of all modals within the CityView.
- */
-export const useCityModalManager = () => {
-    const [modalState, setModalState] = useState({
-        selectedBuildingId: null,
-        isSenateViewOpen: false,
-        isBarracksMenuOpen: false,
-        isShipyardMenuOpen: false,
-        isTempleMenuOpen: false,
-        isDivineTempleMenuOpen: false,
-        isCaveMenuOpen: false,
-        isAcademyMenuOpen: false,
-        isHospitalMenuOpen: false,
-        isCheatMenuOpen: false,
-        isDivinePowersOpen: false,
-        isMarketMenuOpen: false,
-    });
+export const useGameManager = () => {
+    const { gameState, worldId, loading } = useGame();
+    const [view, setView] = useState('city');
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
-    const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
-    const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
+    const showMap = () => setView('map');
+    const showCity = () => setView('city');
 
-    return { modalState, setModalState, openModal, closeModal };
+    const isLoading = loading || !gameState;
+
+    return {
+        view,
+        isChatOpen,
+        setIsChatOpen,
+        showMap,
+        showCity,
+        isLoading,
+        worldId
+    };
 };
