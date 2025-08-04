@@ -7,11 +7,11 @@ import silverImage from '../../images/resources/silver.png';
 import populationImage from '../../images/resources/population.png';
 import './TopBar.css';
 
-// #comment A dropdown to show all player cities and allow switching between them
+// A dropdown to show all player cities and allow switching between them
 const CityListDropdown = ({ cities, onSelect, onClose, activeCityId }) => {
     const dropdownRef = useRef(null);
 
-    // #comment Close dropdown if clicked outside
+    // Close dropdown if clicked outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -47,7 +47,7 @@ const WeatherDisplay = ({ season, weather }) => {
     const weatherIcons = {
         Clear: '☀️',
         Rainy: '🌧️',
-        Windy: '�',
+        Windy: '💨',
         Foggy: '🌫️',
         Stormy: '⛈️',
     };
@@ -69,7 +69,7 @@ const WeatherDisplay = ({ season, weather }) => {
 };
 
 // TopBar component displays current city resources and name.
-const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness, worldState }) => {
+const TopBar = ({ view, gameState, availablePopulation, happiness, worldState, productionRates }) => {
     const { playerCities, setActiveCityId, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
 
@@ -77,7 +77,7 @@ const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness, worl
     const { resources, cityName } = gameState;
 
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
-    const happinessTooltip = happiness > 70 ? `Happy: +10% resource production!` : `Content: No production bonus.`;
+    const happinessTooltip = `Happiness: ${happiness}%. ${happiness > 70 ? 'Happy: +10% resource production!' : 'Content: No production bonus.'}`;
     
     const handleCitySelect = (cityId) => {
         setActiveCityId(cityId);
@@ -85,41 +85,49 @@ const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness, worl
     };
 
     return (
-        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center top-bar-container">
-            <div className="relative">
-                <button
-                    className="font-title text-xl text-white city-name-dropdown-btn"
-                    onClick={() => setIsCityListOpen(prev => !prev)}
-                    title="Click to switch city"
-                >
-                    {cityName}
-                </button>
-                {isCityListOpen && (
-                    <CityListDropdown
-                        cities={playerCities}
-                        onSelect={handleCitySelect}
-                        onClose={() => setIsCityListOpen(false)}
-                        activeCityId={activeCityId}
-                    />
-                )}
-            </div>
-
-            <div className="absolute left-1/2 -translate-x-1/2">
+        <div className={`p-2 flex justify-between items-center top-bar-container ${view === 'map' ? 'absolute top-0 left-0 right-0 z-50' : 'flex-shrink-0'}`}>
+            {/* Left Section */}
+            <div>
                 {worldState && <WeatherDisplay season={worldState.season} weather={worldState.weather} />}
             </div>
 
+            {/* Center Section */}
+            <div className="absolute left-1/2 -translate-x-1/2">
+                 <div className="relative">
+                    <button
+                        className="font-title text-xl text-white city-name-dropdown-btn"
+                        onClick={() => setIsCityListOpen(prev => !prev)}
+                        title="Click to switch city"
+                    >
+                        {cityName}
+                    </button>
+                    {isCityListOpen && (
+                        <CityListDropdown
+                            cities={playerCities}
+                            onSelect={handleCitySelect}
+                            onClose={() => setIsCityListOpen(false)}
+                            activeCityId={activeCityId}
+                        />
+                    )}
+                </div>
+            </div>
+
+            {/* Right Section */}
             <div className="flex items-center space-x-2">
                 <div className="resource-display">
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>
+                    {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.wood}/hr)</span>}
                 </div>
                 <div className="resource-display">
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-300 font-bold">{Math.floor(resources.stone)}</span>
+                     {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.stone}/hr)</span>}
                 </div>
                 <div className="resource-display">
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
+                     {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.silver}/hr)</span>}
                 </div>
                 <div className="resource-display">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>

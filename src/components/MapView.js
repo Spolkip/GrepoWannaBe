@@ -234,39 +234,49 @@ const MapView = ({
     }, [worldState, combinedSlots, villages, ruins]);
 
     return (
-        <div className="w-full h-screen flex flex-col bg-gray-900">
+        <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
             {isUnderAttack && <div className="screen-glow-attack"></div>}
             <Modal message={message} onClose={() => setMessage('')} />
-            <div className="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
-                <SidebarNav 
-                    onToggleView={handleGoToActiveCity} 
-                    view="map"
-                    onOpenMovements={() => openModal('movements')} 
-                    onOpenReports={() => openModal('reports')} 
-                    onOpenAlliance={handleOpenAlliance} 
-                    onOpenForum={() => openModal('allianceForum')} 
-                    onOpenMessages={() => openModal('messages')} 
-                    onOpenSettings={() => openModal('settings')} 
-                    onOpenProfile={() => openModal('profile')} 
-                    onOpenLeaderboard={() => openModal('leaderboard')} 
-                    onOpenQuests={() => openModal('quests')} 
-                    unreadReportsCount={unreadReportsCount} 
-                    unreadMessagesCount={unreadMessagesCount} 
-                    isAdmin={userProfile?.is_admin} 
-                    onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
-                    isUnderAttack={isUnderAttack} 
-                    incomingAttackCount={incomingAttackCount} 
-                />
+            <div className="flex-grow flex flex-row overflow-hidden">
                 <div className="main-content flex-grow relative map-background">
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
-                        <TopBar gameState={gameState} availablePopulation={availablePopulation} maxPopulation={gameState ? getFarmCapacity(gameState.buildings.farm?.level) : 0} happiness={happiness} worldState={worldState} />
+                        <TopBar 
+                            view="map" 
+                            gameState={gameState} 
+                            availablePopulation={availablePopulation} 
+                            happiness={happiness} 
+                            worldState={worldState} 
+                        />
+                        <SidebarNav 
+                            onToggleView={handleGoToActiveCity} 
+                            view="map"
+                            onOpenMovements={() => openModal('movements')} 
+                            onOpenReports={() => openModal('reports')} 
+                            onOpenAlliance={handleOpenAlliance} 
+                            onOpenForum={() => openModal('allianceForum')} 
+                            onOpenMessages={() => openModal('messages')} 
+                            onOpenSettings={() => openModal('settings')} 
+                            onOpenProfile={() => openModal('profile')} 
+                            onOpenLeaderboard={() => openModal('leaderboard')} 
+                            onOpenQuests={() => openModal('quests')} 
+                            unreadReportsCount={unreadReportsCount} 
+                            unreadMessagesCount={unreadMessagesCount} 
+                            isAdmin={userProfile?.is_admin} 
+                            onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
+                            isUnderAttack={isUnderAttack} 
+                            incomingAttackCount={incomingAttackCount} 
+                        />
                         <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>
                         <div className="map-border right" style={{ opacity: borderOpacity.right }}></div>
-                        <div ref={mapContainerRef} style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
-                            <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlots} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
+                        
+                        {/* Wrapper to control stacking context of the map grid */}
+                        <div className="absolute inset-0 z-0">
+                            <div ref={mapContainerRef} style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
+                                <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlots} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
+                            </div>
                         </div>
                     </div>
                 </div>

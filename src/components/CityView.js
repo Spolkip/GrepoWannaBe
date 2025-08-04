@@ -2,8 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
-import CityHeader from './city/CityHeader';
-import ResourceBar from './city/ResourceBar';
 import CityModals from './city/CityModals';
 import CityViewContent from './city/CityViewContent';
 import DivinePowers from './city/DivinePowers';
@@ -12,6 +10,7 @@ import { useGame } from '../contexts/GameContext';
 import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
+import TopBar from './map/TopBar'; // Import the TopBar
 
 const CityView = ({ 
     showMap, 
@@ -25,7 +24,7 @@ const CityView = ({
     handleOpenProfile
 }) => {
     const { currentUser, userProfile } = useAuth();
-    const { gameSettings, playerCities, setActiveCityId, activeCityId } = useGame();
+    const { gameSettings, worldState } = useGame(); // Get worldState here
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
     const [isInstantUnits, setIsInstantUnits] = useState(false);
@@ -52,21 +51,25 @@ const CityView = ({
         const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
         const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
         const availablePopulation = maxPopulation - usedPopulation;
-        const happiness = calculateHappiness(cityGameState.buildings);
-        return { availablePopulation, happiness };
+        const happinessValue = calculateHappiness(cityGameState.buildings);
+        return { availablePopulation, happiness: happinessValue };
     }, [cityGameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness]);
 
-    const productionRates = useMemo(() => getProductionRates(cityGameState?.buildings), [cityGameState?.buildings, getProductionRates]);
+    // Re-add productionRates calculation
+    const productionRates = useMemo(() => {
+        if (!cityGameState) return { wood: 0, stone: 0, silver: 0 };
+        return getProductionRates(cityGameState.buildings);
+    }, [cityGameState, getProductionRates]);
 
     if (!cityGameState) {
         return <div className="text-white text-center p-10">Loading City...</div>;
     }
 
     return (
-        <div className="w-full h-screen flex flex-row bg-gray-900">
+        <div className="w-full h-screen bg-gray-900 city-view-wrapper relative">
             <Modal message={message} onClose={() => setMessage('')} />
-            
-            <SidebarNav 
+
+            <SidebarNav
                 onToggleView={showMap}
                 view="city"
                 onOpenMovements={() => openModal('movements')}
@@ -84,25 +87,17 @@ const CityView = ({
                 onToggleDummyCityPlacement={() => {}} // Not applicable in city view
                 isUnderAttack={isUnderAttack}
                 incomingAttackCount={incomingAttackCount}
+                onOpenCheats={() => openCityModal('isCheatMenuOpen')}
             />
 
-            <div className="flex-grow flex flex-col overflow-hidden">
-                <CityHeader
-                    cityGameState={cityGameState}
-                    worldId={worldId}
-                    showMap={showMap}
-                    onCityNameChange={(newName) => setCityGameState(prev => ({ ...prev, cityName: newName }))}
-                    setMessage={setMessage}
-                    onOpenCheats={() => openCityModal('isCheatMenuOpen')}
-                    playerCities={playerCities}
-                    onSelectCity={setActiveCityId}
-                    activeCityId={activeCityId}
-                />
-                <ResourceBar
-                    resources={cityGameState.resources}
-                    productionRates={productionRates}
+            <div className="h-full w-full flex flex-col overflow-hidden">
+                <TopBar
+                    view="city"
+                    gameState={cityGameState}
                     availablePopulation={availablePopulation}
                     happiness={happiness}
+                    worldState={worldState} // Pass worldState
+                    productionRates={productionRates} // Pass productionRates
                 />
                 <CityViewContent
                     cityGameState={cityGameState}

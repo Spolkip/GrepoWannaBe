@@ -8,6 +8,7 @@ Later:
 - add heroes that can do skills on battle and also give buffs
 - make it so you can conquer other cities
 - add a battle simulation
+- add troops into the city
 
 Maybe: 
 - add cities inside the island
