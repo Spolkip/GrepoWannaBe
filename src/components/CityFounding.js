@@ -1,6 +1,6 @@
 // src/components/CityFounding.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, setDoc } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -76,7 +76,8 @@ const CityFounding = ({ onCityFounded }) => {
         setMessage('Founding your city...');
 
         const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', selectedSlot.id);
-        const newCityDocRef = doc(collection(db, `users/${currentUser.uid}/games`, worldId, 'cities'));
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const newCityDocRef = doc(collection(gameDocRef, 'cities'));
 
         try {
             const slotSnap = await getDoc(citySlotRef);
@@ -108,6 +109,13 @@ const CityFounding = ({ onCityFounded }) => {
                 cityName: finalCityName
             });
 
+            // #comment This is the crucial fix: create the top-level game document for the world.
+            // This is what WorldSelectionScreen checks to see if you've "joined" a world.
+            batch.set(gameDocRef, {
+                worldName: worldState.name,
+                joinedAt: serverTimestamp(),
+            });
+
             const initialBuildings = {};
             Object.keys(buildingConfig).forEach(id => {
                 initialBuildings[id] = { level: 0 };
@@ -123,7 +131,6 @@ const CityFounding = ({ onCityFounded }) => {
                 y: selectedSlot.y,
                 islandId: selectedSlot.islandId,
                 cityName: finalCityName,
-                // #comment Use selected religion and nation from state
                 playerInfo: { religion: selectedReligion, nation: selectedNation },
                 resources: { wood: 1000, stone: 1000, silver: 500 },
                 buildings: initialBuildings,

@@ -1,9 +1,9 @@
-// useMapActions hook for managing map-related user actions.
+// src/hooks/useMapActions.js
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { db } from '../firebase/config';
-import { collection, writeBatch, doc, serverTimestamp, getDoc, runTransaction } from 'firebase/firestore';
+import { collection, writeBatch, doc, serverTimestamp, getDoc, runTransaction, query, where, limit, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateDistance, calculateTravelTime } from '../utils/travel';
 import unitConfig from '../gameData/units.json';
@@ -39,7 +39,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         if (!playerCity) {
             setMessage("Cannot send movement: Your city data could not be found.");
-            console.error("Attempted to send movement without playerCity data.");
             return;
         }
 
@@ -67,6 +66,26 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
+
+        // --- NEW LOGIC: Find target city's document ID ---
+        let targetCityDocId = null;
+        if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && targetCity.ownerId) {
+            const citiesRef = collection(db, `users/${targetCity.ownerId}/games`, worldId, 'cities');
+            const q = query(citiesRef, where('slotId', '==', targetCity.id), limit(1));
+            try {
+                const cityQuerySnap = await getDocs(q);
+                if (cityQuerySnap.empty) {
+                    setMessage("Error: Could not find the target city's data. It may have been conquered or deleted.");
+                    return;
+                }
+                targetCityDocId = cityQuerySnap.docs[0].id;
+            } catch (error) {
+                console.error("Error fetching target city doc ID:", error);
+                setMessage("An error occurred while trying to target the city.");
+                return;
+            }
+        }
+
         const distance = calculateDistance(playerCity, targetCity);
         const unitsBeingSent = Object.entries(units || {}).filter(([, count]) => count > 0);
 
@@ -127,7 +146,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
-                targetCityId: targetCity.id,
+                targetCityId: targetCityDocId, // Use the actual document ID
+                targetSlotId: targetCity.id, // Keep the slot ID for indicators
                 targetOwnerId: targetCity.ownerId,
                 ownerUsername: targetCity.ownerUsername,
                 targetCityName: targetCity.cityName,
@@ -146,7 +166,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         batch.set(newMovementRef, movementData);
 
-        // #comment FIX: Correctly reference the active city document for updates.
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', playerCity.id);
         const updatedUnits = { ...gameState.units };
         for (const unitId in units) {
@@ -188,7 +207,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         }
     }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage, worldState]);
     
-    // #comment handles the cancellation of a movement
     const handleCancelMovement = useCallback(async (movementId) => {
         const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
     
@@ -236,7 +254,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
         const dummyUserId = `dummy_${uuidv4()}`;
         const dummyUsername = `DummyPlayer_${Math.floor(Math.random() * 10000)}`;
-        const dummyGameDocRef = doc(db, `users/${dummyUserId}/games`, worldId);
+        const newCityDocRef = doc(collection(db, `users/${dummyUserId}/games`, worldId, 'cities'));
 
         try {
             const slotSnap = await getDoc(citySlotRef);
@@ -259,15 +277,17 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             });
             initialBuildings.senate = { level: 1 };
 
-            batch.set(dummyGameDocRef, {
-                id: citySlotId,
+            const newCityData = {
+                id: newCityDocRef.id,
+                slotId: citySlotId,
                 cityName: dummyCityName,
                 playerInfo: { religion: 'Dummy', nation: 'Dummy' },
                 resources: { wood: 500, stone: 500, silver: 100 },
                 buildings: initialBuildings,
-                units: {},
+                units: { swordsman: 10 },
                 lastUpdated: Date.now(),
-            });
+            };
+            batch.set(newCityDocRef, newCityData);
 
             await batch.commit();
             setMessage(`Dummy city "${dummyCityName}" created successfully!`);

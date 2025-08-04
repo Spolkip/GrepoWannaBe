@@ -1,12 +1,30 @@
 // src/components/map/MapGrid.js
-import React from 'react';
+import React, { useMemo } from 'react';
 import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile } from './Tiles';
 import MovementIndicator from './MovementIndicator';
+import { useGame } from '../../contexts/GameContext';
 
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
+    const { playerCities } = useGame();
+
+    // #comment Create a comprehensive lookup for all map locations by their various IDs for the MovementIndicator.
+    const locationLookup = useMemo(() => {
+        const lookup = {};
+        // Add all visible slots, villages, ruins, keyed by their primary ID (slotId or docId)
+        Object.values({...combinedSlots, ...villages, ...ruins}).forEach(loc => {
+            if (loc && loc.id) lookup[loc.id] = loc;
+        });
+        // Also add all of the current player's cities, keyed by their document ID.
+        // This is crucial for finding the origin of outgoing movements.
+        Object.values(playerCities || {}).forEach(city => {
+            if (city && city.id) lookup[city.id] = city;
+        });
+        return lookup;
+    }, [combinedSlots, villages, ruins, playerCities]);
+
     if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
 
     const scaledTileSize = TILE_SIZE * zoom;
@@ -56,7 +74,7 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                 <MovementIndicator
                     key={`movement-${movement.id}`}
                     movement={movement}
-                    citySlots={{...combinedSlots, ...villages}}
+                    citySlots={locationLookup}
                     allMovements={movements}
                 />
             );

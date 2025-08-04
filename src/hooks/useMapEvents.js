@@ -8,10 +8,10 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
  */
 export const useMapEvents = (currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, centerOnCity) => {
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser || !worldId) return;
 
         // #comment Listener for unread reports
-        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'reports'), where('read', '==', false));
+        const reportsQuery = query(collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports'), where('read', '==', false));
         const unsubscribeReports = onSnapshot(reportsQuery, (snapshot) => {
             setUnreadReportsCount(snapshot.size);
         });

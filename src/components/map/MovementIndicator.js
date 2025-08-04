@@ -1,59 +1,51 @@
+// src/components/map/MovementIndicator.js
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const TILE_SIZE = 32; // Assuming TILE_SIZE is consistent across map components
-// Import unitConfig if needed for unit details, but it's not directly used in rendering here.
-// import unitConfig from '../../gameData/units.json'; 
+const TILE_SIZE = 32;
 
-// MovementIndicator component visually represents ongoing troop movements on the map.
 const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }) => {
-    // Ensure movement and citySlots data are available
     if (!movement || !citySlots) return null;
 
-    // #comment determine the visual origin and target based on movement status
     const isReturning = movement.status === 'returning';
-    const originId = isReturning ? (movement.targetCityId || movement.targetVillageId) : movement.originCityId;
-    const targetId = isReturning ? movement.originCityId : (movement.targetCityId || movement.targetVillageId);
+    // #comment Use targetSlotId for non-return trips to get coordinates from map data.
+    const originId = isReturning ? (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId) : movement.originCityId;
+    const targetId = isReturning ? movement.originCityId : (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId);
 
     const originCity = citySlots[originId];
     const targetCity = citySlots[targetId];
     
-    // Ensure both origin and target cities exist in citySlots
-    if (!originCity || !targetCity) return null;
+    if (!originCity || !targetCity) {
+        // console.warn(`Could not find origin or target for movement ${movement.id}`, {originId, targetId, originCity, targetCity});
+        return null;
+    }
 
-    // Calculate departure and arrival times, defaulting to now if not available
     const departureTime = movement.departureTime?.toDate().getTime() || Date.now();
     const arrivalTime = movement.arrivalTime?.toDate().getTime() || Date.now();
     const now = Date.now();
     
-    // Calculate movement progress (0 to 1)
     let progress = 0;
-    if (now < departureTime) progress = 0; // Movement hasn't started
-    else if (now > arrivalTime) progress = 1; // Movement has arrived
-    else progress = (now - departureTime) / (arrivalTime - departureTime); // Calculate current progress
+    if (now < departureTime) progress = 0;
+    else if (now > arrivalTime) progress = 1;
+    else progress = (now - departureTime) / (arrivalTime - departureTime);
 
-    // Calculate pixel coordinates for origin and target cities
     const originX = originCity.x * TILE_SIZE + TILE_SIZE / 2;
     const originY = originCity.y * TILE_SIZE + TILE_SIZE / 2;
     const targetX = targetCity.x * TILE_SIZE + TILE_SIZE / 2;
     const targetY = targetCity.y * TILE_SIZE + TILE_SIZE / 2;
 
-    // Calculate current position of the indicator based on progress
     const currentX = originX + (targetX - originX) * progress;
     const currentY = originY + (targetY - originY) * progress;
 
-    // Calculate remaining travel time in seconds for animation duration
     const remainingTime = Math.max(0, (arrivalTime - now) / 1000);
     
-    // Calculate size of the indicator based on total units (visual representation of army size)
-    // unitConfig would be needed here if calculating totalUnits based on individual unit sizes
     const totalUnits = movement.units ? Object.values(movement.units).reduce((sum, count) => sum + count, 0) : 0;
-    const size = Math.min(24, 8 + Math.sqrt(totalUnits) * 2); // Cap size at 24px
+    const size = Math.min(24, 8 + Math.sqrt(totalUnits) * 2);
 
-    // Define configurations for different movement types (color, icon, line color)
     const movementTypes = {
         attack: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         attack_village: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
+        attack_ruin: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         reinforce: { color: '#3b82f6', icon: '🛡️', lineColor: '#3b82f6' },
         scout: { color: '#10b981', icon: '👁️', lineColor: '#10b981' },
         trade: { color: '#f59e0b', icon: '💰', lineColor: '#f59e0b' },
@@ -61,18 +53,16 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
         default: { color: '#6b7280', icon: '➡️', lineColor: '#6b7280' }
     };
 
-    const config = movementTypes[isReturning ? 'return' : movement.type] || movementTypes.default; // Get config for current movement type
+    const config = movementTypes[isReturning ? 'return' : movement.type] || movementTypes.default;
 
-    // Find overlapping movements (going between same cities) to adjust line appearance
     const overlappingMovements = (Array.isArray(allMovements)) ? allMovements.filter(m => {
-        if (!m || m.id === movement.id) return false; // Exclude self and invalid movements
+        if (!m || m.id === movement.id) return false;
         return (
             (m.originCityId === movement.originCityId && m.targetCityId === movement.targetCityId) ||
             (m.originCityId === movement.targetCityId && m.targetCityId === movement.originCityId)
         );
     }) : [];
 
-    // Calculate blended color for overlapping movements (simple average of RGB)
     const getBlendedColor = () => {
         if (overlappingMovements.length === 0) return config.lineColor;
         
@@ -105,50 +95,46 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
     };
 
     const lineColor = getBlendedColor();
-    const lineWidth = 3 + (overlappingMovements.length * 1.5); // Thicker line for more overlaps
+    const lineWidth = 3 + (overlappingMovements.length * 1.5);
 
     return (
         <>
-            {/* Movement line - shown for all movement types */}
             <div 
                 className="absolute z-20"
                 style={{
                     left: originX,
                     top: originY,
-                    width: Math.sqrt(Math.pow(targetX - originX, 2) + Math.pow(targetY - originY, 2)), // Length of the line
+                    width: Math.sqrt(Math.pow(targetX - originX, 2) + Math.pow(targetY - originY, 2)),
                     height: lineWidth,
                     backgroundColor: lineColor,
                     opacity: 0.7,
-                    transformOrigin: '0 0', // Rotate from the origin city
-                    transform: `rotate(${Math.atan2(targetY - originY, targetX - originX)}rad)`, // Rotate to point towards target
+                    transformOrigin: '0 0',
+                    transform: `rotate(${Math.atan2(targetY - originY, targetX - originX)}rad)`,
                 }}
             />
-            
-            {/* Movement indicator (animated dot/icon) */}
             <motion.div
                 className="absolute z-30 flex items-center justify-center"
                 style={{
-                    left: currentX - size / 2, // Center the indicator
-                    top: currentY - size / 2, // Center the indicator
+                    left: currentX - size / 2,
+                    top: currentY - size / 2,
                     width: size,
                     height: size,
-                    backgroundColor: `${config.color}80`, // 50% opacity background
-                    borderRadius: '50%', // Make it a circle
-                    border: `2px solid ${config.color}`, // Solid border
-                    fontSize: size * 0.6, // Adjust icon size based on indicator size
+                    backgroundColor: `${config.color}80`,
+                    borderRadius: '50%',
+                    border: `2px solid ${config.color}`,
+                    fontSize: size * 0.6,
                 }}
-                // Animate the position from origin to target based on remaining time
                 animate={{
                     x: [0, (targetX - originX) * (1 - progress)],
                     y: [0, (targetY - originY) * (1 - progress)],
                 }}
                 transition={{
-                    duration: remainingTime, // Duration is remaining time
-                    ease: "linear" // Linear movement
+                    duration: remainingTime,
+                    ease: "linear"
                 }}
-                whileHover={{ scale: 1.2 }} // Scale up on hover
+                whileHover={{ scale: 1.2 }}
             >
-                {config.icon} {/* Display movement type icon */}
+                {config.icon}
             </motion.div>
         </>
     );
