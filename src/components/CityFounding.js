@@ -1,6 +1,6 @@
 // src/components/CityFounding.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
@@ -79,13 +79,18 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeVillages();
             unsubscribeRuins();
         };
-        // #comment The dependency array is corrected to prevent re-render loops.
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
 
     const activeCity = playerCities[activeCityId] || null;
     // #comment Legacy properties for components that haven't been updated for multi-city yet.
     const gameState = activeCity; 
     const playerCity = activeCity;
+
+    // #comment Counts the number of cities a player owns on a given island.
+    const countCitiesOnIsland = useCallback((islandId) => {
+        if (!islandId || !playerCities) return 0;
+        return Object.values(playerCities).filter(city => city.islandId === islandId).length;
+    }, [playerCities]);
 
     const value = { 
         worldId,
@@ -100,6 +105,7 @@ export const GameProvider = ({ children, worldId }) => {
         conqueredRuins,
         gameSettings,
         setGameSettings,
+        countCitiesOnIsland,
         // #comment Legacy support
         gameState,
         playerCity,

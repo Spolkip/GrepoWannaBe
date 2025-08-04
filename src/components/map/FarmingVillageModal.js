@@ -13,7 +13,7 @@ import silverImage from '../../images/resources/silver.png';
 
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
     const { currentUser } = useAuth();
-    const { gameState, setGameState } = useGame();
+    const { gameState, setGameState, countCitiesOnIsland } = useGame();
     const [village, setVillage] = useState(initialVillage);
     const [baseVillageData, setBaseVillageData] = useState(initialVillage);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -162,6 +162,8 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
 
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
         const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
+        const citiesOnIsland = countCitiesOnIsland(village.islandId);
+        const bonusMultiplier = citiesOnIsland > 1 ? 1.2 : 1.0;
 
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
@@ -178,9 +180,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 const newResources = { ...gameData.resources };
                 const warehouseCapacity = 1000 * Math.pow(1.5, gameData.buildings.warehouse.level - 1);
                 const yieldAmount = {
-                    wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level),
-                    stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * villageData.level),
-                    silver: Math.floor((baseVillageData.demandYield.silver || 0) * option.multiplier * villageData.level),
+                    wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level * bonusMultiplier),
+                    stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * villageData.level * bonusMultiplier),
+                    silver: Math.floor((baseVillageData.demandYield.silver || 0) * option.multiplier * villageData.level * bonusMultiplier),
                 };
 
                 for (const [resource, amount] of Object.entries(yieldAmount)) {
@@ -200,7 +202,11 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
             });
 
             setGameState(newGameState);
-            setMessage(`Successfully demanded resources! Village happiness decreased.`);
+            let successMessage = "Successfully demanded resources! Village happiness decreased.";
+            if (bonusMultiplier > 1) {
+                successMessage += ` (+${(bonusMultiplier - 1) * 100}% bonus for multiple cities on this island!)`;
+            }
+            setMessage(successMessage);
         } catch (error) {
             setMessage(`Failed to demand resources: ${error.message}`);
         } finally {

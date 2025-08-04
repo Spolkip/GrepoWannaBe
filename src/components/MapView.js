@@ -1,5 +1,5 @@
 // src/components/MapView.js
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
@@ -261,7 +261,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>
                         <div className="map-border right" style={{ opacity: borderOpacity.right }}></div>
                         <div ref={mapContainerRef} style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
-                            <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlots} villages={villages} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
+                            <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlots} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
                         </div>
                     </div>
                 </div>
