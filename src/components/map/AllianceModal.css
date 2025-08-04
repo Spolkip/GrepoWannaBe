@@ -1,6 +1,9 @@
+// another small fix to correct the background image url
+// src/components/map/AllianceModal.css
+
 /* src/components/map/AllianceModal.css */
 .alliance-modal {
-    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('[https://www.transparenttextures.com/patterns/cracks.png](https://www.transparenttextures.com/patterns/cracks.png)');
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3; /* wheat */
     border: 8px solid;
     border-image-slice: 1;

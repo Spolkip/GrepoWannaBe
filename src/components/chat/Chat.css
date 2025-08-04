@@ -1,3 +1,6 @@
+// a small fix to correct the background image url
+// src/components/chat/Chat.css
+
 /* src/components/chat/Chat.css */
 .chat-toggle-button {
     position: fixed;
@@ -32,7 +35,7 @@
     flex-direction: column;
     overflow: hidden;
     z-index: 1000;
-    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('[https://www.transparenttextures.com/patterns/cracks.png](https://www.transparenttextures.com/patterns/cracks.png)');
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3; /* wheat */
     border: 8px solid;
     border-image-slice: 1;

@@ -1,9 +1,11 @@
+// src/components/map/TopBar.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
 import populationImage from '../../images/resources/population.png';
+import './TopBar.css';
 
 // #comment A dropdown to show all player cities and allow switching between them
 const CityListDropdown = ({ cities, onSelect, onClose, activeCityId }) => {
@@ -57,7 +59,7 @@ const WeatherDisplay = ({ season, weather }) => {
     };
 
     return (
-        <div className="flex items-center bg-black bg-opacity-30 px-3 py-1 rounded-full" title={`${season}, ${weather}`}>
+        <div className="weather-display" title={`${season}, ${weather}`}>
             <span className="text-xl mr-2">{weatherIcons[weather] || '❓'}</span>
             <span className={`font-bold ${seasonColors[season] || 'text-white'}`}>{season}</span>
             <span className="text-white mx-2">|</span>
@@ -83,15 +85,15 @@ const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness, worl
     };
 
     return (
-        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center bg-gray-900 bg-opacity-70">
+        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex justify-between items-center top-bar-container">
             <div className="relative">
-                <h2 
-                    className="font-title text-xl text-white cursor-pointer hover:bg-gray-700/50 rounded px-2"
+                <button
+                    className="font-title text-xl text-white city-name-dropdown-btn"
                     onClick={() => setIsCityListOpen(prev => !prev)}
                     title="Click to switch city"
                 >
                     {cityName}
-                </h2>
+                </button>
                 {isCityListOpen && (
                     <CityListDropdown
                         cities={playerCities}
@@ -106,24 +108,24 @@ const TopBar = ({ gameState, availablePopulation, maxPopulation, happiness, worl
                 {worldState && <WeatherDisplay season={worldState.season} weather={worldState.weather} />}
             </div>
 
-            <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                    <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2 text-yellow-700"/> 
+            <div className="flex items-center space-x-2">
+                <div className="resource-display">
+                    <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>
                 </div>
-                <div className="flex items-center">
-                    <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2 text-gray-500"/> 
+                <div className="resource-display">
+                    <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-300 font-bold">{Math.floor(resources.stone)}</span>
                 </div>
-                <div className="flex items-center">
-                    <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2 text-gray-300"/> 
+                <div className="resource-display">
+                    <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
                 </div>
-                <div className="flex items-center">
+                <div className="resource-display">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
                     <span className="font-bold text-red-400">{Math.floor(availablePopulation)}</span>
                 </div>
-                <div className="flex items-center" title={happinessTooltip}>
+                <div className="resource-display" title={happinessTooltip}>
                     <span className="text-xl mr-2">{happinessIcon}</span>
                     <span className="font-bold text-green-400">{happiness}%</span>
                 </div>

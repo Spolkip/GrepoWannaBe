@@ -19,9 +19,9 @@ const QuestsModal = ({ quests, claimReward, onClose }) => {
                                 <h3 className="quest-title">{quest.title}</h3>
                                 <p className="quest-description">{quest.description}</p>
                                 <div className="quest-rewards">
-                                    <strong>Reward: </strong>
-                                    {quest.rewards.resources && Object.entries(quest.rewards.resources).map(([res, amount]) => `${amount} ${res}`).join(', ')}
-                                    {quest.rewards.units && Object.entries(quest.rewards.units).map(([unit, amount]) => `${amount} ${unit}`).join(', ')}
+                                    Reward: 
+                                    {quest.rewards.resources && Object.entries(quest.rewards.resources).map(([res, amount]) => ` ${amount} ${res}`).join(', ')}
+                                    {quest.rewards.units && Object.entries(quest.rewards.units).map(([unit, amount]) => ` ${amount} ${unit}`).join(', ')}
                                 </div>
                             </div>
                             <button
