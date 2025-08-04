@@ -1,12 +1,11 @@
-- add the support of two cities
-- add a gameplay behind getting cities
+- add the support for more than one city
+- if a player has a second town in the island to get from the village 20% more resources per demand
+- do mythic troops of the gods
 - add quests that gives rewards
 - add special buildings
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
 - add heroes that can do skills on battle and also give buffs
-- if a player has a second town in the island to get from the village 20% more resources per demand
 - add cities inside the island
-- do mythic troops of the gods
 - make it so you can conquer other cities
 - different troops for different nationalities
 - Add mythical troops and special building for them

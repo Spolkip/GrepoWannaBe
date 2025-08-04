@@ -15,7 +15,7 @@ const nationsByReligion = {
 
 const CityFounding = ({ onCityFounded }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, worldState, setActiveCityId } = useGame();
+    const { worldId, worldState, setActiveCityId, playerCities } = useGame();
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [cityName, setCityName] = useState('');
     const [message, setMessage] = useState('');
@@ -86,10 +86,26 @@ const CityFounding = ({ onCityFounded }) => {
 
             const batch = writeBatch(db);
 
+            // #comment Check for existing city names to avoid duplicates
+            let baseName = cityName.trim();
+            const existingCityNames = Object.values(playerCities).map(c => c.cityName);
+            
+            let finalCityName = baseName;
+            if (existingCityNames.includes(finalCityName)) {
+                let count = 2;
+                let newName;
+                const colonyBaseName = baseName.replace(/ Colony \d+$/, "").trim();
+                do {
+                    newName = `${colonyBaseName} Colony ${count}`;
+                    count++;
+                } while (existingCityNames.includes(newName));
+                finalCityName = newName;
+            }
+
             batch.update(citySlotRef, {
                 ownerId: currentUser.uid,
                 ownerUsername: userProfile.username,
-                cityName: cityName.trim()
+                cityName: finalCityName
             });
 
             const initialBuildings = {};
@@ -106,7 +122,7 @@ const CityFounding = ({ onCityFounded }) => {
                 x: selectedSlot.x,
                 y: selectedSlot.y,
                 islandId: selectedSlot.islandId,
-                cityName: cityName.trim(),
+                cityName: finalCityName,
                 // #comment Use selected religion and nation from state
                 playerInfo: { religion: selectedReligion, nation: selectedNation },
                 resources: { wood: 1000, stone: 1000, silver: 500 },

@@ -560,12 +560,29 @@ export const useCityActions = ({
             const newCityDocRef = doc(collection(db, 'users', currentUser.uid, 'games', worldId, 'cities'));
 
             const batch = writeBatch(db);
-            const cityName = `${userProfile.username}'s Colony`;
+            
+            // #comment Check for existing city names to avoid duplicates
+            const citiesCollectionRef = collection(db, 'users', currentUser.uid, 'games', worldId, 'cities');
+            const citiesSnapshot = await getDocs(citiesCollectionRef);
+            const existingCityNames = citiesSnapshot.docs.map(doc => doc.data().cityName);
+            
+            const baseName = `${userProfile.username}'s Colony`;
+            let finalCityName = baseName;
+            
+            if (existingCityNames.includes(finalCityName)) {
+                let count = 2;
+                let newName;
+                do {
+                    newName = `${baseName} ${count}`;
+                    count++;
+                } while (existingCityNames.includes(newName));
+                finalCityName = newName;
+            }
 
             batch.update(citySlotRef, {
                 ownerId: currentUser.uid,
                 ownerUsername: userProfile.username,
-                cityName: cityName
+                cityName: finalCityName
             });
 
             const initialBuildings = {};
@@ -582,7 +599,7 @@ export const useCityActions = ({
                 x: selectedSlot.x,
                 y: selectedSlot.y,
                 islandId: selectedSlot.islandId,
-                cityName: cityName,
+                cityName: finalCityName,
                 playerInfo: cityGameState.playerInfo,
                 resources: { wood: 1000, stone: 1000, silver: 500 },
                 buildings: initialBuildings,
@@ -602,7 +619,7 @@ export const useCityActions = ({
 
             try {
                 await batch.commit();
-                setMessage(`New city "${cityName}" founded at (${selectedSlot.x}, ${selectedSlot.y})!`);
+                setMessage(`New city "${finalCityName}" founded at (${selectedSlot.x}, ${selectedSlot.y})!`);
             } catch (error) {
                 console.error("Error founding city: ", error);
                 setMessage(`Failed to found city: ${error.message}`);

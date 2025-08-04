@@ -146,7 +146,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         batch.set(newMovementRef, movementData);
 
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        // #comment FIX: Correctly reference the active city document for updates.
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', playerCity.id);
         const updatedUnits = { ...gameState.units };
         for (const unitId in units) {
             updatedUnits[unitId] = (updatedUnits[unitId] || 0) - units[unitId];
@@ -187,7 +188,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         }
     }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage, worldState]);
     
-    // handles the cancellation of a movement
+    // #comment handles the cancellation of a movement
     const handleCancelMovement = useCallback(async (movementId) => {
         const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
     
