@@ -1,9 +1,9 @@
 // src/components/alliance/AllianceCreation.js
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceCreation = ({ onClose }) => {
-    const { createAlliance } = useGame();
+    const { createAlliance } = useAlliance();
     const [name, setName] = useState('');
     const [tag, setTag] = useState('');
 

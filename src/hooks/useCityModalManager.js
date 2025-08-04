@@ -1,0 +1,26 @@
+// src/hooks/useCityModalManager.js
+import { useState } from 'react';
+
+/**
+ * #comment Manages the state of all modals within the CityView.
+ */
+export const useCityModalManager = () => {
+    const [modalState, setModalState] = useState({
+        selectedBuildingId: null,
+        isSenateViewOpen: false,
+        isBarracksMenuOpen: false,
+        isShipyardMenuOpen: false,
+        isTempleMenuOpen: false,
+        isCaveMenuOpen: false,
+        isAcademyMenuOpen: false,
+        isHospitalMenuOpen: false,
+        isCheatMenuOpen: false,
+        isDivinePowersOpen: false,
+        isMarketMenuOpen: false,
+    });
+
+    const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
+    const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
+
+    return { modalState, setModalState, openModal, closeModal };
+};
