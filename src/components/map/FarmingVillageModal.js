@@ -13,7 +13,7 @@ import silverImage from '../../images/resources/silver.png';
 
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
     const { currentUser } = useAuth();
-    const { gameState, setGameState, countCitiesOnIsland } = useGame();
+    const { gameState, setGameState, countCitiesOnIsland, activeCityId } = useGame();
     const [village, setVillage] = useState(initialVillage);
     const [baseVillageData, setBaseVillageData] = useState(initialVillage);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -88,7 +88,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         return () => clearInterval(interval);
     }, [worldId, village.id, baseVillageData]);
 
-    // #comment This useEffect now handles happiness regeneration periodically.
+    // This useEffect now handles happiness regeneration periodically.
     useEffect(() => {
         const happinessRegenInterval = setInterval(async () => {
             if (!worldId || !village?.id || !currentUser) return;
@@ -159,52 +159,52 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         if (isProcessing || !baseVillageData) return;
         setIsProcessing(true);
         setMessage('');
-
+    
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
-        const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', activeCityId);
         const citiesOnIsland = countCitiesOnIsland(village.islandId);
         const bonusMultiplier = citiesOnIsland > 1 ? 1.2 : 1.0;
-
+    
         try {
-            const newGameState = await runTransaction(db, async (transaction) => {
+            const updatedCityState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
-                const gameDoc = await transaction.get(gameDocRef);
-                if (!playerVillageDoc.exists() || !gameDoc.exists()) throw new Error("Your village or game state not found.");
-
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!playerVillageDoc.exists() || !cityDoc.exists()) throw new Error("Your village or active city state not found.");
+    
                 const villageData = playerVillageDoc.data();
-                const gameData = gameDoc.data();
+                const cityData = cityDoc.data();
                 if (Date.now() < (villageData.lastCollected?.toDate().getTime() || 0) + option.duration * 1000) {
                     throw new Error('Not enough time has passed for this demand option.');
                 }
-
-                const newResources = { ...gameData.resources };
-                const warehouseCapacity = 1000 * Math.pow(1.5, gameData.buildings.warehouse.level - 1);
+    
+                const newResources = { ...cityData.resources };
+                const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
                 const yieldAmount = {
                     wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level * bonusMultiplier),
                     stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * villageData.level * bonusMultiplier),
                     silver: Math.floor((baseVillageData.demandYield.silver || 0) * option.multiplier * villageData.level * bonusMultiplier),
                 };
-
+    
                 for (const [resource, amount] of Object.entries(yieldAmount)) {
                     newResources[resource] = Math.min(warehouseCapacity, (newResources[resource] || 0) + amount);
                 }
-
+    
                 const happinessCost = option.happinessCost || 0;
                 const newHappiness = Math.max(0, (villageData.happiness || 100) - happinessCost);
-
-                transaction.update(gameDocRef, { resources: newResources });
+    
+                transaction.update(cityDocRef, { resources: newResources });
                 transaction.update(playerVillageRef, { 
                     lastCollected: serverTimestamp(),
                     happiness: newHappiness,
                     happinessLastUpdated: serverTimestamp()
                 });
-                return { ...gameData, resources: newResources };
+                return { ...cityData, resources: newResources };
             });
-
-            setGameState(newGameState);
+    
+            setGameState(updatedCityState);
             let successMessage = "Successfully demanded resources! Village happiness decreased.";
             if (bonusMultiplier > 1) {
-                successMessage += ` (+${(bonusMultiplier - 1) * 100}% bonus for multiple cities on this island!)`;
+                successMessage += ` (+${Math.round((bonusMultiplier - 1) * 100)}% bonus for multiple cities on this island!)`;
             }
             setMessage(successMessage);
         } catch (error) {
@@ -220,39 +220,39 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         setMessage('');
 
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
-        const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', activeCityId);
         const baseVillageRef = doc(db, 'worlds', worldId, 'villages', village.id);
         const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
 
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
-                const gameDoc = await transaction.get(gameDocRef);
+                const cityDoc = await transaction.get(cityDocRef);
                 const baseVillageDoc = await transaction.get(baseVillageRef);
-                if (!playerVillageDoc.exists() || !gameDoc.exists() || !baseVillageDoc.exists()) throw new Error("Required data not found.");
+                if (!playerVillageDoc.exists() || !cityDoc.exists() || !baseVillageDoc.exists()) throw new Error("Required data not found.");
 
                 const villageData = playerVillageDoc.data();
-                const gameData = gameDoc.data();
+                const cityData = cityDoc.data();
                 const baseData = baseVillageDoc.data();
                 const currentHappiness = villageData.happiness || 100;
                 const revoltChance = (100 - currentHappiness) / 100;
 
                 if (Math.random() < revoltChance) {
-                    const retaliationLosses = resolveVillageRetaliation(gameData.units);
-                    const newUnits = { ...gameData.units };
+                    const retaliationLosses = resolveVillageRetaliation(cityData.units);
+                    const newUnits = { ...cityData.units };
                     for(const unitId in retaliationLosses) newUnits[unitId] -= retaliationLosses[unitId];
                     
-                    transaction.update(gameDocRef, { units: newUnits });
+                    transaction.update(cityDocRef, { units: newUnits });
                     transaction.delete(playerVillageRef);
 
-                    const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt failed and the village revolted! You have lost control and suffered casualties.` }, attacker: { cityName: gameData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
+                    const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt failed and the village revolted! You have lost control and suffered casualties.` }, attacker: { cityName: cityData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
-                    return { ...gameData, units: newUnits };
+                    return { ...cityData, units: newUnits };
                 } else {
                     const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
-                    const newPlayerResources = { ...gameData.resources };
+                    const newPlayerResources = { ...cityData.resources };
                     const newVillageResources = { ...baseData.resources };
-                    const warehouseCapacity = 1000 * Math.pow(1.5, gameData.buildings.warehouse.level - 1);
+                    const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
 
                     for(const res in plunderAmount) {
                         newPlayerResources[res] = Math.min(warehouseCapacity, newPlayerResources[res] + plunderAmount[res]);
@@ -260,13 +260,13 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     }
                     
                     const newHappiness = Math.max(0, currentHappiness - 40);
-                    transaction.update(gameDocRef, { resources: newPlayerResources });
+                    transaction.update(cityDocRef, { resources: newPlayerResources });
                     transaction.update(baseVillageRef, { resources: newVillageResources });
                     transaction.update(playerVillageRef, { happiness: newHappiness, happinessLastUpdated: serverTimestamp() });
                     
-                    const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: gameData.cityName }, defender: { villageName: baseData.name }, read: false };
+                    const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: cityData.cityName }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
-                    return { ...gameData, resources: newPlayerResources };
+                    return { ...cityData, resources: newPlayerResources };
                 }
             });
             setGameState(newGameState);
@@ -284,25 +284,25 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         setMessage('');
 
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
-        const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', activeCityId);
         const nextLevel = village.level + 1;
         const cost = getUpgradeCost(nextLevel);
 
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
                 const playerVillageDoc = await transaction.get(playerVillageRef);
-                const gameDoc = await transaction.get(gameDocRef);
-                if (!playerVillageDoc.exists() || !gameDoc.exists()) throw new Error("Your village or game state could not be found.");
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!playerVillageDoc.exists() || !cityDoc.exists()) throw new Error("Your village or city state could not be found.");
 
-                const gameData = gameDoc.data();
-                if (gameData.resources.wood < cost.wood || gameData.resources.stone < cost.stone || gameData.resources.silver < cost.silver) {
+                const cityData = cityDoc.data();
+                if (cityData.resources.wood < cost.wood || cityData.resources.stone < cost.stone || cityData.resources.silver < cost.silver) {
                     throw new Error("Not enough resources in your city to upgrade the village.");
                 }
 
-                const newResources = { wood: gameData.resources.wood - cost.wood, stone: gameData.resources.stone - cost.stone, silver: gameData.resources.silver - cost.silver };
-                transaction.update(gameDocRef, { resources: newResources });
+                const newResources = { wood: cityData.resources.wood - cost.wood, stone: cityData.resources.stone - cost.stone, silver: cityData.resources.silver - cost.silver };
+                transaction.update(cityDocRef, { resources: newResources });
                 transaction.update(playerVillageRef, { level: nextLevel });
-                return { ...gameData, resources: newResources };
+                return { ...cityData, resources: newResources };
             });
 
             setGameState(newGameState);
@@ -324,25 +324,25 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         setIsProcessing(true);
         setMessage('');
     
-        const gameDocRef = doc(db, 'users', currentUser.uid, 'games', worldId);
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', activeCityId);
         const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
     
         try {
             const newGameState = await runTransaction(db, async (transaction) => {
-                const gameDoc = await transaction.get(gameDocRef);
+                const cityDoc = await transaction.get(cityDocRef);
                 const villageDoc = await transaction.get(villageRef);
-                if (!gameDoc.exists() || !villageDoc.exists()) throw new Error("Game state or village data not found.");
+                if (!cityDoc.exists() || !villageDoc.exists()) throw new Error("Game state or village data not found.");
     
-                const gameData = gameDoc.data();
+                const cityData = cityDoc.data();
                 const villageData = villageDoc.data();
                 const resourceToGive = villageData.demands;
                 const resourceToGet = villageData.supplies;
                 const amountToGet = Math.floor(tradeAmount / villageData.tradeRatio);
     
-                if (gameData.resources[resourceToGive] < tradeAmount) throw new Error(`Not enough ${resourceToGive} to trade.`);
+                if (cityData.resources[resourceToGive] < tradeAmount) throw new Error(`Not enough ${resourceToGive} to trade.`);
                 if (villageData.resources[resourceToGet] < amountToGet) throw new Error(`The village does not have enough ${resourceToGet} to trade.`);
     
-                const newPlayerResources = { ...gameData.resources };
+                const newPlayerResources = { ...cityData.resources };
                 newPlayerResources[resourceToGive] -= tradeAmount;
                 newPlayerResources[resourceToGet] += amountToGet;
     
@@ -350,9 +350,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 newVillageResources[resourceToGive] += tradeAmount;
                 newVillageResources[resourceToGet] -= amountToGet;
     
-                transaction.update(gameDocRef, { resources: newPlayerResources });
+                transaction.update(cityDocRef, { resources: newPlayerResources });
                 transaction.update(villageRef, { resources: newVillageResources });
-                return { ...gameData, resources: newPlayerResources };
+                return { ...cityData, resources: newPlayerResources };
             });
             
             setGameState(newGameState);

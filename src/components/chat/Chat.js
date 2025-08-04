@@ -4,11 +4,13 @@ import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import './Chat.css';
 
 const Chat = ({ isVisible, onClose }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, playerAlliance } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance } = useAlliance(); // Use the correct context for alliance data
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [activeTab, setActiveTab] = useState('world');

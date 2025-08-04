@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useCityState } from '../../hooks/useCityState';
@@ -9,7 +10,8 @@ import './ProfileView.css';
 
 const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
-    const { worldId, playerAlliance } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance } = useAlliance();
     const { calculateTotalPoints } = useCityState(worldId);
 
     const [profileData, setProfileData] = useState(null);
@@ -115,8 +117,16 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
         return `${Math.floor(y / 10)}${Math.floor(x / 10)}`;
     };
 
-    const isLeader = playerAlliance && playerAlliance.leader.uid === currentUser.uid;
-    const canInvite = isLeader && !isOwnProfile && !gameData?.alliance;
+    // #comment Check if the current user has permission to invite players.
+    const canInvite = (() => {
+        if (!playerAlliance || isOwnProfile) {
+            return false;
+        }
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        if (!member) return false;
+        const rank = playerAlliance.ranks.find(r => r.id === member.rank);
+        return rank?.permissions?.inviteMembers || false;
+    })();
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>

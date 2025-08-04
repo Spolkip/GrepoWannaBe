@@ -11,16 +11,17 @@ export const useAlliance = () => useContext(AllianceContext);
 
 export const AllianceProvider = ({ children }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, gameState } = useGame();
+    const { worldId, gameState, playerGameData } = useGame();
     const [playerAlliance, setPlayerAlliance] = useState(null);
 
     useEffect(() => {
-        if (!worldId || !gameState || !gameState.alliance) {
+        // #comment The alliance tag is on the top-level game data, not the city-specific game state.
+        if (!worldId || !playerGameData || !playerGameData.alliance) {
             setPlayerAlliance(null);
             return;
         }
 
-        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', gameState.alliance);
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerGameData.alliance);
         const unsubscribe = onSnapshot(allianceDocRef, (allianceSnap) => {
             if (allianceSnap.exists()) {
                 setPlayerAlliance({ id: allianceSnap.id, ...allianceSnap.data() });
@@ -30,11 +31,20 @@ export const AllianceProvider = ({ children }) => {
         });
 
         return () => unsubscribe();
-    }, [worldId, gameState]);
+    }, [worldId, playerGameData]);
 
     // create a new alliance
     const createAlliance = async (name, tag) => {
         if (!currentUser || !worldId || !userProfile) return;
+
+        const citiesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+    
+        if (userCitySlotIds.length === 0) {
+            alert("You must have a city to create an alliance.");
+            return;
+        }
 
         const allianceId = tag.toUpperCase();
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
@@ -82,8 +92,11 @@ export const AllianceProvider = ({ children }) => {
                 transaction.set(allianceDocRef, newAlliance);
                 transaction.update(gameDocRef, { alliance: allianceId });
                 
-                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', playerData.cityLocation.slotId);
-                transaction.update(citySlotRef, { alliance: allianceId, allianceName: name });
+                // #comment Update all of the player's city slots on the map
+                for (const slotId of userCitySlotIds) {
+                    const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                    transaction.update(citySlotRef, { alliance: allianceId, allianceName: name });
+                }
             });
         } catch (error) {
             console.error("Error creating alliance: ", error);
@@ -98,29 +111,30 @@ export const AllianceProvider = ({ children }) => {
             return;
         }
 
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        // #comment This action is city-specific, so we use the active city's document
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', gameState.id);
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
 
         try {
             await runTransaction(db, async (transaction) => {
-                const gameDoc = await transaction.get(gameDocRef);
+                const cityDoc = await transaction.get(cityDocRef);
                 const allianceDoc = await transaction.get(allianceDocRef);
 
-                if (!gameDoc.exists() || !allianceDoc.exists()) {
-                    throw new Error("Game or Alliance data not found.");
+                if (!cityDoc.exists() || !allianceDoc.exists()) {
+                    throw new Error("City or Alliance data not found.");
                 }
 
-                const playerData = gameDoc.data();
+                const cityData = cityDoc.data();
                 const allianceData = allianceDoc.data();
 
                 for (const resource in donation) {
-                    if ((playerData.resources[resource] || 0) < donation[resource]) {
+                    if ((cityData.resources[resource] || 0) < donation[resource]) {
                         throw new Error(`Not enough ${resource}.`);
                     }
                 }
                 
                 const research = allianceData.research[researchId] || { level: 0, progress: { wood: 0, stone: 0, silver: 0 }};
-                const newPlayerResources = { ...playerData.resources };
+                const newPlayerResources = { ...cityData.resources };
                 const newResearchProgress = { ...research.progress };
 
                 for (const resource in donation) {
@@ -128,7 +142,7 @@ export const AllianceProvider = ({ children }) => {
                     newResearchProgress[resource] = (newResearchProgress[resource] || 0) + donation[resource];
                 }
 
-                transaction.update(gameDocRef, { resources: newPlayerResources });
+                transaction.update(cityDocRef, { resources: newPlayerResources });
                 transaction.update(allianceDocRef, { [`research.${researchId}.progress`]: newResearchProgress });
             });
             alert("Donation successful!");
@@ -258,6 +272,10 @@ export const AllianceProvider = ({ children }) => {
     const acceptAllianceInvitation = async (allianceId) => {
         if (!currentUser || !worldId) return;
     
+        const citiesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
         const newAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
     
@@ -303,8 +321,10 @@ export const AllianceProvider = ({ children }) => {
                     timestamp: serverTimestamp(),
                 });
                 
-                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
-                transaction.update(citySlotRef, { alliance: allianceId, allianceName: newAllianceData.name });
+                for (const slotId of userCitySlotIds) {
+                    const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                    transaction.update(citySlotRef, { alliance: allianceId, allianceName: newAllianceData.name });
+                }
             });
         } catch (error) {
             console.error("Error accepting invitation:", error);
@@ -485,13 +505,14 @@ export const AllianceProvider = ({ children }) => {
             throw new Error("Leaders must pass leadership before leaving.");
         }
 
+        const citiesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
 
         await runTransaction(db, async (transaction) => {
-            const gameData = (await transaction.get(gameRef)).data();
-            const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
-
             if (playerAlliance.members.length === 1) {
                 transaction.delete(allianceRef);
             } else {
@@ -503,7 +524,10 @@ export const AllianceProvider = ({ children }) => {
                 }
             }
             transaction.update(gameRef, { alliance: null });
-            transaction.update(citySlotRef, { alliance: null, allianceName: null });
+            for (const slotId of userCitySlotIds) {
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                transaction.update(citySlotRef, { alliance: null, allianceName: null });
+            }
         });
     };
 
@@ -518,13 +542,17 @@ export const AllianceProvider = ({ children }) => {
 
         for (const member of playerAlliance.members) {
             const gameRef = doc(db, `users/${member.uid}/games`, worldId);
-            const gameSnap = await getDoc(gameRef);
-            if (gameSnap.exists()) {
-                const gameData = gameSnap.data();
-                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
-                batch.update(gameRef, { alliance: null });
-                batch.update(citySlotRef, { alliance: null, allianceName: null });
-            }
+            batch.update(gameRef, { alliance: null });
+
+            const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
+            const citiesSnap = await getDocs(citiesRef);
+            citiesSnap.forEach(cityDoc => {
+                const cityData = cityDoc.data();
+                if (cityData.slotId) {
+                    const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', cityData.slotId);
+                    batch.update(citySlotRef, { alliance: null, allianceName: null });
+                }
+            });
         }
         batch.delete(allianceRef);
         await batch.commit();
@@ -535,18 +563,18 @@ export const AllianceProvider = ({ children }) => {
         if (!currentUser || !worldId || !userProfile) throw new Error("User or world not identified.");
         if (playerAlliance) throw new Error("You are already in an alliance.");
 
+        const citiesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
 
         await runTransaction(db, async (transaction) => {
             const allianceDoc = await transaction.get(allianceRef);
-            const gameDoc = await transaction.get(gameRef);
             if (!allianceDoc.exists()) throw new Error("Alliance not found.");
-            if (!gameDoc.exists()) throw new Error("Your game data not found.");
 
             const allianceData = allianceDoc.data();
-            const gameData = gameDoc.data();
-
             if (allianceData.settings.status !== 'open') throw new Error("This alliance is not open for joining.");
 
             transaction.update(allianceRef, {
@@ -554,8 +582,10 @@ export const AllianceProvider = ({ children }) => {
             });
             transaction.update(gameRef, { alliance: allianceId });
 
-            const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', gameData.cityLocation.slotId);
-            transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+            for (const slotId of userCitySlotIds) {
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+            }
         });
     };
 
@@ -568,13 +598,15 @@ export const AllianceProvider = ({ children }) => {
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const applicantGameRef = doc(db, `users/${application.userId}/games`, worldId);
 
+        const citiesRef = collection(db, `users/${application.userId}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
         await runTransaction(db, async (transaction) => {
             const allianceDoc = await transaction.get(allianceRef);
-            const applicantGameDoc = await transaction.get(applicantGameRef);
-            if (!allianceDoc.exists() || !applicantGameDoc.exists()) throw new Error("Data not found.");
+            if (!allianceDoc.exists()) throw new Error("Data not found.");
 
             const allianceData = allianceDoc.data();
-            const applicantGameData = applicantGameDoc.data();
 
             const appToRemove = allianceData.applications.find(app => app.userId === application.userId);
             if (appToRemove) {
@@ -587,8 +619,10 @@ export const AllianceProvider = ({ children }) => {
                 });
                 transaction.update(applicantGameRef, { alliance: allianceId });
                 
-                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', applicantGameData.cityLocation.slotId);
-                transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+                for (const slotId of userCitySlotIds) {
+                    const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                    transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
+                }
             }
         });
     };

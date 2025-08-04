@@ -1,6 +1,6 @@
 // src/components/CityFounding.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, serverTimestamp} from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -109,11 +109,11 @@ const CityFounding = ({ onCityFounded }) => {
                 cityName: finalCityName
             });
 
-            // #comment This is the crucial fix: create the top-level game document for the world.
-            // This is what WorldSelectionScreen checks to see if you've "joined" a world.
+            // #comment Set the top-level game document with initial data, including the citySlotIds array
             batch.set(gameDocRef, {
                 worldName: worldState.name,
                 joinedAt: serverTimestamp(),
+                citySlotIds: [selectedSlot.id]
             });
 
             const initialBuildings = {};

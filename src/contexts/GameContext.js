@@ -1,3 +1,4 @@
+// src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -9,6 +10,7 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children, worldId }) => {
     const { currentUser } = useAuth();
+    const [playerGameData, setPlayerGameData] = useState(null); // For top-level game data (like alliance)
     const [playerCities, setPlayerCities] = useState({});
     const [activeCityId, setActiveCityId] = useState(null);
     const [worldState, setWorldState] = useState(null);
@@ -36,6 +38,16 @@ export const GameProvider = ({ children, worldId }) => {
             setWorldState(docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null);
         });
 
+        // #comment This listener is for the top-level game document which contains the alliance tag.
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const unsubscribeGameData = onSnapshot(gameDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setPlayerGameData(docSnap.data());
+            } else {
+                setPlayerGameData(null);
+            }
+        });
+
         const citiesColRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
         const unsubscribeCities = onSnapshot(citiesColRef, (snapshot) => {
             const citiesData = {};
@@ -46,7 +58,6 @@ export const GameProvider = ({ children, worldId }) => {
             const hasCities = !snapshot.empty;
             setPlayerHasCities(hasCities);
 
-            // #comment If there are cities but no active one is set, default to the first one.
             if (hasCities && !activeCityId) {
                 setActiveCityId(snapshot.docs[0].id);
             } else if (!hasCities) {
@@ -75,6 +86,7 @@ export const GameProvider = ({ children, worldId }) => {
 
         return () => {
             unsubscribeWorld();
+            unsubscribeGameData();
             unsubscribeCities();
             unsubscribeVillages();
             unsubscribeRuins();
@@ -95,6 +107,7 @@ export const GameProvider = ({ children, worldId }) => {
     const value = { 
         worldId,
         worldState,
+        playerGameData, // Export the top-level player data
         playerCities,
         activeCityId,
         setActiveCityId,
