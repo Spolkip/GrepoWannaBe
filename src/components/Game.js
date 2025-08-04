@@ -1,34 +1,34 @@
 // src/components/Game.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
 import MapView from './MapView';
 import LoadingScreen from './shared/LoadingScreen';
 import Chat from './chat/Chat';
-import { useGameManager } from '../hooks/useGameManager';
+import { useMovementProcessor } from '../hooks/useMovementProcessor';
 
 const Game = ({ onBackToWorlds }) => {
-    const { activeCityId, setActiveCityId } = useGame();
-    const {
-        view,
-        isChatOpen,
-        setIsChatOpen,
-        showMap,
-        showCity: showCityView, // #comment Rename to avoid conflict with the new showCity function
-        isLoading,
-        worldId
-    } = useGameManager();
+    const { activeCityId, setActiveCityId, worldId, loading } = useGame();
+    const [view, setView] = useState('city'); // 'city' or 'map'
+    const [isChatOpen, setIsChatOpen] = useState(false);
 
+    // #comment This hook runs in the background to process completed movements.
+    useMovementProcessor(worldId);
+
+    const showMap = () => setView('map');
+    
     /**
      * #comment Sets the active city and switches to the city view.
      * @param {string} cityId - The ID of the city to switch to.
      */
     const showCity = (cityId) => {
-        setActiveCityId(cityId);
-        showCityView();
+        if (cityId) {
+            setActiveCityId(cityId);
+        }
+        setView('city');
     };
 
-    if (isLoading) {
+    if (loading) {
         return <LoadingScreen message="Loading Game..." />;
     }
 
