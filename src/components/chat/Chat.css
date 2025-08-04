@@ -1,11 +1,12 @@
+/* src/components/chat/Chat.css */
 .chat-toggle-button {
     position: fixed;
     bottom: 20px;
     left: 20px;
     z-index: 1000;
-    background-color: #4a5568;
-    color: white;
-    border: 2px solid #718096;
+    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #4a2c2a;
+    border: 2px solid #8B4513;
     border-radius: 50%;
     width: 60px;
     height: 60px;
@@ -19,7 +20,7 @@
 }
 
 .chat-toggle-button:hover {
-    background-color: #2d3748;
+    background: linear-gradient(to bottom, #fff2b2, #d6914d);
     transform: scale(1.1);
 }
 
@@ -27,68 +28,75 @@
     position: fixed;
     width: 380px;
     height: 500px;
-    background-color: #2d3748;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     z-index: 1000;
-    border: 1px solid #4a5568;
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('[https://www.transparenttextures.com/patterns/cracks.png](https://www.transparenttextures.com/patterns/cracks.png)');
+    background-color: #F5DEB3; /* wheat */
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    color: #4a2c2a;
 }
 
 .chat-header {
-    background-color: #1a202c;
-    color: #a0aec0;
-    padding: 10px 15px;
-    font-weight: bold;
-    cursor: move;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #4a5568;
+    padding: 0.5rem 1rem;
+    background-color: #1e3a8a;
+    color: #f0e68c;
+    font-family: 'IM Fell English SC', serif;
+    font-size: 1.25rem;
+    border-bottom: 2px solid #cd853f;
+    cursor: move;
 }
 
 .chat-header .close-btn {
     background: none;
     border: none;
-    color: #a0aec0;
-    font-size: 24px;
+    color: #f0e68c;
+    font-size: 2rem;
     cursor: pointer;
+}
+.chat-header .close-btn:hover {
+    color: white;
 }
 
 .chat-tabs {
     display: flex;
-    background-color: #1a202c;
-    border-bottom: 1px solid #4a5568;
+    background-color: #1e3a8a;
+    padding: 4px;
+    border-bottom: 4px solid #8B4513;
 }
 
 .chat-tab {
     flex-grow: 1;
-    padding: 10px;
-    background: none;
-    border: none;
-    color: #a0aec0;
+    padding: 8px 16px;
+    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #4a2c2a;
+    border: 2px solid #8B4513;
+    border-bottom: none;
+    margin-right: 4px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.2s ease-in-out;
 }
 
 .chat-tab:hover:not(:disabled) {
-    background-color: #2d3748;
-    color: white;
+    background: linear-gradient(to bottom, #fff2b2, #d6914d);
 }
 
 .chat-tab.active {
-    background-color: #2d3748;
-    color: white;
-    border-bottom: 2px solid #4299e1;
+    background: #F5DEB3;
+    color: #4a2c2a;
 }
 
 .chat-tab:disabled {
-    color: #718096;
+    opacity: 0.6;
     cursor: not-allowed;
-    background-color: #1a202c;
+    background: #d2b48c;
 }
 
 .messages-container {
@@ -107,70 +115,65 @@
     word-wrap: break-word;
     display: flex;
     flex-direction: column;
+    border: 1px solid #d2b48c; /* tan */
 }
 
 .message .author {
     font-weight: bold;
     font-size: 0.9em;
     margin-bottom: 4px;
-    color: #a0aec0;
+    color: #8B4513; /* saddlebrown */
 }
 
 .message p {
     margin: 0;
-    color: #edf2f7;
+    color: #4a2c2a;
 }
 
 .message.sent {
-    background-color: #3182ce;
+    background-color: #e6cba8; /* lighter tan */
     align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
-.message.sent .author {
-    color: #bee3f8;
-}
 
 .message.received {
-    background-color: #4a5568;
+    background-color: #d3b890;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
-}
-.message.received .author {
-    color: #e2e8f0;
 }
 
 .send-message-form {
     display: flex;
     padding: 10px;
-    border-top: 1px solid #4a5568;
-    background-color: #1a202c;
+    border-top: 2px solid #8B4513;
+    background-color: rgba(139, 69, 19, 0.1); /* saddlebrown transparent */
 }
 
 .send-message-form input {
     flex-grow: 1;
     padding: 10px 15px;
     border-radius: 20px;
-    border: 1px solid #4a5568;
-    background-color: #2d3748;
-    color: white;
+    border: 1px solid #d2b48c;
+    background-color: rgba(255, 255, 255, 0.5);
+    color: #4a2c2a;
     margin-right: 10px;
     outline: none;
 }
 .send-message-form input:focus {
-    border-color: #4299e1;
+    border-color: #8B4513;
 }
 
 .send-message-form button {
     padding: 10px 20px;
     border-radius: 20px;
-    border: none;
-    background-color: #4299e1;
-    color: white;
+    border: 2px solid #8B4513;
+    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #4a2c2a;
     cursor: pointer;
     font-weight: bold;
     transition: background-color 0.2s;
 }
 
 .send-message-form button:hover {
-    background-color: #3182ce;
+    background: linear-gradient(to bottom, #fff2b2, #d6914d);
 }

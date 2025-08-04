@@ -1,21 +1,13 @@
-- add a request system
 - add special buildings
 - different troops for different nationalities
-
-
-
+- add a request alliance system with options for each alliance to follow, like tarrifs, resources per some time etc
 
 
 Later:
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
 - add heroes that can do skills on battle and also give buffs
 - make it so you can conquer other cities
-
+- add a battle simulation
 
 Maybe: 
 - add cities inside the island
-- add a leader chat
-
-
-Bugs:
-- fix plunderer hapiness
