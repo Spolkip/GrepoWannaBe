@@ -1,11 +1,7 @@
-// a small fix to correct the background image url
-// src/components/chat/Chat.css
-
-/* src/components/chat/Chat.css */
 .chat-toggle-button {
     position: fixed;
     bottom: 20px;
-    left: 20px;
+    right: 20px;
     z-index: 1000;
     background: linear-gradient(to bottom, #f0e68c, #cd853f);
     color: #4a2c2a;

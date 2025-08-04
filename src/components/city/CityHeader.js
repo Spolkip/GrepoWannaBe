@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, writeBatch } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
-import { auth, db } from '../../firebase/config';
+import { db } from '../../firebase/config';
 
 // #comment A dropdown to show all player cities and allow switching between them
 const CityListDropdown = ({ cities, onSelect, onClose, activeCityId }) => {
@@ -39,7 +38,7 @@ const CityListDropdown = ({ cities, onSelect, onClose, activeCityId }) => {
     );
 };
 
-const CityHeader = ({ cityGameState, worldId, showMap, onCityNameChange, setMessage, onOpenCheats, playerCities, onSelectCity, activeCityId }) => {
+const CityHeader = ({ cityGameState, worldId, onCityNameChange, setMessage, onOpenCheats, playerCities, onSelectCity, activeCityId }) => {
     const { currentUser, userProfile } = useAuth();
     const [isEditingCityName, setIsEditingCityName] = useState(false);
     const [newCityName, setNewCityName] = useState(cityGameState.cityName);
@@ -130,7 +129,6 @@ const CityHeader = ({ cityGameState, worldId, showMap, onCityNameChange, setMess
                 )}
                 {cityGameState.god && <p className="text-lg text-yellow-400 font-semibold">Worshipping: {cityGameState.god}</p>}
                 <p className="text-sm text-blue-300">{`${cityGameState.playerInfo.nation} (${cityGameState.playerInfo.religion})`}</p>
-                <button onClick={showMap} className="text-sm text-blue-400 hover:text-blue-300 mt-1">← Return to Map</button>
             </div>
             <div className="text-center sm:text-right mt-2 sm:mt-0">
                 <p className="text-xs text-gray-400">Player: <span className="font-mono">{userProfile?.username || currentUser?.email}</span></p>
@@ -138,7 +136,6 @@ const CityHeader = ({ cityGameState, worldId, showMap, onCityNameChange, setMess
                     {userProfile?.is_admin && (
                         <button onClick={onOpenCheats} className="text-sm text-yellow-400 hover:text-yellow-300 mt-1">Admin Cheats</button>
                     )}
-                    <button onClick={() => signOut(auth)} className="text-sm text-red-400 hover:text-red-300 mt-1">Logout</button>
                 </div>
             </div>
         </header>

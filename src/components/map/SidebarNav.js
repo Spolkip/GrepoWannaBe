@@ -1,12 +1,11 @@
-// src/components/map/SidebarNav.js
 import React from 'react';
 
-const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, isUnderAttack, incomingAttackCount }) => {
+const SidebarNav = ({ onToggleView, view, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, isUnderAttack, incomingAttackCount }) => {
     return (
         <div className="sidebar">
             <h2 className="font-title text-2xl text-gray-200 mb-6 text-center">Menu</h2>
-            <button onClick={onGoToCity} className="sidebar-button">City View</button>
-            <button onClick={onOpenQuests} className="sidebar-button">Quests</button> {/* #comment Add Quests button */}
+            <button onClick={onToggleView} className="sidebar-button">{view === 'map' ? 'City View' : 'Map View'}</button>
+            <button onClick={onOpenQuests} className="sidebar-button">Quests</button>
             <button 
                 onClick={onOpenMovements} 
                 className={`sidebar-button relative ${isUnderAttack ? 'glowing-attack' : ''}`}
@@ -45,7 +44,7 @@ const SidebarNav = ({ onGoToCity, onOpenMovements, onOpenReports, onOpenAlliance
             <button onClick={onOpenLeaderboard} className="sidebar-button">Leaderboard</button>
             <button onClick={() => onOpenProfile()} className="sidebar-button">Profile</button>
             <button onClick={onOpenSettings} className="sidebar-button">Settings</button>
-            {isAdmin && (
+            {isAdmin && view === 'map' && (
                 <button onClick={onToggleDummyCityPlacement} className="sidebar-button bg-yellow-700 hover:bg-yellow-600">
                     Admin: Place Dummy City
                 </button>

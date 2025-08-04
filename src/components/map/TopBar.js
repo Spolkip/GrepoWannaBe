@@ -47,7 +47,7 @@ const WeatherDisplay = ({ season, weather }) => {
     const weatherIcons = {
         Clear: '☀️',
         Rainy: '🌧️',
-        Windy: '💨',
+        Windy: '�',
         Foggy: '🌫️',
         Stormy: '⛈️',
     };

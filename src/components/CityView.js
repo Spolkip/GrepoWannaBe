@@ -1,3 +1,4 @@
+// src/components/CityView.js
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
@@ -10,8 +11,19 @@ import { useCityState } from '../hooks/useCityState';
 import { useGame } from '../contexts/GameContext';
 import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
+import SidebarNav from './map/SidebarNav';
 
-const CityView = ({ showMap, worldId }) => {
+const CityView = ({ 
+    showMap, 
+    worldId,
+    openModal,
+    unreadReportsCount,
+    unreadMessagesCount,
+    isUnderAttack,
+    incomingAttackCount,
+    handleOpenAlliance,
+    handleOpenProfile
+}) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, playerCities, setActiveCityId, activeCityId } = useGame();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
@@ -26,12 +38,12 @@ const CityView = ({ showMap, worldId }) => {
         getMaxWorkerSlots, getMarketCapacity,
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
 
-    const { modalState, openModal, closeModal, setModalState } = useCityModalManager();
+    const { modalState, openModal: openCityModal, closeModal, setModalState } = useCityModalManager();
 
     const actions = useCityActions({
         cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
         getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
-        setMessage, openModal, closeModal, setModalState,
+        setMessage, openModal: openCityModal, closeModal, setModalState,
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
     });
 
@@ -51,31 +63,55 @@ const CityView = ({ showMap, worldId }) => {
     }
 
     return (
-        <div className="w-full h-screen flex flex-col bg-gray-900">
+        <div className="w-full h-screen flex flex-row bg-gray-900">
             <Modal message={message} onClose={() => setMessage('')} />
-            <CityHeader
-                cityGameState={cityGameState}
-                worldId={worldId}
-                showMap={showMap}
-                onCityNameChange={(newName) => setCityGameState(prev => ({ ...prev, cityName: newName }))}
-                setMessage={setMessage}
-                onOpenCheats={() => openModal('isCheatMenuOpen')}
-                playerCities={playerCities}
-                onSelectCity={setActiveCityId}
-                activeCityId={activeCityId}
+            
+            <SidebarNav 
+                onToggleView={showMap}
+                view="city"
+                onOpenMovements={() => openModal('movements')}
+                onOpenReports={() => openModal('reports')}
+                onOpenAlliance={handleOpenAlliance}
+                onOpenForum={() => openModal('allianceForum')}
+                onOpenMessages={() => openModal('messages')}
+                onOpenSettings={() => openModal('settings')}
+                onOpenProfile={() => handleOpenProfile()}
+                onOpenLeaderboard={() => openModal('leaderboard')}
+                onOpenQuests={() => openModal('quests')}
+                unreadReportsCount={unreadReportsCount}
+                unreadMessagesCount={unreadMessagesCount}
+                isAdmin={userProfile?.is_admin}
+                onToggleDummyCityPlacement={() => {}} // Not applicable in city view
+                isUnderAttack={isUnderAttack}
+                incomingAttackCount={incomingAttackCount}
             />
-            <ResourceBar
-                resources={cityGameState.resources}
-                productionRates={productionRates}
-                availablePopulation={availablePopulation}
-                happiness={happiness}
-            />
-            <CityViewContent
-                cityGameState={cityGameState}
-                handlePlotClick={actions.handlePlotClick}
-                onOpenPowers={() => openModal('isDivinePowersOpen')}
-                gameSettings={gameSettings}
-            />
+
+            <div className="flex-grow flex flex-col overflow-hidden">
+                <CityHeader
+                    cityGameState={cityGameState}
+                    worldId={worldId}
+                    showMap={showMap}
+                    onCityNameChange={(newName) => setCityGameState(prev => ({ ...prev, cityName: newName }))}
+                    setMessage={setMessage}
+                    onOpenCheats={() => openCityModal('isCheatMenuOpen')}
+                    playerCities={playerCities}
+                    onSelectCity={setActiveCityId}
+                    activeCityId={activeCityId}
+                />
+                <ResourceBar
+                    resources={cityGameState.resources}
+                    productionRates={productionRates}
+                    availablePopulation={availablePopulation}
+                    happiness={happiness}
+                />
+                <CityViewContent
+                    cityGameState={cityGameState}
+                    handlePlotClick={actions.handlePlotClick}
+                    onOpenPowers={() => openCityModal('isDivinePowersOpen')}
+                    gameSettings={gameSettings}
+                />
+            </div>
+
             <CityModals
                 cityGameState={cityGameState}
                 worldId={worldId}
@@ -102,7 +138,7 @@ const CityView = ({ showMap, worldId }) => {
                 handleCancelHeal={actions.handleCancelHeal}
                 availablePopulation={availablePopulation}
                 modalState={modalState}
-                openModal={openModal}
+                openModal={openCityModal}
                 closeModal={closeModal}
                 setMessage={setMessage}
                 onAddWorker={actions.handleAddWorker}

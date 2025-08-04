@@ -1,14 +1,8 @@
-// src/components/map/MapModals.js
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
-import ReportsView from '../ReportsView';
-import MessagesView from '../messaging/MessagesView';
-import AllianceCreation from '../alliance/AllianceCreation';
-import AllianceForum from '../alliance/AllianceForum'; 
-import QuestsModal from '../quests/QuestsModal'; // #comment Import QuestsModal
 
 const MapModals = ({
     modalState,
@@ -30,8 +24,6 @@ const MapModals = ({
     onCastSpell,
     onActionClick,
     marketCapacity,
-    quests, // #comment Receive quests data
-    claimQuestReward // #comment Receive claim function
 }) => {
     return (
         <>
@@ -81,31 +73,6 @@ const MapModals = ({
                     onCancel={handleCancelMovement}
                     onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
-                />
-            )}
-            {modalState.isReportsPanelOpen && (
-                <ReportsView onClose={() => closeModal('reports')} />
-            )}
-            {modalState.isMessagesPanelOpen && (
-                <MessagesView 
-                    onClose={() => closeModal('messages')} 
-                    initialRecipientId={modalState.actionDetails?.city?.ownerId}
-                    initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername}
-                    onActionClick={onActionClick}
-                />
-            )}
-            {modalState.isAllianceCreationOpen && (
-                <AllianceCreation onClose={() => closeModal('allianceCreation')} />
-            )}
-            {modalState.isAllianceForumOpen && (
-                <AllianceForum onClose={() => closeModal('allianceForum')} />
-            )}
-            {/* #comment Render QuestsModal */}
-            {modalState.isQuestsModalOpen && (
-                <QuestsModal 
-                    quests={quests} 
-                    claimReward={claimQuestReward} 
-                    onClose={() => closeModal('quests')} 
                 />
             )}
         </>
