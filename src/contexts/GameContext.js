@@ -1,4 +1,3 @@
-// src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -44,11 +43,13 @@ export const GameProvider = ({ children, worldId }) => {
                 citiesData[doc.id] = { id: doc.id, ...doc.data() };
             });
             setPlayerCities(citiesData);
-            setPlayerHasCities(!snapshot.empty);
+            const hasCities = !snapshot.empty;
+            setPlayerHasCities(hasCities);
 
-            if (!snapshot.empty && !activeCityId) {
+            // #comment If there are cities but no active one is set, default to the first one.
+            if (hasCities && !activeCityId) {
                 setActiveCityId(snapshot.docs[0].id);
-            } else if (snapshot.empty) {
+            } else if (!hasCities) {
                 setActiveCityId(null);
             }
             setLoading(false);
@@ -78,13 +79,12 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeVillages();
             unsubscribeRuins();
         };
-    }, [currentUser, worldId, activeCityId]);
+        // #comment The dependency array is corrected to prevent re-render loops.
+    }, [currentUser, worldId]);
 
     const activeCity = playerCities[activeCityId] || null;
-    // This is a legacy property for components that haven't been updated for multi-city yet.
-    // It provides the data of the currently active city.
+    // #comment Legacy properties for components that haven't been updated for multi-city yet.
     const gameState = activeCity; 
-    // This is another legacy property for components expecting a single city object on the map.
     const playerCity = activeCity;
 
     const value = { 
@@ -100,7 +100,7 @@ export const GameProvider = ({ children, worldId }) => {
         conqueredRuins,
         gameSettings,
         setGameSettings,
-        // Legacy support
+        // #comment Legacy support
         gameState,
         playerCity,
         setGameState: (newState) => {

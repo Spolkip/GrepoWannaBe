@@ -1,4 +1,3 @@
-// src/hooks/useCityState.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
@@ -6,18 +5,20 @@ import { db } from '../firebase/config';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
 import researchConfig from '../gameData/research.json';
+import { useGame } from '../contexts/GameContext';
 
-const getGameDocRef = (userId, worldId) => doc(db, `users/${userId}/games`, worldId);
+// #comment This hook now gets the active city ID from the GameContext
+// #comment and uses it to listen to and update the correct city document.
 
-// #comment calculate market capacity based on level
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
-    const capacity = 500 + (level - 1) * 200; // Starts at 500, +200 per level
-    return Math.min(2500, capacity); // Capped at 2500
+    const capacity = 500 + (level - 1) * 200;
+    return Math.min(2500, capacity);
 };
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
+    const { activeCityId } = useGame(); // #comment Get activeCityId from context
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
 
@@ -25,10 +26,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         gameStateRef.current = cityGameState;
     }, [cityGameState]);
 
-    // #comment calculate city happiness based on senate level and workers
     const calculateHappiness = useCallback((buildings) => {
         if (!buildings || !buildings.senate) return 0;
-        const baseHappiness = buildings.senate.level * 5; // #comment Happiness per senate level set to 5
+        const baseHappiness = buildings.senate.level * 5;
         
         let workerCount = 0;
         const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
@@ -42,14 +42,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return Math.max(0, Math.min(100, baseHappiness - happinessPenalty));
     }, []);
     
-    // #comment calculate max worker slots for a resource building
     const getMaxWorkerSlots = useCallback((level) => {
         if (!level || level < 1) return 0;
-        // Starts with 1, +1 every 5 levels. Capped at 6.
         return Math.min(6, 1 + Math.floor(level / 5));
     }, []);
 
-    // #comment calculate production rates considering workers and happiness
     const getProductionRates = useCallback((buildings) => {
         if (!buildings) return { wood: 0, stone: 0, silver: 0 };
         
@@ -62,15 +59,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             silver: Math.floor(15 * Math.pow(1.15, (buildings.silver_mine?.level || 1) - 1)),
         };
 
-        if (buildings.timber_camp?.workers) {
-            rates.wood *= (1 + buildings.timber_camp.workers * 0.1);
-        }
-        if (buildings.quarry?.workers) {
-            rates.stone *= (1 + buildings.quarry.workers * 0.1);
-        }
-        if (buildings.silver_mine?.workers) {
-            rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
-        }
+        if (buildings.timber_camp?.workers) rates.wood *= (1 + buildings.timber_camp.workers * 0.1);
+        if (buildings.quarry?.workers) rates.stone *= (1 + buildings.quarry.workers * 0.1);
+        if (buildings.silver_mine?.workers) rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
 
         rates.wood = Math.floor(rates.wood * happinessBonus);
         rates.stone = Math.floor(rates.stone * happinessBonus);
@@ -105,7 +96,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
           populationCost = 0;
         }
 
-        // #comment Further reduced the time multiplier to make buildings construct faster.
         const calculatedTime = Math.floor(cost.time * Math.pow(1.25, level - 1));
 
         return {
@@ -128,7 +118,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         };
     }, [isInstantResearch]);
 
-    // #comment calculate used population including workers
     const calculateUsedPopulation = useCallback((buildings, units) => {
         let used = 0;
         if (buildings) {
@@ -158,17 +147,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         let points = 0;
         if (gameState.buildings) {
             for (const buildingId in gameState.buildings) {
-                const building = gameState.buildings[buildingId];
-                points += building.level * 10;
+                points += gameState.buildings[buildingId].level * 10;
             }
         }
         if (gameState.units) {
             for (const unitId in gameState.units) {
-                const count = gameState.units[unitId];
                 const unit = unitConfig[unitId];
-                if (unit) {
-                    points += count * (unit.cost.population || 1);
-                }
+                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1);
             }
         }
         if (gameState.research) {
@@ -178,46 +163,39 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     }, []);
 
     const saveGameState = useCallback(async (stateToSave) => {
-        if (!currentUser || !worldId || !stateToSave) return;
+        if (!currentUser || !worldId || !activeCityId || !stateToSave) return;
         try {
-            const gameDocRef = getGameDocRef(currentUser.uid, worldId);
+            const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
             const dataToSave = { ...stateToSave, lastUpdated: Date.now() };
-            if (dataToSave.buildQueue) {
-                dataToSave.buildQueue = dataToSave.buildQueue.map(task => ({
-                    ...task,
-                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
-                }));
-            }
-            if (dataToSave.unitQueue) {
-                dataToSave.unitQueue = dataToSave.unitQueue.map(task => ({
-                    ...task,
-                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
-                }));
-            }
-            if (dataToSave.researchQueue) {
-                dataToSave.researchQueue = dataToSave.researchQueue.map(task => ({
-                    ...task,
-                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
-                }));
-            }
-            if (dataToSave.healQueue) {
-                dataToSave.healQueue = dataToSave.healQueue.map(task => ({
-                    ...task,
-                    endTime: task.endTime.toDate ? task.endTime.toDate() : task.endTime
-                }));
-            }
-            await setDoc(gameDocRef, dataToSave, { merge: true });
+            
+            // #comment Convert any Firestore Timestamps to JS Dates before saving
+            const convertTimestamps = (queue) => (queue || []).map(task => ({
+                ...task,
+                endTime: task.endTime?.toDate ? task.endTime.toDate() : task.endTime
+            }));
+
+            dataToSave.buildQueue = convertTimestamps(dataToSave.buildQueue);
+            dataToSave.unitQueue = convertTimestamps(dataToSave.unitQueue);
+            dataToSave.researchQueue = convertTimestamps(dataToSave.researchQueue);
+            dataToSave.healQueue = convertTimestamps(dataToSave.healQueue);
+
+            await setDoc(cityDocRef, dataToSave, { merge: true });
         } catch (error) {
             console.error('Failed to save game state:', error);
         }
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
 
     useEffect(() => {
-        if (!currentUser || !worldId) return;
-        const gameDocRef = getGameDocRef(currentUser.uid, worldId);
-        const unsubscribe = onSnapshot(gameDocRef, (docSnap) => {
+        if (!currentUser || !worldId || !activeCityId) {
+            setCityGameState(null);
+            return;
+        }
+        // #comment This now listens to the specific city document based on activeCityId
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+        const unsubscribe = onSnapshot(cityDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
+                // #comment Initialize any missing fields to prevent errors
                 if (!data.units) data.units = {};
                 if (!data.wounded) data.wounded = {};
                 if (!data.worship) data.worship = {};
@@ -229,12 +207,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 if (!data.unitQueue) data.unitQueue = [];
                 if (!data.researchQueue) data.researchQueue = [];
                 if (!data.healQueue) data.healQueue = [];
-
                 setCityGameState(data);
+            } else {
+                setCityGameState(null);
             }
         });
         return () => unsubscribe();
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -269,137 +248,70 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     useEffect(() => {
         const processQueue = async () => {
             const currentState = gameStateRef.current;
-            if (!currentUser || !worldId || (!currentState?.buildQueue?.length && !currentState?.unitQueue?.length && !currentState?.researchQueue?.length && !currentState?.healQueue?.length)) return;
+            if (!currentUser || !worldId || !activeCityId || (!currentState?.buildQueue?.length && !currentState?.unitQueue?.length && !currentState?.researchQueue?.length && !currentState?.healQueue?.length)) return;
 
-            const now = Date.now(); // Corrected from Date.Date()
-
-            // Process Build Queue
-            if (currentState.buildQueue && currentState.buildQueue.length > 0) {
-                const completedBuildTasks = [];
-                const remainingBuildQueue = [];
-
-                currentState.buildQueue.forEach(task => {
-                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
-                    if (endTime > 0 && now >= endTime) {
-                        completedBuildTasks.push(task);
-                    } else {
-                        remainingBuildQueue.push(task);
-                    }
-                });
-
-                if (completedBuildTasks.length > 0) {
-                    const newBuildings = { ...currentState.buildings };
-                    completedBuildTasks.forEach(task => {
-                        newBuildings[task.buildingId].level = task.level;
+            const now = Date.now();
+            const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+            let updated = false;
+            const updates = {};
+            
+            // #comment Process all queues in one go to reduce writes
+            const processSingleQueue = (queueName, onComplete) => {
+                if (currentState[queueName] && currentState[queueName].length > 0) {
+                    const completedTasks = [];
+                    const remainingQueue = [];
+                    currentState[queueName].forEach(task => {
+                        const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
+                        if (endTime > 0 && now >= endTime) {
+                            completedTasks.push(task);
+                        } else {
+                            remainingQueue.push(task);
+                        }
                     });
-                    try {
-                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
-                            buildings: newBuildings,
-                            buildQueue: remainingBuildQueue,
-                            lastUpdated: now
-                        }, { merge: true });
-                    } catch (error) {
-                        console.error("Error completing build task(s):", error);
+
+                    if (completedTasks.length > 0) {
+                        updated = true;
+                        updates[queueName] = remainingQueue;
+                        onComplete(completedTasks);
                     }
                 }
-            }
+            };
 
-            // Process Unit Queue
-            if (currentState.unitQueue && currentState.unitQueue.length > 0) {
-                const completedUnitTasks = [];
-                const remainingUnitQueue = [];
+            processSingleQueue('buildQueue', (completed) => {
+                const newBuildings = updates.buildings || { ...currentState.buildings };
+                completed.forEach(task => { newBuildings[task.buildingId].level = task.level; });
+                updates.buildings = newBuildings;
+            });
 
-                currentState.unitQueue.forEach(task => {
-                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
-                    if (endTime > 0 && now >= endTime) {
-                        completedUnitTasks.push(task);
-                    } else {
-                        remainingUnitQueue.push(task);
-                    }
-                });
+            processSingleQueue('unitQueue', (completed) => {
+                const newUnits = updates.units || { ...currentState.units };
+                completed.forEach(task => { newUnits[task.unitId] = (newUnits[task.unitId] || 0) + task.amount; });
+                updates.units = newUnits;
+            });
 
-                if (completedUnitTasks.length > 0) {
-                    const newUnits = { ...currentState.units };
-                    completedUnitTasks.forEach(task => {
-                        newUnits[task.unitId] = (newUnits[task.unitId] || 0) + task.amount;
-                    });
-                    try {
-                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
-                            units: newUnits,
-                            unitQueue: remainingUnitQueue,
-                            lastUpdated: now
-                        }, { merge: true });
-                    } catch (error) {
-                        console.error("Error completing unit training task(s):", error);
-                    }
-                }
-            }
+            processSingleQueue('researchQueue', (completed) => {
+                const newResearch = updates.research || { ...currentState.research };
+                completed.forEach(task => { newResearch[task.researchId] = true; });
+                updates.research = newResearch;
+            });
 
-            // Process Research Queue
-            if (currentState.researchQueue && currentState.researchQueue.length > 0) {
-                const completedResearchTasks = [];
-                const remainingResearchQueue = [];
+            processSingleQueue('healQueue', (completed) => {
+                const newUnits = updates.units || { ...currentState.units };
+                completed.forEach(task => { newUnits[task.unitId] = (newUnits[task.unitId] || 0) + task.amount; });
+                updates.units = newUnits;
+            });
 
-                currentState.researchQueue.forEach(task => {
-                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
-                    if (endTime > 0 && now >= endTime) {
-                        completedResearchTasks.push(task);
-                    } else {
-                        remainingResearchQueue.push(task);
-                    }
-                });
-
-                if (completedResearchTasks.length > 0) {
-                    const newResearch = { ...currentState.research };
-                    completedResearchTasks.forEach(task => {
-                        newResearch[task.researchId] = true;
-                    });
-                    try {
-                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
-                            research: newResearch,
-                            researchQueue: remainingResearchQueue,
-                            lastUpdated: now
-                        }, { merge: true });
-                    } catch (error) {
-                        console.error("Error completing research task(s):", error);
-                    }
-                }
-            }
-
-            // Process Heal Queue
-            if (currentState.healQueue && currentState.healQueue.length > 0) {
-                const completedHealTasks = [];
-                const remainingHealQueue = [];
-
-                currentState.healQueue.forEach(task => {
-                    const endTime = task.endTime?.toDate ? task.endTime.toDate().getTime() : new Date(task.endTime).getTime();
-                    if (endTime > 0 && now >= endTime) {
-                        completedHealTasks.push(task);
-                    } else {
-                        remainingHealQueue.push(task);
-                    }
-                });
-
-                if (completedHealTasks.length > 0) {
-                    const newUnits = { ...currentState.units };
-                    completedHealTasks.forEach(task => {
-                        newUnits[task.unitId] = (newUnits[task.unitId] || 0) + task.amount;
-                    });
-                    try {
-                        await setDoc(getGameDocRef(currentUser.uid, worldId), {
-                            units: newUnits,
-                            healQueue: remainingHealQueue,
-                            lastUpdated: now
-                        }, { merge: true });
-                    } catch (error) {
-                        console.error("Error completing healing task(s):", error);
-                    }
+            if (updated) {
+                try {
+                    await setDoc(cityDocRef, { ...updates, lastUpdated: now }, { merge: true });
+                } catch (error) {
+                    console.error("Error processing queues:", error);
                 }
             }
         };
         const interval = setInterval(processQueue, 1000);
         return () => clearInterval(interval);
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
 
     useEffect(() => {
         const saveInterval = setInterval(() => {
@@ -409,19 +321,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     }, [saveGameState]);
 
     return { 
-        cityGameState, 
-        setCityGameState, 
-        getUpgradeCost, 
-        getFarmCapacity,
-        getWarehouseCapacity,
-        getHospitalCapacity,
-        getProductionRates,
-        calculateUsedPopulation,
-        saveGameState,
-        getResearchCost,
-        calculateTotalPoints,
-        calculateHappiness,
-        getMaxWorkerSlots,
-        getMarketCapacity
+        cityGameState, setCityGameState, getUpgradeCost, getFarmCapacity,
+        getWarehouseCapacity, getHospitalCapacity, getProductionRates,
+        calculateUsedPopulation, saveGameState, getResearchCost,
+        calculateTotalPoints, calculateHappiness, getMaxWorkerSlots, getMarketCapacity
     };
 };

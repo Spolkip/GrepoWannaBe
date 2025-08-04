@@ -3,15 +3,17 @@ import { useAuth } from './contexts/AuthContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { AllianceProvider } from './contexts/AllianceContext';
 import AuthScreen from './components/AuthScreen';
-import SelectionScreen from './components/SelectionScreen';
 import Game from './components/Game';
 import WorldSelectionScreen from './components/WorldSelectionScreen';
+import CityFounding from './components/CityFounding'; // #comment Use CityFounding for new players
+import LoadingScreen from './components/shared/LoadingScreen';
 
+// #comment This component now correctly decides whether to show the game or the city founding screen.
 const GameController = ({ onBackToWorlds }) => {
-    const { playerHasChosenFaction, worldState, loading: gameLoading } = useGame();
+    const { playerHasCities, worldState, loading: gameLoading } = useGame();
 
     if (gameLoading) {
-        return <div className="text-white text-center p-10">Loading World Data...</div>;
+        return <LoadingScreen message="Loading World Data..." />;
     }
 
     if (!worldState) {
@@ -23,19 +25,21 @@ const GameController = ({ onBackToWorlds }) => {
         );
     }
 
-    if (playerHasChosenFaction) {
+    if (playerHasCities) {
         return <Game onBackToWorlds={onBackToWorlds} />;
     }
     
-    return <SelectionScreen />;
+    // #comment If the player has no cities in this world, show the founding screen.
+    return <CityFounding onCityFounded={() => { /* Context will handle the view change */ }} />;
 };
+
 
 function App() {
     const [selectedWorldId, setSelectedWorldId] = useState(null);
     const { currentUser, loading: authLoading } = useAuth();
 
     if (authLoading) {
-        return <div className="text-white text-center p-10">Authenticating...</div>;
+        return <LoadingScreen message="Authenticating..." />;
     }
 
     if (!currentUser) {
