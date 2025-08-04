@@ -1,6 +1,7 @@
 // src/hooks/useMapClickHandler.js
 import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
+import { useGame } from '../contexts/GameContext';
 
 /**
  * #comment Encapsulates click handling logic for map objects.
@@ -19,6 +20,8 @@ export const useMapClickHandler = ({
     conqueredRuins,
     playerAlliance
 }) => {
+    const { playerCities } = useGame();
+
     const onCitySlotClick = (e, slotData) => {
         if (!playerCity) {
             setMessage("Your city data is still loading. Please wait a moment.");
@@ -31,7 +34,13 @@ export const useMapClickHandler = ({
         }
 
         if (slotData.ownerId === currentUser.uid) {
-            showCity();
+            const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
+            if (city) {
+                showCity(city.id);
+            } else {
+                console.error("Clicked on own city slot, but no matching city found.", slotData);
+                setMessage("Could not find data for your city.");
+            }
         } else if (slotData.ownerId) {
             const distance = calculateDistance(playerCity, slotData);
             setTravelTimeInfo({ distance });

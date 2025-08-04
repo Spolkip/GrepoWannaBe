@@ -20,7 +20,7 @@ import DivinePowers from './city/DivinePowers';
 import ProfileView from './profile/ProfileView';
 import AllianceCreation from './alliance/AllianceCreation';
 import Leaderboard from './leaderboard/Leaderboard';
-import AllianceProfile from './alliance/AllianceProfile';
+import AllianceProfile from './profile/AllianceProfile';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -37,7 +37,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, conqueredVillages, conqueredRuins, gameSettings } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
     const { playerAlliance, sendAllianceInvitation, acceptAllianceInvitation } = useAlliance();
 
     const viewportRef = useRef(null);
@@ -84,7 +84,26 @@ const MapView = ({ showCity, onBackToWorlds }) => {
         else if (type === 'decline_invite') alert("Invitation declined.");
     };
 
-    const combinedSlots = useMemo(() => ({ ...visibleSlots, ...(playerCity && { [playerCity.id]: playerCity }) }), [visibleSlots, playerCity]);
+    const combinedSlots = useMemo(() => {
+        const newSlots = { ...visibleSlots };
+        // Iterate over player's cities
+        for (const cityId in playerCities) {
+            const pCity = playerCities[cityId];
+            // If a slot for this city is visible on the map
+            if (pCity && pCity.slotId && newSlots[pCity.slotId]) {
+                const cityDataForMerge = { ...pCity };
+                // #comment The city's document ID is different from its slot ID.
+                // #comment We must preserve the slot's ID for map interactions.
+                delete cityDataForMerge.id; 
+                
+                newSlots[pCity.slotId] = {
+                    ...newSlots[pCity.slotId], // Keep original slot data (like id, x, y)
+                    ...cityDataForMerge, // Add/overwrite with detailed data from the player's city document
+                };
+            }
+        }
+        return newSlots;
+    }, [visibleSlots, playerCities]);
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
@@ -180,6 +199,14 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const handleOpenProfile = (userId) => openModal('profile', { userId });
     const handleOpenAllianceProfile = (allianceId) => openModal('allianceProfile', { allianceId });
 
+    const handleGoToActiveCity = () => {
+        if (activeCityId) {
+            showCity(activeCityId);
+        } else {
+            setMessage("No active city to view.");
+        }
+    };
+
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -224,7 +251,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 </div>
             </header>
             <div className="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
-                <SidebarNav onGoToCity={showCity} onOpenMovements={() => openModal('movements')} onOpenReports={() => openModal('reports')} onOpenAlliance={handleOpenAlliance} onOpenForum={() => openModal('allianceForum')} onOpenMessages={() => openModal('messages')} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenProfile={() => openModal('profile')} onOpenLeaderboard={() => openModal('leaderboard')} unreadReportsCount={unreadReportsCount} unreadMessagesCount={unreadMessagesCount} isAdmin={userProfile?.is_admin} onToggleDummyCityPlacement={handleToggleDummyCityPlacement} isUnderAttack={isUnderAttack} incomingAttackCount={incomingAttackCount} />
+                <SidebarNav onGoToCity={handleGoToActiveCity} onOpenMovements={() => openModal('movements')} onOpenReports={() => openModal('reports')} onOpenAlliance={handleOpenAlliance} onOpenForum={() => openModal('allianceForum')} onOpenMessages={() => openModal('messages')} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenProfile={() => openModal('profile')} onOpenLeaderboard={() => openModal('leaderboard')} unreadReportsCount={unreadReportsCount} unreadMessagesCount={unreadMessagesCount} isAdmin={userProfile?.is_admin} onToggleDummyCityPlacement={handleToggleDummyCityPlacement} isUnderAttack={isUnderAttack} incomingAttackCount={incomingAttackCount} />
                 <div className="main-content flex-grow relative map-background">
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
                         <TopBar gameState={gameState} availablePopulation={availablePopulation} maxPopulation={gameState ? getFarmCapacity(gameState.buildings.farm?.level) : 0} happiness={happiness} worldState={worldState} />

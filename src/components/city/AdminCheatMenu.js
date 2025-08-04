@@ -15,7 +15,13 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
 
 
     const handleCheat = () => {
-        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount); // Pass new values
+        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
+        onClose();
+    };
+
+    // #comment Handler for the new "Found Second City" button
+    const handleFoundCity = () => {
+        onCheat({}, {}, 0, false, '', false, false, 0, true); // #comment Pass true only for foundSecondCity
         onClose();
     };
 
@@ -124,7 +130,10 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive }) => {
                         />
                     </div>
                 </div>
-                <button onClick={handleCheat} className="btn btn-primary w-full py-2 mt-6">
+                <button onClick={handleFoundCity} className="btn btn-primary w-full py-2 mt-4 bg-yellow-600 hover:bg-yellow-500">
+                    Found Second City
+                </button>
+                <button onClick={handleCheat} className="btn btn-primary w-full py-2 mt-2">
                     Apply Cheats
                 </button>
             </div>

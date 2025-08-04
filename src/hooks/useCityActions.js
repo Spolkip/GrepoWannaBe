@@ -1,12 +1,15 @@
 // src/hooks/useCityActions.js
+import { collection, doc, query, where, limit, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
+import buildingConfig from '../gameData/buildings.json';
 
 /**
  * #comment A custom hook to encapsulate all city-related actions and logic.
  */
 export const useCityActions = ({
-    cityGameState, setCityGameState, saveGameState, worldId, userProfile,
+    cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
     getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
     setMessage, openModal, closeModal, setModalState,
     setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
@@ -519,8 +522,94 @@ export const useCityActions = ({
         closeModal('isTempleMenuOpen');
     };
 
-    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount) => {
+    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity) => {
         if (!cityGameState || !userProfile?.is_admin) return;
+
+        // #comment Handle founding a second city as an admin action
+        if (foundSecondCity) {
+            if (!worldId) {
+                setMessage("Cannot found city: World ID is missing.");
+                console.error("worldId is missing in handleCheat");
+                return;
+            }
+            setMessage('Finding a suitable location for your new city...');
+            
+            const citySlotsRef = collection(db, 'worlds', worldId, 'citySlots');
+            const q = query(citySlotsRef, where('ownerId', '==', null), limit(10));
+            let selectedSlot = null;
+            try {
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const randomDoc = querySnapshot.docs[Math.floor(Math.random() * querySnapshot.docs.length)];
+                    selectedSlot = { id: randomDoc.id, ...randomDoc.data() };
+                }
+            } catch (error) {
+                console.error("Error finding an empty slot:", error);
+                setMessage('Error finding a location.');
+                return;
+            }
+
+            if (!selectedSlot) {
+                setMessage('Could not find an available city slot. This world might be full.');
+                return;
+            }
+
+            setMessage(`Location found at (${selectedSlot.x}, ${selectedSlot.y}). Founding city...`);
+
+            const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', selectedSlot.id);
+            const newCityDocRef = doc(collection(db, 'users', currentUser.uid, 'games', worldId, 'cities'));
+
+            const batch = writeBatch(db);
+            const cityName = `${userProfile.username}'s Colony`;
+
+            batch.update(citySlotRef, {
+                ownerId: currentUser.uid,
+                ownerUsername: userProfile.username,
+                cityName: cityName
+            });
+
+            const initialBuildings = {};
+            Object.keys(buildingConfig).forEach(id => {
+                initialBuildings[id] = { level: 0 };
+            });
+            ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
+                initialBuildings[id].level = 1;
+            });
+
+            const newCityData = {
+                id: newCityDocRef.id,
+                slotId: selectedSlot.id,
+                x: selectedSlot.x,
+                y: selectedSlot.y,
+                islandId: selectedSlot.islandId,
+                cityName: cityName,
+                playerInfo: cityGameState.playerInfo,
+                resources: { wood: 1000, stone: 1000, silver: 500 },
+                buildings: initialBuildings,
+                units: {},
+                wounded: {},
+                research: {},
+                worship: {},
+                cave: { silver: 0 },
+                buildQueue: [],
+                unitQueue: [],
+                researchQueue: [],
+                healQueue: [],
+                lastUpdated: Date.now(),
+            };
+            
+            batch.set(newCityDocRef, newCityData);
+
+            try {
+                await batch.commit();
+                setMessage(`New city "${cityName}" founded at (${selectedSlot.x}, ${selectedSlot.y})!`);
+            } catch (error) {
+                console.error("Error founding city: ", error);
+                setMessage(`Failed to found city: ${error.message}`);
+            }
+            return;
+        }
+        
         setIsInstantBuild(instantBuild);
         setIsInstantResearch(instantResearch);
         setIsInstantUnits(instantUnits);

@@ -1,4 +1,3 @@
-// src/components/CityView.js
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
@@ -14,7 +13,7 @@ import { useCityActions } from '../hooks/useCityActions';
 
 const CityView = ({ showMap, worldId }) => {
     const { currentUser, userProfile } = useAuth();
-    const { gameSettings } = useGame();
+    const { gameSettings, playerCities, setActiveCityId, activeCityId } = useGame();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
     const [isInstantUnits, setIsInstantUnits] = useState(false);
@@ -30,7 +29,7 @@ const CityView = ({ showMap, worldId }) => {
     const { modalState, openModal, closeModal, setModalState } = useCityModalManager();
 
     const actions = useCityActions({
-        cityGameState, setCityGameState, saveGameState, worldId, userProfile,
+        cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
         getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
         setMessage, openModal, closeModal, setModalState,
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
@@ -61,6 +60,9 @@ const CityView = ({ showMap, worldId }) => {
                 onCityNameChange={(newName) => setCityGameState(prev => ({ ...prev, cityName: newName }))}
                 setMessage={setMessage}
                 onOpenCheats={() => openModal('isCheatMenuOpen')}
+                playerCities={playerCities}
+                onSelectCity={setActiveCityId}
+                activeCityId={activeCityId}
             />
             <ResourceBar
                 resources={cityGameState.resources}
