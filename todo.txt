@@ -1,4 +1,3 @@
-- add the support for more than one city
 - if a player has a second town in the island to get from the village 20% more resources per demand
 - do mythic troops of the gods
 - add quests that gives rewards

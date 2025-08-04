@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useCityState } from '../../hooks/useCityState';
 import unitConfig from '../../gameData/units.json';
@@ -9,12 +9,15 @@ import './ProfileView.css';
 
 const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
-    const { worldId, gameState: ownGameState, playerAlliance } = useGame();
+    const { worldId, playerAlliance } = useGame();
     const { calculateTotalPoints } = useCityState(worldId);
 
     const [profileData, setProfileData] = useState(null);
     const [gameData, setGameData] = useState(null);
+    const [cities, setCities] = useState([]);
     const [points, setPoints] = useState(0);
+    const [totalAttack, setTotalAttack] = useState(0);
+    const [totalDefense, setTotalDefense] = useState(0);
     const [loading, setLoading] = useState(true);
 
     const [newDescription, setNewDescription] = useState('');
@@ -29,6 +32,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
             const userId = viewUserId || currentUser.uid;
 
             try {
+                // Fetch user profile
                 const userDocRef = doc(db, "users", userId);
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
@@ -38,13 +42,39 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                     setNewImageUrl(userData.imageUrl || '');
                 }
 
+                // Fetch top-level game data (for alliance info)
                 const gameDocRef = doc(db, `users/${userId}/games`, worldId);
                 const gameDocSnap = await getDoc(gameDocRef);
                 if (gameDocSnap.exists()) {
-                    const fetchedGameData = gameDocSnap.data();
-                    setGameData(fetchedGameData);
-                    setPoints(calculateTotalPoints(fetchedGameData));
+                    setGameData(gameDocSnap.data());
                 }
+
+                // Fetch all cities for the user in this world
+                const citiesColRef = collection(db, `users/${userId}/games`, worldId, 'cities');
+                const citiesSnap = await getDocs(citiesColRef);
+                const citiesList = citiesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setCities(citiesList);
+
+                // Calculate total points, attack, and defense from all cities
+                let calculatedPoints = 0;
+                let calculatedAttack = 0;
+                let calculatedDefense = 0;
+                for (const city of citiesList) {
+                    calculatedPoints += calculateTotalPoints(city);
+                    if (city.units) {
+                        for (const [unitId, count] of Object.entries(city.units)) {
+                            const unit = unitConfig[unitId];
+                            if (unit) {
+                                calculatedAttack += (unit.attack || 0) * count;
+                                calculatedDefense += (unit.defense || 0) * count;
+                            }
+                        }
+                    }
+                }
+                setPoints(calculatedPoints);
+                setTotalAttack(calculatedAttack);
+                setTotalDefense(calculatedDefense);
+
             } catch (error) {
                 console.error("Error fetching user data:", error);
             }
@@ -52,7 +82,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
         };
 
         fetchData();
-    }, [viewUserId, currentUser, worldId, calculateTotalPoints]);
+    }, [viewUserId, currentUser.uid, worldId, calculateTotalPoints]);
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
@@ -64,7 +94,6 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
         };
         try {
             await updateUserProfile(profileUpdateData);
-            console.log('Profile updated successfully!');
             setIsEditing(false);
         } catch (error) {
             console.error("Failed to update profile.", error);
@@ -80,28 +109,14 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
     }
 
     const displayProfile = isOwnProfile ? ownUserProfile : profileData;
-    const displayGame = isOwnProfile ? ownGameState : gameData;
-    const totalPoints = isOwnProfile ? calculateTotalPoints(ownGameState) : points;
     
-    let totalAttack = 0;
-    let totalDefense = 0;
-    if (displayGame?.units) {
-        for (const [unitId, count] of Object.entries(displayGame.units)) {
-            const unit = unitConfig[unitId];
-            if (unit) {
-                totalAttack += (unit.attack || 0) * count;
-                totalDefense += (unit.defense || 0) * count;
-            }
-        }
-    }
-
     const getOcean = (x, y) => {
         if (x === undefined || y === undefined) return '?';
         return `${Math.floor(y / 10)}${Math.floor(x / 10)}`;
     };
 
     const isLeader = playerAlliance && playerAlliance.leader.uid === currentUser.uid;
-    const canInvite = isLeader && !isOwnProfile;
+    const canInvite = isLeader && !isOwnProfile && !gameData?.alliance;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -112,34 +127,36 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                         <div className="profile-box flex-grow">
                             <div className="profile-box-header">{displayProfile?.username}</div>
                             <div className="player-info-content">
-                                {displayGame?.alliance ? (
+                                {gameData?.alliance ? (
                                     <button 
-                                        onClick={() => onOpenAllianceProfile(displayGame.alliance)}
+                                        onClick={() => onOpenAllianceProfile(gameData.alliance)}
                                         className="text-blue-400 hover:underline font-bold"
                                     >
-                                        [{displayGame.alliance}]
+                                        [{gameData.alliance}]
                                     </button>
                                 ) : 'No Alliance'}
                             </div>
                             <div className="player-stats">
                                 <div className="stat-item"><span>⚔️ Attack Points</span> <span>{totalAttack.toLocaleString()}</span></div>
                                 <div className="stat-item"><span>🛡️ Defense Points</span> <span>{totalDefense.toLocaleString()}</span></div>
-                                <div className="stat-item"><span>🏆 Total Points</span> <span>{totalPoints.toLocaleString()}</span></div>
+                                <div className="stat-item"><span>🏆 Total Points</span> <span>{points.toLocaleString()}</span></div>
                             </div>
                         </div>
                         <div className="profile-box">
                             <div className="profile-box-header flex justify-between items-center">
-                                <span>Cities ({displayGame ? 1 : 0})</span>
+                                <span>Cities ({cities.length})</span>
                                 <button className="text-xs bg-gray-500/50 px-2 py-0.5 rounded">BBCode</button>
                             </div>
-                            <div className="cities-list">
-                                {displayGame ? (
-                                    <div className="city-item">
-                                        <button onClick={() => onGoToCity(displayGame.x, displayGame.y)} className="city-name-btn">
-                                            {displayGame.cityName}
-                                        </button>
-                                        <span>{totalPoints.toLocaleString()} points | Ocean {getOcean(displayGame.x, displayGame.y)}</span>
-                                    </div>
+                            <div className="cities-list overflow-y-auto">
+                                {cities.length > 0 ? (
+                                    cities.map(city => (
+                                        <div key={city.id} className="city-item">
+                                            <button onClick={() => onGoToCity(city.x, city.y)} className="city-name-btn">
+                                                {city.cityName}
+                                            </button>
+                                            <span>{calculateTotalPoints(city).toLocaleString()} points | Ocean {getOcean(city.x, city.y)}</span>
+                                        </div>
+                                    ))
                                 ) : (
                                     <p className="text-sm text-center p-4">No cities in this world.</p>
                                 )}
