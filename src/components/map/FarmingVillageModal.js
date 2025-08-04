@@ -1,5 +1,5 @@
 // src/components/map/FarmingVillageModal.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Countdown from './Countdown';
 import { db } from '../../firebase/config';
 import { doc, runTransaction, serverTimestamp, onSnapshot, collection } from 'firebase/firestore';
@@ -155,6 +155,21 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         silver: Math.floor(100 * Math.pow(1.8, level - 1)),
     });
 
+    // #comment Calculate the demand yields with a memoized hook to ensure the UI updates when the bonus changes.
+    const demandYields = useMemo(() => {
+        const citiesOnIsland = countCitiesOnIsland(village.islandId);
+        const bonusMultiplier = citiesOnIsland > 1 ? 1.20 : 1.0;
+        
+        return demandOptions.map(option => ({
+            ...option,
+            yield: {
+                wood: baseVillageData ? Math.floor((baseVillageData.demandYield?.wood || 0) * option.multiplier * village.level * bonusMultiplier) : 0,
+                stone: baseVillageData ? Math.floor((baseVillageData.demandYield?.stone || 0) * option.multiplier * village.level * bonusMultiplier) : 0,
+                silver: baseVillageData ? Math.floor((baseVillageData.demandYield?.silver || 0) * option.multiplier * village.level * bonusMultiplier) : 0,
+            }
+        }));
+    }, [village.level, village.islandId, baseVillageData, countCitiesOnIsland]);
+
     const handleDemand = async (option) => {
         if (isProcessing || !baseVillageData) return;
         setIsProcessing(true);
@@ -162,8 +177,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     
         const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
         const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', activeCityId);
+        
         const citiesOnIsland = countCitiesOnIsland(village.islandId);
-        const bonusMultiplier = citiesOnIsland > 1 ? 1.2 : 1.0;
+        const hasBonus = citiesOnIsland > 1;
+        const bonusMultiplier = hasBonus ? 1.20 : 1.0;
     
         try {
             const updatedCityState = await runTransaction(db, async (transaction) => {
@@ -179,6 +196,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     
                 const newResources = { ...cityData.resources };
                 const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
+                
                 const yieldAmount = {
                     wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level * bonusMultiplier),
                     stone: Math.floor((baseVillageData.demandYield.stone || 0) * option.multiplier * villageData.level * bonusMultiplier),
@@ -202,9 +220,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
             });
     
             setGameState(updatedCityState);
+            
             let successMessage = "Successfully demanded resources! Village happiness decreased.";
-            if (bonusMultiplier > 1) {
-                successMessage += ` (+${Math.round((bonusMultiplier - 1) * 100)}% bonus for multiple cities on this island!)`;
+            if (hasBonus) {
+                successMessage += ` (+20% bonus for multiple cities on this island!)`;
             }
             setMessage(successMessage);
         } catch (error) {
@@ -388,22 +407,17 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                             <h4 className="font-bold text-lg text-center mb-2">Demand Resources</h4>
                             <p className="text-center text-gray-400 text-sm mb-4">Choose an option to demand resources. Shorter times yield fewer resources.</p>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {demandOptions.map(option => {
+                                {demandYields.map(option => {
                                     const isAvailable = timeSinceCollection >= option.duration;
-                                    const currentYield = {
-                                        wood: baseVillageData ? Math.floor((baseVillageData.demandYield?.wood || 0) * option.multiplier * village.level) : 0,
-                                        stone: baseVillageData ? Math.floor((baseVillageData.demandYield?.stone || 0) * option.multiplier * village.level) : 0,
-                                        silver: baseVillageData ? Math.floor((baseVillageData.demandYield?.silver || 0) * option.multiplier * village.level) : 0
-                                    };
                                     return (
                                         <div key={option.name} className="bg-gray-900 border border-gray-700 p-2 rounded-lg text-center flex flex-col justify-between shadow-md">
                                             <div className="relative h-16 mb-2 flex justify-center items-center">
                                                 <img src={resourceImage} alt="resources" className="w-16 h-16"/>
                                             </div>
                                             <div className="text-xs space-y-1 mb-2 text-left">
-                                                <p className="flex justify-between px-1"><span>Wood:</span> <span className="font-bold text-yellow-300">{currentYield.wood}</span></p>
-                                                <p className="flex justify-between px-1"><span>Stone:</span> <span className="font-bold text-gray-300">{currentYield.stone}</span></p>
-                                                <p className="flex justify-between px-1"><span>Silver:</span> <span className="font-bold text-blue-300">{currentYield.silver}</span></p>
+                                                <p className="flex justify-between px-1"><span>Wood:</span> <span className="font-bold text-yellow-300">{option.yield.wood}</span></p>
+                                                <p className="flex justify-between px-1"><span>Stone:</span> <span className="font-bold text-gray-300">{option.yield.stone}</span></p>
+                                                <p className="flex justify-between px-1"><span>Silver:</span> <span className="font-bold text-blue-300">{option.yield.silver}</span></p>
                                             </div>
                                             <div className="mt-auto">
                                                 {isAvailable ? (

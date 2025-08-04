@@ -98,7 +98,8 @@ export const GameProvider = ({ children, worldId }) => {
     const gameState = activeCity; 
     const playerCity = activeCity;
 
-    // #comment Counts the number of cities a player owns on a given island.
+    // #comment Counts the number of cities a player owns on a specific island.
+    // #comment This is used to determine resource bonuses from villages.
     const countCitiesOnIsland = useCallback((islandId) => {
         if (!islandId || !playerCities) return 0;
         return Object.values(playerCities).filter(city => city.islandId === islandId).length;
@@ -118,7 +119,7 @@ export const GameProvider = ({ children, worldId }) => {
         conqueredRuins,
         gameSettings,
         setGameSettings,
-        countCitiesOnIsland,
+        countCitiesOnIsland, // #comment Make the function available through the context
         // #comment Legacy support
         gameState,
         playerCity,
