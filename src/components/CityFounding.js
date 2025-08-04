@@ -1,5 +1,6 @@
+// src/components/CityFounding.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -7,7 +8,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 const CityFounding = ({ onCityFounded }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, worldState, setGameState, setPlayerCity } = useGame();
+    const { worldId, worldState, setActiveCityId } = useGame();
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [cityName, setCityName] = useState('');
     const [message, setMessage] = useState('');
@@ -56,17 +57,20 @@ const CityFounding = ({ onCityFounded }) => {
 
     const handleFoundCity = async (e) => {
         e.preventDefault();
-        if (!cityName.trim() || !selectedSlot) return;
+        if (!cityName.trim() || !selectedSlot || !userProfile) {
+            setMessage("Cannot found city: user profile not loaded yet.");
+            return;
+        }
         setIsLoading(true);
         setMessage('Founding your city...');
 
         const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', selectedSlot.id);
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const newCityDocRef = doc(collection(db, `users/${currentUser.uid}/games`, worldId, 'cities'));
 
         try {
             const slotSnap = await getDoc(citySlotRef);
             if (!slotSnap.exists() || slotSnap.data().ownerId !== null) {
-                throw new Error("This location was taken while you were deciding. Please try again.");
+                throw new Error("This location was taken. Please try again.");
             }
 
             const batch = writeBatch(db);
@@ -78,50 +82,55 @@ const CityFounding = ({ onCityFounded }) => {
             });
 
             const initialBuildings = {};
-            // Initialize all buildings to level 0
-            for (const buildingId in buildingConfig) {
-                initialBuildings[buildingId] = { level: 0 };
-            }
-            // Set specific initial buildings to level 1
-            initialBuildings.senate = { level: 1 };
-            initialBuildings.farm = { level: 1 };
-            initialBuildings.warehouse = { level: 1 };
-            initialBuildings.timber_camp = { level: 1 };
-            initialBuildings.quarry = { level: 1 };
-            initialBuildings.silver_mine = { level: 1 };
-            initialBuildings.cave = { level: 1 }; // Ensure Cave is initialized at Level 1
+            Object.keys(buildingConfig).forEach(id => {
+                initialBuildings[id] = { level: 0 };
+            });
+            ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
+                initialBuildings[id].level = 1;
+            });
 
-            const newGameState = {
-                id: selectedSlot.id,
+            const newCityData = {
+                id: newCityDocRef.id,
+                slotId: selectedSlot.id,
                 x: selectedSlot.x,
                 y: selectedSlot.y,
                 islandId: selectedSlot.islandId,
                 cityName: cityName.trim(),
                 playerInfo: { religion: userProfile.religion, nation: userProfile.nation },
-                resources: { wood: 1000, stone: 1000, silver: 500, population: 100 },
-                storage: buildingConfig.warehouse.storage[1], // Assuming storage is based on warehouse level 1
+                resources: { wood: 1000, stone: 1000, silver: 500 },
                 buildings: initialBuildings,
                 units: {},
+                wounded: {},
                 research: {},
+                worship: {},
+                cave: { silver: 0 },
+                buildQueue: [],
+                unitQueue: [],
+                researchQueue: [],
+                healQueue: [],
                 lastUpdated: Date.now(),
             };
-            batch.set(gameDocRef, newGameState);
+            
+            batch.set(newCityDocRef, newCityData);
 
             await batch.commit();
 
-            setMessage('Transaction successful: City placed!');
-            setPlayerCity(newGameState);
-            setGameState(newGameState);
-            onCityFounded();
+            // #comment Immediately trigger the state update. The view change will be the confirmation of success.
+            setActiveCityId(newCityDocRef.id);
+            
+            if (onCityFounded && typeof onCityFounded === 'function') {
+                onCityFounded();
+            }
 
         } catch (error) {
             console.error("Error founding city: ", error);
             setMessage(`Failed to found city: ${error.message}`);
             setSelectedSlot(null);
             handleSelectSlot();
-        } finally {
+            // #comment Ensure loading is false on error so the user can try again
             setIsLoading(false);
         }
+        // #comment isLoading is not set to false on success, as the component should unmount.
     };
 
     return (

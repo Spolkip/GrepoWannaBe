@@ -1,5 +1,6 @@
+// src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { doc, onSnapshot, deleteDoc, collection } from "firebase/firestore";
+import { doc, onSnapshot, collection } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -9,12 +10,11 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children, worldId }) => {
     const { currentUser } = useAuth();
-    const [gameState, setGameState] = useState(null);
+    const [playerCities, setPlayerCities] = useState({});
+    const [activeCityId, setActiveCityId] = useState(null);
     const [worldState, setWorldState] = useState(null);
-    const [playerCity, setPlayerCity] = useState(null);
-    const [playerHasChosenFaction, setPlayerHasChosenFaction] = useState(false);
+    const [playerHasCities, setPlayerHasCities] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [playerGod, setPlayerGod] = useState(null);
     const [conqueredVillages, setConqueredVillages] = useState({});
     const [conqueredRuins, setConqueredRuins] = useState({});
     const [gameSettings, setGameSettings] = useState({
@@ -31,117 +31,84 @@ export const GameProvider = ({ children, worldId }) => {
         }
 
         setLoading(true);
-        let playerStateLoaded = false;
-        let worldMetaLoaded = false;
-        let playerCityLoaded = false;
-        let cityListenerUnsubscribe = () => {};
-        let conqueredVillagesUnsubscribe = () => {};
-        let conqueredRuinsUnsubscribe = () => {};
-
-        const checkAllLoaded = () => {
-            if (playerStateLoaded && worldMetaLoaded && playerCityLoaded) {
-                setLoading(false);
-            }
-        };
 
         const worldDocRef = doc(db, 'worlds', worldId);
-        const unsubscribeWorldMeta = onSnapshot(worldDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                setWorldState({ id: docSnap.id, ...docSnap.data() });
-            } else {
-                setWorldState(null);
+        const unsubscribeWorld = onSnapshot(worldDocRef, (docSnap) => {
+            setWorldState(docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null);
+        });
+
+        const citiesColRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
+        const unsubscribeCities = onSnapshot(citiesColRef, (snapshot) => {
+            const citiesData = {};
+            snapshot.forEach(doc => {
+                citiesData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setPlayerCities(citiesData);
+            setPlayerHasCities(!snapshot.empty);
+
+            if (!snapshot.empty && !activeCityId) {
+                setActiveCityId(snapshot.docs[0].id);
+            } else if (snapshot.empty) {
+                setActiveCityId(null);
             }
-            worldMetaLoaded = true;
-            checkAllLoaded();
-        }, (error) => {
-            console.error("Error fetching world metadata:", error);
-            worldMetaLoaded = true;
-            checkAllLoaded();
+            setLoading(false);
         });
         
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
-        const unsubscribePlayer = onSnapshot(gameDocRef, async (docSnap) => {
-            cityListenerUnsubscribe();
-            conqueredVillagesUnsubscribe();
-            conqueredRuinsUnsubscribe();
+        const conqueredVillagesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredVillages');
+        const unsubscribeVillages = onSnapshot(conqueredVillagesRef, (snapshot) => {
+            const villagesData = {};
+            snapshot.docs.forEach(doc => {
+                villagesData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setConqueredVillages(villagesData);
+        });
 
-            if (docSnap.exists() && docSnap.data().playerInfo) {
-                const gameData = docSnap.data();
-                setGameState(gameData);
-                setPlayerHasChosenFaction(true);
-                setPlayerGod(gameData.god || null);
-
-                const citySlotId = gameData.cityLocation?.slotId;
-
-                const conqueredVillagesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredVillages');
-                conqueredVillagesUnsubscribe = onSnapshot(conqueredVillagesRef, (snapshot) => {
-                    const villagesData = {};
-                    snapshot.docs.forEach(doc => {
-                        villagesData[doc.id] = { id: doc.id, ...doc.data() };
-                    });
-                    setConqueredVillages(villagesData);
-                });
-
-                const conqueredRuinsRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredRuins');
-                conqueredRuinsUnsubscribe = onSnapshot(conqueredRuinsRef, (snapshot) => {
-                    const ruinsData = {};
-                    snapshot.docs.forEach(doc => {
-                        ruinsData[doc.id] = { id: doc.id, ...doc.data() };
-                    });
-                    setConqueredRuins(ruinsData);
-                });
-
-                if (citySlotId) {
-                    const cityDocRef = doc(db, 'worlds', worldId, 'citySlots', citySlotId);
-                    cityListenerUnsubscribe = onSnapshot(cityDocRef, (cityDataSnap) => {
-                        if (cityDataSnap.exists()) {
-                            setPlayerCity({ id: cityDataSnap.id, ...cityDataSnap.data() });
-                        }
-                        playerCityLoaded = true;
-                        checkAllLoaded();
-                    });
-                } else {
-                     console.warn("Malformed game data detected. Deleting and forcing re-selection.");
-                     await deleteDoc(gameDocRef);
-                }
-            } else {
-                setGameState(null);
-                setPlayerCity(null);
-                setPlayerHasChosenFaction(false);
-                setPlayerGod(null);
-                setConqueredVillages({});
-                setConqueredRuins({});
-                playerCityLoaded = true; 
-            }
-            playerStateLoaded = true;
-            checkAllLoaded();
-        }, (error) => {
-            console.error("Error fetching player game state:", error);
-            playerStateLoaded = true;
-            playerCityLoaded = true;
-            checkAllLoaded();
+        const conqueredRuinsRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredRuins');
+        const unsubscribeRuins = onSnapshot(conqueredRuinsRef, (snapshot) => {
+            const ruinsData = {};
+            snapshot.docs.forEach(doc => {
+                ruinsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setConqueredRuins(ruinsData);
         });
 
         return () => {
-            unsubscribePlayer();
-            unsubscribeWorldMeta();
-            cityListenerUnsubscribe();
-            conqueredVillagesUnsubscribe();
-            conqueredRuinsUnsubscribe();
+            unsubscribeWorld();
+            unsubscribeCities();
+            unsubscribeVillages();
+            unsubscribeRuins();
         };
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
+
+    const activeCity = playerCities[activeCityId] || null;
+    // This is a legacy property for components that haven't been updated for multi-city yet.
+    // It provides the data of the currently active city.
+    const gameState = activeCity; 
+    // This is another legacy property for components expecting a single city object on the map.
+    const playerCity = activeCity;
 
     const value = { 
-        gameState, setGameState, 
-        worldState, 
-        playerCity, 
-        playerHasChosenFaction, 
-        loading, 
-        worldId, 
-        playerGod, setPlayerGod,
-        conqueredVillages, 
+        worldId,
+        worldState,
+        playerCities,
+        activeCityId,
+        setActiveCityId,
+        activeCity,
+        playerHasCities,
+        loading,
+        conqueredVillages,
         conqueredRuins,
-        gameSettings, setGameSettings,
+        gameSettings,
+        setGameSettings,
+        // Legacy support
+        gameState,
+        playerCity,
+        setGameState: (newState) => {
+            if (activeCityId) {
+                setPlayerCities(prev => ({...prev, [activeCityId]: newState}));
+            }
+        }
     };
+
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

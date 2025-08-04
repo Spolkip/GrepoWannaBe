@@ -1,32 +1,40 @@
 // src/components/Game.js
-import React, { useState } from 'react';
+import React from 'react';
 import { useGame } from '../contexts/GameContext';
 import CityView from './CityView';
 import MapView from './MapView';
 import LoadingScreen from './shared/LoadingScreen';
 import Chat from './chat/Chat';
-import { useWorldClock } from '../hooks/useWorldClock';
-import { useMovementProcessor } from '../hooks/useMovementProcessor';
+import { useGameManager } from '../hooks/useGameManager';
 
 const Game = ({ onBackToWorlds }) => {
-    const { worldId, gameState, worldState } = useGame();
-    const [view, setView] = useState('city'); // 'city' or 'map'
-    const [isChatOpen, setIsChatOpen] = useState(false);
+    const { activeCityId, setActiveCityId } = useGame();
+    const {
+        view,
+        isChatOpen,
+        setIsChatOpen,
+        showMap,
+        showCity: showCityView, // #comment Rename to avoid conflict with the new showCity function
+        isLoading,
+        worldId
+    } = useGameManager();
 
-    // #comment Custom hooks to handle complex game logic
-    useWorldClock(worldId, worldState);
-    useMovementProcessor(worldId);
+    /**
+     * #comment Sets the active city and switches to the city view.
+     * @param {string} cityId - The ID of the city to switch to.
+     */
+    const showCity = (cityId) => {
+        setActiveCityId(cityId);
+        showCityView();
+    };
 
-    if (!gameState) {
+    if (isLoading) {
         return <LoadingScreen message="Loading Game..." />;
     }
 
-    const showMap = () => setView('map');
-    const showCity = () => setView('city');
-
     return (
         <div className="w-full h-screen bg-gray-900 text-white">
-            {view === 'city' && <CityView showMap={showMap} worldId={worldId} />}
+            {view === 'city' && <CityView showMap={showMap} worldId={worldId} cityId={activeCityId} />}
             {view === 'map' && <MapView showCity={showCity} onBackToWorlds={onBackToWorlds} />}
             
             <div className="chat-container">
