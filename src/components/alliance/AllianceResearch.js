@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import allianceResearch from '../../gameData/allianceResearch.json';
 
 const AllianceResearch = () => {
-    const { playerAlliance, donateToAllianceResearch, recommendAllianceResearch } = useGame();
+    const { playerAlliance, donateToAllianceResearch, recommendAllianceResearch } = useAlliance();
     const { currentUser } = useAuth();
     const [donation, setDonation] = useState({ wood: 0, stone: 0, silver: 0 });
     const [selectedResearch, setSelectedResearch] = useState(null);

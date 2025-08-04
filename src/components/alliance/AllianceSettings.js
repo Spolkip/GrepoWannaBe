@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
-    const { updateAllianceSettings } = useGame();
+    const { updateAllianceSettings } = useAlliance();
     const [name, setName] = useState(alliance.name);
     const [description, setDescription] = useState(alliance.settings.description);
     const [status, setStatus] = useState(alliance.settings.status);
     const [message, setMessage] = useState('');
-
     const handleSave = () => {
         if (!isLeader) return;
         if (name.trim() === '' || description.trim() === '') {

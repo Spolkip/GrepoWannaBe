@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceRanks = ({ alliance, isLeader }) => {
-    const { createAllianceRank, updateAllianceMemberRank } = useGame();
+    const { createAllianceRank, updateAllianceMemberRank } = useAlliance();
     const [newRankName, setNewRankName] = useState('');
     const [newRankPermissions, setNewRankPermissions] = useState({
         manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false

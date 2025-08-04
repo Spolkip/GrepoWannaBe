@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AllianceOverview from '../alliance/AllianceOverview';
 import AllianceMembers from '../alliance/AllianceMembers';
@@ -12,7 +12,7 @@ import AllianceProperties from '../alliance/AllianceProperties';
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose }) => {
-    const { playerAlliance } = useGame();
+    const { playerAlliance } = useAlliance();
     const { currentUser } = useAuth();
     const [activeTab, setActiveTab] = useState('overview');
 

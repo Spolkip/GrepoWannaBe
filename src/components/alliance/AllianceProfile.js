@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AllianceProfile = ({ allianceId, onClose, onOpenProfile }) => {
-    const { worldId, playerAlliance, applyToAlliance, sendAllyRequest, joinOpenAlliance } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance, applyToAlliance, sendAllyRequest, joinOpenAlliance } = useAlliance();
     const { currentUser } = useAuth();
     const [allianceData, setAllianceData] = useState(null);
     const [loading, setLoading] = useState(true);

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 
 const AllianceOverview = () => {
-    const { worldId, playerAlliance } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance } = useAlliance();
     const [events, setEvents] = useState([]);
 
     // #comment Fetch alliance events in real-time

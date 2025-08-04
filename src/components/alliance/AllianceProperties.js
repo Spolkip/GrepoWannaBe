@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
@@ -15,7 +15,7 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
 );
 
 const AllianceProperties = ({ onClose }) => {
-    const { playerAlliance, leaveAlliance, disbandAlliance } = useGame();
+    const { playerAlliance, leaveAlliance, disbandAlliance } = useAlliance();
     const { currentUser } = useAuth();
     const [confirmAction, setConfirmAction] = useState(null);
 

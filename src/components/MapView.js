@@ -1,7 +1,7 @@
-// src/components/MapView.js
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
+import { useAlliance } from '../contexts/AllianceContext';
 import { signOut } from "firebase/auth";
 import { auth, db } from '../firebase/config';
 import { doc, updateDoc, collection, onSnapshot, query, where, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -37,7 +37,8 @@ import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ showCity, onBackToWorlds }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerAlliance, conqueredVillages, conqueredRuins, gameSettings, sendAllianceInvitation, acceptAllianceInvitation } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, conqueredVillages, conqueredRuins, gameSettings } = useGame();
+    const { playerAlliance, sendAllianceInvitation, acceptAllianceInvitation } = useAlliance();
 
     const [isPlacingDummyCity, setIsPlacingDummyCity] = useState(false);
     const [unreadReportsCount, setUnreadReportsCount] = useState(0);

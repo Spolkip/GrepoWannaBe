@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, getDocs, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceInvitations = ({ isLeader }) => {
-    const { worldId, playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useAlliance();
     const [invitedPlayerName, setInvitedPlayerName] = useState('');
     const [pendingInvites, setPendingInvites] = useState([]);
     const [applications, setApplications] = useState([]);

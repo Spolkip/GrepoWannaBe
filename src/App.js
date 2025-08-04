@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { GameProvider, useGame } from './contexts/GameContext';
+import { AllianceProvider } from './contexts/AllianceContext';
 import AuthScreen from './components/AuthScreen';
 import SelectionScreen from './components/SelectionScreen';
 import Game from './components/Game';
@@ -29,7 +30,6 @@ const GameController = ({ onBackToWorlds }) => {
     return <SelectionScreen />;
 };
 
-
 function App() {
     const [selectedWorldId, setSelectedWorldId] = useState(null);
     const { currentUser, loading: authLoading } = useAuth();
@@ -45,7 +45,9 @@ function App() {
     if (selectedWorldId) {
         return (
             <GameProvider worldId={selectedWorldId}>
-                <GameController onBackToWorlds={() => setSelectedWorldId(null)} />
+                <AllianceProvider>
+                    <GameController onBackToWorlds={() => setSelectedWorldId(null)} />
+                </AllianceProvider>
             </GameProvider>
         );
     }

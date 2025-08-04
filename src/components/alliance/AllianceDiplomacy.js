@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceDiplomacy = () => {
-    const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse } = useGame();
+    const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse } = useAlliance();
     const [targetTag, setTargetTag] = useState('');
     const [message, setMessage] = useState('');
 

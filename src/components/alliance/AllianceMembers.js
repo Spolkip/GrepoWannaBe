@@ -1,8 +1,8 @@
 import React from 'react';
-import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 
 const AllianceMembers = () => {
-    const { playerAlliance } = useGame();
+    const { playerAlliance } = useAlliance();
 
     return (
         <div>

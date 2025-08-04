@@ -3,6 +3,7 @@ import { db } from '../../firebase/config';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
+import { useAlliance } from '../../contexts/AllianceContext';
 import TextEditor from '../shared/TextEditor';
 import { parseBBCode } from '../../utils/bbcodeParser';
 import './AllianceForum.css';
@@ -22,7 +23,8 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
 
 const AllianceForum = ({ onClose }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, playerAlliance } = useGame();
+    const { worldId } = useGame();
+    const { playerAlliance } = useAlliance();
     
     // state management for forums, threads, and posts
     const [forums, setForums] = useState([]);
