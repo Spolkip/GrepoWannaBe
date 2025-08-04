@@ -147,5 +147,61 @@
     "counters": ["transport_ship", "fast_transport_ship"],
     "requiredBuilding": "shipyard",
     "image": "trireme.png"
+  },
+  "minotaur": {
+    "name": "Minotaur",
+    "description": "A fearsome beast with the body of a man and the head of a bull.",
+    "cost": { "wood": 300, "stone": 250, "silver": 400, "population": 10, "time": 600, "favor": 50 },
+    "heal_cost": { "wood": 90, "stone": 75, "silver": 120 },
+    "heal_time": 200,
+    "attack": 50,
+    "defense": 40,
+    "speed": 4,
+    "type": "land",
+    "mythical": true,
+    "god": "Zeus",
+    "image": "minotaur.png"
+  },
+  "harpy": {
+    "name": "Harpy",
+    "description": "A winged spirit of sharp claws and sharper temper.",
+    "cost": { "wood": 150, "stone": 300, "silver": 200, "population": 8, "time": 450, "favor": 40 },
+     "heal_cost": { "wood": 45, "stone": 90, "silver": 60 },
+    "heal_time": 150,
+    "attack": 35,
+    "defense": 25,
+    "speed": 8,
+    "type": "land",
+    "mythical": true,
+    "god": "Hera",
+    "image": "harpy.png"
+  },
+  "medusa": {
+    "name": "Medusa",
+    "description": "A creature whose gaze can turn warriors to stone.",
+    "cost": { "wood": 200, "stone": 400, "silver": 350, "population": 12, "time": 700, "favor": 60 },
+     "heal_cost": { "wood": 60, "stone": 120, "silver": 105 },
+    "heal_time": 230,
+    "attack": 40,
+    "defense": 60,
+    "speed": 3,
+    "type": "land",
+    "mythical": true,
+    "god": "Hera",
+    "image": "medusa.png"
+  },
+  "centaur": {
+    "name": "Centaur",
+    "description": "A skilled archer with the body of a horse, swift and deadly.",
+    "cost": { "wood": 250, "stone": 150, "silver": 300, "population": 9, "time": 500, "favor": 45 },
+    "heal_cost": { "wood": 75, "stone": 45, "silver": 90 },
+    "heal_time": 170,
+    "attack": 45,
+    "defense": 30,
+    "speed": 9,
+    "type": "land",
+    "mythical": true,
+    "god": "Athena",
+    "image": "centaur.png"
   }
 }

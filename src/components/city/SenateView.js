@@ -44,11 +44,12 @@ const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFu
 const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
     
+    // #comment Added 'divine_temple' to the building layout rows.
     const buildingRows = [
         ['senate'],
         ['timber_camp', 'farm', 'quarry', 'warehouse'],
         ['silver_mine', 'barracks', 'temple', 'market'],
-        ['shipyard', 'academy', 'city_wall', 'cave', 'hospital']
+        ['shipyard', 'academy', 'city_wall', 'cave', 'hospital', 'divine_temple']
     ];
 
     const isBuildingInQueue = (buildingId) => (buildQueue || []).some(task => task.buildingId === buildingId);

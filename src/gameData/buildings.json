@@ -71,6 +71,12 @@
     "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10, "time": 300 },
     "image": "temple.png"
   },
+  "divine_temple": {
+    "name": "Divine Temple",
+    "description": "A sacred place to train mythical units blessed by your worshipped god.",
+    "baseCost": { "wood": 500, "stone": 500, "silver": 500, "population": 20, "time": 1800 },
+    "image": "divine_temple.png"
+  },
   "farm": {
     "name": "Farm",
     "description": "Increases your city's population capacity.",

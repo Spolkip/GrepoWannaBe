@@ -9,6 +9,7 @@
   { "id": "warehouse", "name": "Warehouse", "position": { "x": 1600, "y": 5 } },
   { "id": "farm", "name": "Farm", "position": { "x": 600, "y": 5 } },
   { "id": "temple", "name": "Temple", "position": { "x": 450, "y": 600 } },
+  { "id": "divine_temple", "name": "Divine Temple", "position": { "x": 450, "y": 400 } },
   { "id": "cave", "name": "Cave", "position": { "x": 1300, "y": 600 } },
   { "id": "academy", "name": "Academy", "position": { "x": 1100, "y": 5 } },
   { "id": "hospital", "name": "Hospital", "position": { "x": 1250, "y": 300 } },

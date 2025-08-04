@@ -1,31 +1,27 @@
-// src/hooks/useGameManager.js
+// src/hooks/useCityModalManager.js
 import { useState } from 'react';
-import { useGame } from '../contexts/GameContext';
-import { useWorldClock } from './useWorldClock';
-import { useMovementProcessor } from './useMovementProcessor';
 
 /**
- * #comment Manages the main game view, chat state, and background processes.
+ * #comment Manages the state of all modals within the CityView.
  */
-export const useGameManager = () => {
-    const { worldId, activeCity, worldState } = useGame();
-    const [view, setView] = useState('city');
-    const [isChatOpen, setIsChatOpen] = useState(false);
+export const useCityModalManager = () => {
+    const [modalState, setModalState] = useState({
+        selectedBuildingId: null,
+        isSenateViewOpen: false,
+        isBarracksMenuOpen: false,
+        isShipyardMenuOpen: false,
+        isTempleMenuOpen: false,
+        isDivineTempleMenuOpen: false,
+        isCaveMenuOpen: false,
+        isAcademyMenuOpen: false,
+        isHospitalMenuOpen: false,
+        isCheatMenuOpen: false,
+        isDivinePowersOpen: false,
+        isMarketMenuOpen: false,
+    });
 
-    // #comment Custom hooks to handle complex game logic
-    useWorldClock(worldId, worldState);
-    useMovementProcessor(worldId);
+    const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
+    const closeModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: false, selectedBuildingId: null }));
 
-    const showMap = () => setView('map');
-    const showCity = () => setView('city');
-
-    return {
-        view,
-        isChatOpen,
-        setIsChatOpen,
-        showMap,
-        showCity,
-        isLoading: !activeCity, // #comment The game is loading if there is no active city
-        worldId
-    };
+    return { modalState, setModalState, openModal, closeModal };
 };

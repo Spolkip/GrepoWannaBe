@@ -11,6 +11,7 @@ export const useCityModalManager = () => {
         isBarracksMenuOpen: false,
         isShipyardMenuOpen: false,
         isTempleMenuOpen: false,
+        isDivineTempleMenuOpen: false,
         isCaveMenuOpen: false,
         isAcademyMenuOpen: false,
         isHospitalMenuOpen: false,

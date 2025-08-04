@@ -56,6 +56,7 @@ const CityModals = ({
     isHospitalMenuOpen,
     isCheatMenuOpen,
     isMarketMenuOpen, // #comment Get market menu state
+    isDivineTempleMenuOpen,
   } = modalState;
 
   if (!cityGameState) return null;
@@ -96,11 +97,26 @@ const CityModals = ({
       )}
       {isBarracksMenuOpen && (
         <BarracksMenu
+          menuType="barracks"
           resources={cityGameState.resources}
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
           onFire={handleFireTroops}
           onClose={() => closeModal('isBarracksMenuOpen')}
+          buildings={cityGameState.buildings}
+          unitQueue={cityGameState.unitQueue}
+          onCancelTrain={handleCancelTrain}
+          cityGameState={cityGameState}
+        />
+      )}
+       {isDivineTempleMenuOpen && (
+        <BarracksMenu
+          menuType="divine_temple"
+          resources={cityGameState.resources}
+          availablePopulation={availablePopulation}
+          onTrain={handleTrainTroops}
+          onFire={handleFireTroops}
+          onClose={() => closeModal('isDivineTempleMenuOpen')}
           buildings={cityGameState.buildings}
           unitQueue={cityGameState.unitQueue}
           onCancelTrain={handleCancelTrain}
@@ -155,7 +171,6 @@ const CityModals = ({
               availablePopulation={availablePopulation}
           />
       )}
-      {/* #comment Conditionally render the MarketMenu */}
       {isMarketMenuOpen && (
         <MarketMenu
             onClose={() => closeModal('isMarketMenuOpen')}
