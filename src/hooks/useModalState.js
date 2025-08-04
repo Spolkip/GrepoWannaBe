@@ -1,3 +1,4 @@
+// src/hooks/useModalState.js
 import { useState } from 'react';
 
 // #comment Add alliance profile modal state
@@ -17,6 +18,7 @@ export const useModalState = () => {
         isAllianceForumOpen: false,
         isLeaderboardOpen: false,
         isAllianceProfileOpen: false,
+        isQuestsModalOpen: false, // #comment Add quest modal state
         viewingProfileId: null,
         viewingAllianceId: null,
     });
@@ -37,6 +39,7 @@ export const useModalState = () => {
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: true };
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: true };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: true, viewingAllianceId: data?.allianceId || null };
+                case 'quests': return { ...prevState, isQuestsModalOpen: true }; // #comment Handle opening quest modal
                 default: return prevState;
             }
         });
@@ -58,6 +61,7 @@ export const useModalState = () => {
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: false };
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: false };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: false, viewingAllianceId: null };
+                case 'quests': return { ...prevState, isQuestsModalOpen: false }; // #comment Handle closing quest modal
                 default: return prevState;
             }
         });

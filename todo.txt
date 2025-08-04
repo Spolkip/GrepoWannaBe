@@ -1,4 +1,3 @@
-- add quests that gives rewards
 - add a request system
 - add special buildings
 - different troops for different nationalities

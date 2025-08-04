@@ -1,3 +1,4 @@
+// src/components/map/MapModals.js
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
@@ -6,7 +7,8 @@ import MovementsPanel from './MovementsPanel';
 import ReportsView from '../ReportsView';
 import MessagesView from '../messaging/MessagesView';
 import AllianceCreation from '../alliance/AllianceCreation';
-import AllianceForum from '../alliance/AllianceForum'; // #comment Import AllianceForum
+import AllianceForum from '../alliance/AllianceForum'; 
+import QuestsModal from '../quests/QuestsModal'; // #comment Import QuestsModal
 
 const MapModals = ({
     modalState,
@@ -27,7 +29,9 @@ const MapModals = ({
     userProfile,
     onCastSpell,
     onActionClick,
-    marketCapacity // fix: Add marketCapacity as a prop
+    marketCapacity,
+    quests, // #comment Receive quests data
+    claimQuestReward // #comment Receive claim function
 }) => {
     return (
         <>
@@ -52,7 +56,7 @@ const MapModals = ({
                     onActionClick={handleActionClick}
                     playerCity={playerCity}
                     worldId={worldId}
-                    marketCapacity={marketCapacity} // fix: Pass the prop down
+                    marketCapacity={marketCapacity} 
                 />
             )}
             {modalState.actionDetails && (
@@ -93,9 +97,16 @@ const MapModals = ({
             {modalState.isAllianceCreationOpen && (
                 <AllianceCreation onClose={() => closeModal('allianceCreation')} />
             )}
-            {/* #comment Render AllianceForum modal */}
             {modalState.isAllianceForumOpen && (
                 <AllianceForum onClose={() => closeModal('allianceForum')} />
+            )}
+            {/* #comment Render QuestsModal */}
+            {modalState.isQuestsModalOpen && (
+                <QuestsModal 
+                    quests={quests} 
+                    claimReward={claimQuestReward} 
+                    onClose={() => closeModal('quests')} 
+                />
             )}
         </>
     );

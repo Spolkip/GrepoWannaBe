@@ -31,6 +31,7 @@ import { useCityState } from '../hooks/useCityState';
 import { useMapState } from '../hooks/useMapState';
 import { useMapEvents } from '../hooks/useMapEvents';
 import { useMapClickHandler } from '../hooks/useMapClickHandler';
+import { useQuestTracker } from '../hooks/useQuestTracker'; // #comment Import quest hook
 
 // Utilities
 import buildingConfig from '../gameData/buildings.json';
@@ -49,6 +50,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
     const { movements, visibleSlots, villages, ruins, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCancelMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
+    const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState); // #comment Use the quest hook
 
     useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, centerOnCity);
 
@@ -251,7 +253,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                 </div>
             </header>
             <div className="flex-grow flex flex-row p-4 gap-4 overflow-hidden">
-                <SidebarNav onGoToCity={handleGoToActiveCity} onOpenMovements={() => openModal('movements')} onOpenReports={() => openModal('reports')} onOpenAlliance={handleOpenAlliance} onOpenForum={() => openModal('allianceForum')} onOpenMessages={() => openModal('messages')} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenProfile={() => openModal('profile')} onOpenLeaderboard={() => openModal('leaderboard')} unreadReportsCount={unreadReportsCount} unreadMessagesCount={unreadMessagesCount} isAdmin={userProfile?.is_admin} onToggleDummyCityPlacement={handleToggleDummyCityPlacement} isUnderAttack={isUnderAttack} incomingAttackCount={incomingAttackCount} />
+                <SidebarNav onGoToCity={handleGoToActiveCity} onOpenQuests={() => openModal('quests')} onOpenMovements={() => openModal('movements')} onOpenReports={() => openModal('reports')} onOpenAlliance={handleOpenAlliance} onOpenForum={() => openModal('allianceForum')} onOpenMessages={() => openModal('messages')} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenProfile={() => openModal('profile')} onOpenLeaderboard={() => openModal('leaderboard')} unreadReportsCount={unreadReportsCount} unreadMessagesCount={unreadMessagesCount} isAdmin={userProfile?.is_admin} onToggleDummyCityPlacement={handleToggleDummyCityPlacement} isUnderAttack={isUnderAttack} incomingAttackCount={incomingAttackCount} />
                 <div className="main-content flex-grow relative map-background">
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
                         <TopBar gameState={gameState} availablePopulation={availablePopulation} maxPopulation={gameState ? getFarmCapacity(gameState.buildings.farm?.level) : 0} happiness={happiness} worldState={worldState} />
@@ -266,7 +268,7 @@ const MapView = ({ showCity, onBackToWorlds }) => {
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={handleCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={handleCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimQuestReward={claimQuestReward} />
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
             {isSettingsModalOpen && <SettingsModal onClose={() => setIsSettingsModalOpen(false)} />}

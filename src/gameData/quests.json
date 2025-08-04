@@ -1,0 +1,52 @@
+{
+  "build_timber_camp_2": {
+    "title": "First Steps",
+    "description": "Secure your wood supply by upgrading your Timber Camp.",
+    "type": "building",
+    "targetId": "timber_camp",
+    "targetLevel": 2,
+    "rewards": {
+      "resources": { "wood": 100 }
+    }
+  },
+  "build_quarry_2": {
+    "title": "Getting Sturdy",
+    "description": "A strong city is built on stone. Upgrade your Quarry.",
+    "type": "building",
+    "targetId": "quarry",
+    "targetLevel": 2,
+    "rewards": {
+      "resources": { "stone": 100 }
+    }
+  },
+  "build_silver_mine_2": {
+    "title": "For the Treasury",
+    "description": "Wealth is power. Upgrade your Silver Mine.",
+    "type": "building",
+    "targetId": "silver_mine",
+    "targetLevel": 2,
+    "rewards": {
+      "resources": { "silver": 50 }
+    }
+  },
+  "train_swordsmen_10": {
+    "title": "Raise an Army",
+    "description": "Your city needs defenders. Train 10 Swordsmen.",
+    "type": "units",
+    "targetId": "swordsman",
+    "targetCount": 10,
+    "rewards": {
+      "units": { "archer": 5 }
+    }
+  },
+  "build_senate_3": {
+    "title": "Expand the Senate",
+    "description": "A grander Senate allows for better management of your growing city.",
+    "type": "building",
+    "targetId": "senate",
+    "targetLevel": 3,
+    "rewards": {
+      "resources": { "wood": 500, "stone": 500, "silver": 250 }
+    }
+  }
+}
