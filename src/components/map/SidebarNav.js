@@ -16,7 +16,7 @@ const SidebarNav = ({ onToggleView, view, onOpenMovements, onOpenReports, onOpen
     );
     
     return (
-        <div className="sidebar">
+        <div className="sidebar" onMouseDown={(e) => e.stopPropagation()}>
             <NavButton icon="🗺️" text={view === 'map' ? 'City View' : 'Map View'} onClick={onToggleView} />
             <NavButton icon="📜" text="Quests" onClick={onOpenQuests} />
             <NavButton icon="⚔️" text="Movements" onClick={onOpenMovements} notificationCount={incomingAttackCount} glowing={isUnderAttack} />

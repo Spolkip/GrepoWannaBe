@@ -18,7 +18,8 @@ export const useModalState = () => {
         isAllianceForumOpen: false,
         isLeaderboardOpen: false,
         isAllianceProfileOpen: false,
-        isQuestsModalOpen: false, // #comment Add quest modal state
+        isQuestsModalOpen: false,
+        isSettingsModalOpen: false, // #comment Add state for settings modal
         viewingProfileId: null,
         viewingAllianceId: null,
     });
@@ -39,7 +40,8 @@ export const useModalState = () => {
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: true };
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: true };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: true, viewingAllianceId: data?.allianceId || null };
-                case 'quests': return { ...prevState, isQuestsModalOpen: true }; // #comment Handle opening quest modal
+                case 'quests': return { ...prevState, isQuestsModalOpen: true };
+                case 'settings': return { ...prevState, isSettingsModalOpen: true }; // #comment Handle opening settings modal
                 default: return prevState;
             }
         });
@@ -61,7 +63,8 @@ export const useModalState = () => {
                 case 'allianceForum': return { ...prevState, isAllianceForumOpen: false };
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: false };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: false, viewingAllianceId: null };
-                case 'quests': return { ...prevState, isQuestsModalOpen: false }; // #comment Handle closing quest modal
+                case 'quests': return { ...prevState, isQuestsModalOpen: false };
+                case 'settings': return { ...prevState, isSettingsModalOpen: false }; // #comment Handle closing settings modal
                 default: return prevState;
             }
         });

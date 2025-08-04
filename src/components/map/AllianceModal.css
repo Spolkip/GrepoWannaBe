@@ -9,7 +9,7 @@
     border-image-slice: 1;
     border-image-source: linear-gradient(to right, #8B4513, #CD853F);
     box-shadow: 0 0 20px rgba(0,0,0,0.6);
-    color: #4a2c2a;
+    color: #000;
     border-radius: 0;
     width: 90%;
     max-width: 1000px;
@@ -46,7 +46,7 @@
     background: linear-gradient(to bottom, #f0e68c, #cd853f);
     border: 2px solid #8B4513;
     border-bottom: none;
-    color: #4a2c2a;
+    color: #000;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -59,7 +59,7 @@
 }
 
 .alliance-modal-tabs button.active {
-    color: #4a2c2a;
+    color: #000;
     background: #F5DEB3;
 }
 
@@ -67,7 +67,7 @@
     padding: 1.5rem;
     flex-grow: 1;
     overflow-y: auto;
-    background: transparent;
+    background-color: #F5DEB3; /* Added solid background color */
 }
 
 .close-button {
@@ -105,7 +105,7 @@
     background: rgba(255, 255, 255, 0.5);
     border: 1px solid #d2b48c;
     border-radius: 4px;
-    color: #4a2c2a;
+    color: #000;
     margin-bottom: 1rem;
 }
 
@@ -121,7 +121,7 @@
 
 .save-button {
     background: linear-gradient(to bottom, #f0e68c, #cd853f);
-    color: #4a2c2a;
+    color: #000;
     border: 2px solid #8B4513;
     padding: 0.8rem 1.5rem;
     border-radius: 4px;
