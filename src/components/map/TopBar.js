@@ -1,4 +1,3 @@
-// src/components/map/TopBar.js
 import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
@@ -77,6 +76,19 @@ const WeatherDisplay = ({ season, weather }) => {
     );
 };
 
+// Component to display resource details on hover
+const ResourceTooltip = ({ resource, production, capacity }) => {
+    if (!resource) return null;
+    return (
+        <div className="resource-tooltip">
+            <h4 className="font-bold capitalize text-lg">{resource}</h4>
+            <p className="text-sm">Production: <span className="font-semibold">+{production}/hr</span></p>
+            <p className="text-sm">Capacity: <span className="font-semibold">{capacity.toLocaleString()}</span></p>
+        </div>
+    );
+};
+
+
 // TopBar component displays current city resources and name.
 const TopBar = ({
     view,
@@ -97,11 +109,13 @@ const TopBar = ({
     onRenameCity,
     // #comment New props for quests
     onOpenQuests,
-    hasUnclaimedQuests
+    hasUnclaimedQuests,
+    getWarehouseCapacity
 }) => {
     const { playerCities, setActiveCityId, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
     const [activeTooltip, setActiveTooltip] = useState(null);
+    const [hoveredResource, setHoveredResource] = useState(null);
     const tooltipTimeoutRef = useRef(null);
     const [isEditingCityName, setIsEditingCityName] = useState(false);
     const [newCityName, setNewCityName] = useState('');
@@ -208,6 +222,15 @@ const TopBar = ({
             setIsEditingCityName(false);
         }
     };
+    
+    // #comment Handlers for resource hover
+    const handleResourceMouseEnter = (resourceName) => {
+        setHoveredResource(resourceName);
+    };
+
+    const handleResourceMouseLeave = () => {
+        setHoveredResource(null);
+    };
 
     return (
         <div className={`p-2 flex items-center justify-between top-bar-container relative z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'flex-shrink-0'}`}>
@@ -284,20 +307,53 @@ const TopBar = ({
 
             {/* Right Section */}
             <div className="flex-1 flex justify-end items-center space-x-2">
-                <div className="resource-display">
+                <div 
+                    className="resource-display relative"
+                    onMouseEnter={() => handleResourceMouseEnter('wood')}
+                    onMouseLeave={handleResourceMouseLeave}
+                >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>
                     {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.wood}/hr)</span>}
+                    {hoveredResource === 'wood' && (
+                        <ResourceTooltip
+                            resource="wood"
+                            production={productionRates.wood}
+                            capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                        />
+                    )}
                 </div>
-                <div className="resource-display">
+                <div 
+                    className="resource-display relative"
+                    onMouseEnter={() => handleResourceMouseEnter('stone')}
+                    onMouseLeave={handleResourceMouseLeave}
+                >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-300 font-bold">{Math.floor(resources.stone)}</span>
                      {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.stone}/hr)</span>}
+                     {hoveredResource === 'stone' && (
+                        <ResourceTooltip
+                            resource="stone"
+                            production={productionRates.stone}
+                            capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                        />
+                    )}
                 </div>
-                <div className="resource-display">
+                <div 
+                    className="resource-display relative"
+                    onMouseEnter={() => handleResourceMouseEnter('silver')}
+                    onMouseLeave={handleResourceMouseLeave}
+                >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
                      {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.silver}/hr)</span>}
+                     {hoveredResource === 'silver' && (
+                        <ResourceTooltip
+                            resource="silver"
+                            production={productionRates.silver}
+                            capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                        />
+                    )}
                 </div>
                 <div className="resource-display">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>

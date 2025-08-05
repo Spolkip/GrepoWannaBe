@@ -118,6 +118,7 @@ const CityView = ({
                     isUnderAttack={isUnderAttack}
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={onRenameCity}
+                    getWarehouseCapacity={getWarehouseCapacity}
                 />
                 <CityViewContent
                     cityGameState={cityGameState}
