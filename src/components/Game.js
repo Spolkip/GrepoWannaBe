@@ -52,10 +52,12 @@ const Game = ({ onBackToWorlds }) => {
     const { unreadReportsCount, setUnreadReportsCount, unreadMessagesCount, setUnreadMessagesCount } = useMapState();
     
     const showMap = () => setView('map');
-    const showCity = (cityId) => {
+    
+    // #comment Memoize showCity to prevent unnecessary re-renders of child components
+    const showCity = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
-    };
+    }, [setActiveCityId]); // setView from useState is stable and doesn't need to be a dependency
 
     const toggleView = () => {
         setView(prevView => prevView === 'city' ? 'map' : 'city');
@@ -66,6 +68,40 @@ const Game = ({ onBackToWorlds }) => {
             setPanToCoords({ x: playerCity.x, y: playerCity.y });
         }
     }, [view, playerCity]);
+
+    // #comment Cycles through the player's cities, panning the map if in map view.
+    const cycleCity = useCallback((direction) => {
+        // #comment Sort cities by name to ensure consistent cycling order
+        const sortedCities = Object.values(playerCities).sort((a, b) => a.cityName.localeCompare(b.cityName));
+        const cityIds = sortedCities.map(c => c.id);
+
+        if (cityIds.length <= 1) return;
+
+        const currentIndex = cityIds.indexOf(activeCityId);
+        let nextIndex;
+
+        if (direction === 'right') {
+            nextIndex = (currentIndex + 1) % cityIds.length;
+        } else {
+            nextIndex = (currentIndex - 1 + cityIds.length) % cityIds.length;
+        }
+        
+        const nextCityId = cityIds[nextIndex];
+        
+        // #comment This is the only place we update the active city from this action
+        setActiveCityId(nextCityId);
+
+        // #comment If on the map, pan to the new city without changing the view.
+        // #comment The view state itself is NOT changed here, ensuring the user stays on the map.
+        if (view === 'map') {
+            const nextCity = playerCities[nextCityId];
+            if (nextCity) {
+                setPanToCoords({ x: nextCity.x, y: nextCity.y });
+            }
+        }
+        // #comment If in city view, the view remains 'city', but the content will update
+        // #comment automatically because the activeCityId in the context has changed.
+    }, [playerCities, activeCityId, setActiveCityId, view]);
 
     // #comment Setup keyboard controls
     useKeyboardControls({
@@ -78,6 +114,8 @@ const Game = ({ onBackToWorlds }) => {
         openLeaderboard: () => openModal('leaderboard'),
         openProfile: () => openModal('profile'),
         openSettings: () => openModal('settings'),
+        cycleCityLeft: () => cycleCity('left'),
+        cycleCityRight: () => cycleCity('right'),
     });
 
 
@@ -248,7 +286,7 @@ const Game = ({ onBackToWorlds }) => {
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
                     quests={quests}
-                    claimQuestReward={claimQuestReward}
+                    claimReward={claimQuestReward}
                     handleMessageAction={handleMessageAction}
                     panToCoords={panToCoords}
                     setPanToCoords={setPanToCoords}

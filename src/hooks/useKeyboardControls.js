@@ -41,6 +41,12 @@ export const useKeyboardControls = (controls) => {
                 case 's':
                     controls.openSettings?.();
                     break;
+                case 'arrowleft':
+                    controls.cycleCityLeft?.();
+                    break;
+                case 'arrowright':
+                    controls.cycleCityRight?.();
+                    break;
                 default:
                     break;
             }
