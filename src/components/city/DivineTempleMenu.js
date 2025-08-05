@@ -25,16 +25,16 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
     const { gameState } = useGame();
     const worshippedGod = gameState?.god;
 
+    // Filter units to only show mythical units associated with the worshipped god
     const mythicUnits = Object.keys(unitConfig).filter(id => unitConfig[id].mythical && unitConfig[id].god === worshippedGod);
     const [selectedUnitId, setSelectedUnitId] = useState(mythicUnits[0] || null);
     const [trainAmount, setTrainAmount] = useState(1);
-
+    
     useEffect(() => {
         setTrainAmount(1);
     }, [selectedUnitId]);
     
     useEffect(() => {
-        // #comment If the god changes, update the available units and selection
         const availableUnits = Object.keys(unitConfig).filter(id => unitConfig[id].mythical && unitConfig[id].god === worshippedGod);
         setSelectedUnitId(availableUnits[0] || null);
     }, [worshippedGod]);
@@ -44,12 +44,12 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
     }
     
     if (!selectedUnitId) {
-        return <Modal message="No mythical units available for your current god." onClose={onClose} />;
+        return <Modal message={`There are no mythical units for your worshipped god, ${worshippedGod}.`} onClose={onClose} />;
     }
 
     const selectedUnit = unitConfig[selectedUnitId];
     const cityUnits = cityGameState?.units || {};
-    const mythicUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.mythical);
+    const divineTempleUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.mythical);
     
     const totalCost = {
         wood: selectedUnit ? selectedUnit.cost.wood * trainAmount : 0,
@@ -125,16 +125,16 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
                             />
                             <button
                                 onClick={handleTrain}
-                                disabled={!canAfford || (unitQueue || []).length >= 5}
-                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (unitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                disabled={!canAfford || (divineTempleUnitQueue || []).length >= 5}
+                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (divineTempleUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                             >
-                                {(unitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
+                                {(divineTempleUnitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <UnitQueue unitQueue={mythicUnitQueue} onCancel={onCancelTrain} title="In Training" />
+                <UnitQueue unitQueue={divineTempleUnitQueue} onCancel={(item) => onCancelTrain(item, 'divineTemple')} title="Mythical Unit Queue" />
             </div>
         </div>
     );

@@ -21,6 +21,8 @@ const TroopDisplay = ({ units, title }) => {
     const [hoveredUnit, setHoveredUnit] = useState(null);
     const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land');
     const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval');
+    const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
+
 
     const renderUnit = ([unitId, count]) => {
         const unit = unitConfig[unitId];
@@ -70,9 +72,17 @@ const TroopDisplay = ({ units, title }) => {
             {renderTooltip()}
             {landUnits.length > 0 && (
                 <div className="troop-section">
-                    <h4 className="troop-section-header">{title || 'Barracks'}</h4>
+                    <h4 className="troop-section-header">Barracks</h4>
                     <div className="troop-grid">
                         {landUnits.map(renderUnit)}
+                    </div>
+                </div>
+            )}
+            {mythicUnits.length > 0 && (
+                <div className="troop-section">
+                    <h4 className="troop-section-header">Divine Temple</h4>
+                    <div className="troop-grid">
+                        {mythicUnits.map(renderUnit)}
                     </div>
                 </div>
             )}
@@ -84,7 +94,7 @@ const TroopDisplay = ({ units, title }) => {
                     </div>
                 </div>
             )}
-            {(landUnits.length === 0 && navalUnits.length === 0) && (
+            {(landUnits.length === 0 && navalUnits.length === 0 && mythicUnits.length === 0) && (
                  <p className="text-gray-400 text-xs text-center p-4">No troops in this city.</p>
             )}
         </div>

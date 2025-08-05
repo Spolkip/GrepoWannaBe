@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
 
 /**
  * #comment A custom hook to encapsulate all city-related actions and logic.
@@ -232,41 +233,92 @@ export const useCityActions = ({
         const newGameState = { ...currentState, resources: newResources, researchQueue: newQueue };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
-        setMessage(`Research for "${researchData.name}" canceled and resources refunded.`);
     };
 
-    const handleCancelTrain = async (itemIndex) => {
+    // #comment Unified cancellation handler for all unit queues (training and healing)
+    const handleCancelTrain = async (canceledItem, queueType) => { // queueType: 'barracks', 'shipyard', 'divineTemple', 'heal'
         const currentState = cityGameState;
-        if (!currentState || !currentState.unitQueue || itemIndex < 0 || itemIndex >= currentState.unitQueue.length) {
+        let queueName;
+        let costField; // 'cost' for training, 'heal_cost' for healing
+        let refundField; // 'units' for training, 'wounded' for healing
+    
+        switch (queueType) {
+            case 'barracks':
+            case 'shipyard':
+            case 'divineTemple':
+                queueName = `${queueType}Queue`;
+                costField = 'cost';
+                refundField = 'units';
+                break;
+            case 'heal':
+                queueName = 'healQueue';
+                costField = 'heal_cost';
+                refundField = 'wounded';
+                break;
+            default:
+                console.error("Invalid queueType for cancellation:", queueType);
+                setMessage("Error: Invalid queue type for cancellation.");
+                return;
+        }
+    
+        if (!currentState || !currentState[queueName]) {
             return;
         }
-
-        const newQueue = [...currentState.unitQueue];
-        const canceledTask = newQueue.splice(itemIndex, 1)[0];
-        const unit = unitConfig[canceledTask.unitId];
-
+    
+        const currentQueue = [...currentState[queueName]];
+        // Find the actual index of the item to cancel based on its unique ID
+        const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
+    
+        if (itemIndex === -1) {
+            console.error("Item not found in queue for cancellation:", canceledItem);
+            setMessage("Error: Item not found in queue.");
+            return;
+        }
+    
+        const newQueue = [...currentQueue];
+        const removedTask = newQueue.splice(itemIndex, 1)[0];
+        const unit = unitConfig[removedTask.unitId];
+    
+        if (!unit) {
+            console.error("Unit not found for canceled task:", removedTask.unitId);
+            setMessage("Error: Unit data missing for canceled task.");
+            return;
+        }
+    
         const newResources = {
             ...currentState.resources,
-            wood: currentState.resources.wood + (unit.cost.wood * canceledTask.amount),
-            stone: currentState.resources.stone + (unit.cost.stone * canceledTask.amount),
-            silver: currentState.resources.silver + (unit.cost.silver * canceledTask.amount),
+            wood: currentState.resources.wood + (unit[costField]?.wood || 0) * removedTask.amount,
+            stone: currentState.resources.stone + (unit[costField]?.stone || 0) * removedTask.amount,
+            silver: currentState.resources.silver + (unit[costField]?.silver || 0) * removedTask.amount,
         };
-
+    
+        const newRefundUnits = { ...currentState[refundField] };
+        if (queueType === 'heal') { // Only add back to wounded if it was a healing task
+            newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
+        }
+    
+        // Recalculate end times for subsequent items in the queue
         for (let i = itemIndex; i < newQueue.length; i++) {
-            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
-                ? Date.now()
-                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+                ? Date.now() // If it's the first item in the new queue, start from now
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now()); // Otherwise, use the previous item's end time
+            
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];
-            const newEndTime = new Date(previousTaskEndTime + (isInstantUnits ? 1 : taskUnit.cost.time * taskToUpdate.amount) * 1000);
+            const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
-
-        const newGameState = { ...currentState, resources: newResources, unitQueue: newQueue };
-        await saveGameState(newGameState);
-        setCityGameState(newGameState);
-        setMessage(`Training for ${canceledTask.amount} ${unit.name}s canceled and resources refunded.`);
+    
+        const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
+    
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+        } catch (error) {
+            console.error("Error cancelling training/healing:", error);
+            setMessage("Could not cancel. Please try again.");
+        }
     };
 const handleTrainTroops = async (unitId, amount) => {
     const currentState = cityGameState;
@@ -279,40 +331,56 @@ const handleTrainTroops = async (unitId, amount) => {
         return;
     }
 
-    // Check queue capacity first
-    const currentQueue = currentState.unitQueue || [];
+    let queueName;
+    let requiredBuildingLevel = 0; // Default to 0, for buildings that don't need a specific level
+    
+    if (unit.type === 'naval') {
+        queueName = 'shipyardQueue';
+        requiredBuildingLevel = currentState.buildings.shipyard?.level || 0;
+        if (requiredBuildingLevel === 0) {
+            setMessage("Naval units can only be built in the Shipyard.");
+            return;
+        }
+    } else if (unit.mythical) {
+        queueName = 'divineTempleQueue';
+        requiredBuildingLevel = currentState.buildings.divine_temple?.level || 0;
+        if (requiredBuildingLevel === 0) {
+            setMessage("Mythical units can only be trained in the Divine Temple.");
+            return;
+        }
+    } else if (unit.type === 'land') {
+        queueName = 'barracksQueue';
+        requiredBuildingLevel = currentState.buildings.barracks?.level || 0;
+        if (requiredBuildingLevel === 0) {
+            setMessage("Land units can only be trained in the Barracks.");
+            return;
+        }
+    } else {
+        setMessage("Unknown unit type.");
+        return;
+    }
+
+    const currentQueue = currentState[queueName] || [];
     if (currentQueue.length >= 5) {
         setMessage("Unit training queue is full (max 5).");
         return;
     }
 
-    // Calculate costs
     const totalCost = {
         wood: unit.cost.wood * amount,
         stone: unit.cost.stone * amount,
         silver: unit.cost.silver * amount,
         population: unit.cost.population * amount,
+        favor: unit.cost.favor ? unit.cost.favor * amount : 0, // Mythical units might have favor cost
     };
-
-    // Check building requirements
-    if (unit.type === 'naval' && (!currentState.buildings.shipyard || currentState.buildings.shipyard.level === 0)) {
-        setMessage("Naval units can only be built in the Shipyard.");
-        return;
-    }
-    if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0) && !unit.mythical) {
-        setMessage("Land units can only be trained in the Barracks.");
-        return;
-    }
-    if (unit.mythical && (!currentState.buildings.divine_temple || currentState.buildings.divine_temple.level === 0)) {
-        setMessage("Mythical units can only be trained in the Divine Temple.");
-        return;
-    }
 
     // Check population capacity
     let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
-    currentQueue.forEach(task => {
-        effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
-    });
+    // Include population from all active unit training queues (not just the one being added to)
+    Object.values(currentState.barracksQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
+    Object.values(currentState.shipyardQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
+    Object.values(currentState.divineTempleQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
+
     const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
     const availablePopulation = maxPopulation - effectiveUsedPopulation;
 
@@ -333,42 +401,46 @@ const handleTrainTroops = async (unitId, amount) => {
         setMessage(`Need ${totalCost.population - availablePopulation} more population capacity`);
         return;
     }
+    if (unit.mythical && currentState.worship[currentState.god] < totalCost.favor) {
+        setMessage(`Need ${totalCost.favor - currentState.worship[currentState.god]} more favor for ${currentState.god}`);
+        return;
+    }
 
-    // Create new game state
     const newGameState = JSON.parse(JSON.stringify(currentState));
     newGameState.resources.wood -= totalCost.wood;
     newGameState.resources.stone -= totalCost.stone;
     newGameState.resources.silver -= totalCost.silver;
+    if (unit.mythical) {
+        newGameState.worship[newGameState.god] -= totalCost.favor;
+    }
 
-    // Calculate end time - filter out any completed tasks first
-    const activeQueue = currentQueue.filter(task => {
+    // Calculate end time based ONLY on the specific queue
+    const activeQueueForType = currentQueue.filter(task => {
         const taskEndTime = task.endTime?.toDate ? task.endTime.toDate() : new Date(task.endTime);
         return taskEndTime.getTime() > Date.now();
     });
 
     let lastEndTime = Date.now();
-    if (activeQueue.length > 0) {
-        const lastItem = activeQueue[activeQueue.length - 1];
+    if (activeQueueForType.length > 0) {
+        const lastItem = activeQueueForType[activeQueueForType.length - 1];
         const lastItemEndTime = lastItem.endTime?.toDate ? lastItem.endTime.toDate() : new Date(lastItem.endTime);
         lastEndTime = lastItemEndTime.getTime();
     }
 
-    // Calculate training time (instant mode takes 1 second)
     const trainingTime = isInstantUnits ? 1 : unit.cost.time * amount;
     const endTime = new Date(lastEndTime + trainingTime * 1000);
 
-    // Add to queue
     const newQueueItem = {
+        id: uuidv4(), // Assign a unique ID
         unitId,
         amount,
         endTime: endTime,
     };
-    newGameState.unitQueue = [...activeQueue, newQueueItem];
+    newGameState[queueName] = [...activeQueueForType, newQueueItem];
 
     try {
         await saveGameState(newGameState);
         setCityGameState(newGameState);
-        setMessage(`Training ${amount} ${unit.name}s (ready in ${formatTime(trainingTime)})`);
     } catch (error) {
         console.error("Error adding to unit queue:", error);
         setMessage("Could not start training. Please try again.");
@@ -459,6 +531,7 @@ const formatTime = (seconds) => {
             for (const task of tasksToAdd) {
                 const endTime = new Date(lastEndTime + task.time * 1000);
                 const newQueueItem = {
+                    id: uuidv4(), // Assign a unique ID
                     unitId: task.unitId,
                     amount: task.amount,
                     endTime,
@@ -517,7 +590,6 @@ const formatTime = (seconds) => {
         const newGameState = { ...currentState, resources: newResources, wounded: newWounded, healQueue: newQueue };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
-        setMessage(`Healing for ${canceledTask.amount} ${unit.name}s canceled and resources refunded.`);
     };
 
     const handleFireTroops = async (unitsToFire) => {
@@ -649,8 +721,9 @@ const formatTime = (seconds) => {
                 worship: {},
                 cave: { silver: 0 },
                 buildQueue: [],
-                unitQueue: [],
-                researchQueue: [],
+                barracksQueue: [], // New queue
+                shipyardQueue: [], // New queue
+                divineTempleQueue: [], // New queue
                 healQueue: [],
                 lastUpdated: Date.now(),
             };

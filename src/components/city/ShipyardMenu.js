@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import unitConfig from '../../gameData/units.json';
 import UnitQueue from './UnitQueue';
+import Modal from '../shared/Modal';
 
 // Dynamically import all unit images
 const unitImages = {};
@@ -31,8 +32,7 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
     }, [selectedUnitId]);
 
     if (!selectedUnitId) {
-        // You might want a better placeholder if no naval units exist in your gameData
-        return <div className="text-white">Build a shipyard to see available units.</div>
+        return <Modal message="No naval units available to build." onClose={onClose} />;
     }
 
     const selectedUnit = unitConfig[selectedUnitId];
@@ -64,7 +64,6 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
                 </div>
 
                 <div className="flex-grow flex gap-4 overflow-y-auto">
-                    {/* Left Panel: Unit Selection */}
                     <div className="w-1/3 flex flex-col gap-2">
                         {navalUnits.map(unitId => {
                             const unit = unitConfig[unitId];
@@ -85,7 +84,6 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
                         })}
                     </div>
 
-                    {/* Right Panel: Details */}
                     <div className="w-2/3 flex flex-col gap-4">
                         <div className="bg-gray-700 p-4 rounded-lg">
                             <h4 className="font-title text-2xl text-yellow-400">{selectedUnit.name}</h4>
@@ -111,16 +109,16 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
                             />
                             <button
                                 onClick={handleTrain}
-                                disabled={!canAfford || (unitQueue || []).length >= 5}
-                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (unitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                disabled={!canAfford || (navalUnitQueue || []).length >= 5}
+                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (navalUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                             >
-                                {(unitQueue || []).length >= 5 ? 'Queue Full' : 'Build'}
+                                {(navalUnitQueue || []).length >= 5 ? 'Queue Full' : 'Build'}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <UnitQueue unitQueue={navalUnitQueue} onCancel={onCancelTrain} />
+                <UnitQueue unitQueue={navalUnitQueue} onCancel={(item) => onCancelTrain(item, 'shipyard')} title="Naval Unit Queue" />
             </div>
         </div>
     );

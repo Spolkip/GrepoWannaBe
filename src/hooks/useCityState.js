@@ -6,6 +6,7 @@ import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
 import researchConfig from '../gameData/research.json';
 import { useGame } from '../contexts/GameContext';
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
 
 // #comment This hook now gets the active city ID from the GameContext
 // #comment and uses it to listen to and update the correct city document.
@@ -200,20 +201,26 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 if (!data.cave) data.cave = { silver: 0 }; 
                 if (!data.research) data.research = {};
                 if (!data.buildQueue) data.buildQueue = [];
-                if (!data.unitQueue) data.unitQueue = [];
-                if (!data.researchQueue) data.researchQueue = [];
+                // Initialize new separate queues
+                if (!data.barracksQueue) data.barracksQueue = [];
+                if (!data.shipyardQueue) data.shipyardQueue = [];
+                if (!data.divineTempleQueue) data.divineTempleQueue = [];
+                // Retain healQueue
                 if (!data.healQueue) data.healQueue = [];
                 
-                // #comment Helper to convert Firestore Timestamps to JS Dates
-                const convertTimestampsToDates = (queue) => (queue || []).map(task => ({
+                // #comment Helper to convert Firestore Timestamps to JS Dates and assign IDs if missing
+                const convertAndAssignIds = (queue) => (queue || []).map(task => ({
+                    id: task.id || uuidv4(), // Assign ID if missing
                     ...task,
                     endTime: task.endTime?.toDate ? task.endTime.toDate() : task.endTime
                 }));
     
-                data.buildQueue = convertTimestampsToDates(data.buildQueue);
-                data.unitQueue = convertTimestampsToDates(data.unitQueue);
-                data.researchQueue = convertTimestampsToDates(data.researchQueue);
-                data.healQueue = convertTimestampsToDates(data.healQueue);
+                data.buildQueue = convertAndAssignIds(data.buildQueue);
+                data.barracksQueue = convertAndAssignIds(data.barracksQueue);
+                data.shipyardQueue = convertAndAssignIds(data.shipyardQueue);
+                data.divineTempleQueue = convertAndAssignIds(data.divineTempleQueue);
+                data.researchQueue = convertAndAssignIds(data.researchQueue);
+                data.healQueue = convertAndAssignIds(data.healQueue);
 
                 setCityGameState(data);
             } else {
@@ -260,8 +267,12 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             
             // Early exit conditions
             if (!currentUser || !worldId || !activeCityId) return;
+            
+            // Check if any queue has items to process
             if (!currentState?.buildQueue?.length && 
-                !currentState?.unitQueue?.length && 
+                !currentState?.barracksQueue?.length &&
+                !currentState?.shipyardQueue?.length &&
+                !currentState?.divineTempleQueue?.length &&
                 !currentState?.researchQueue?.length && 
                 !currentState?.healQueue?.length) {
                 return;
@@ -272,7 +283,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             let hasUpdates = false;
 
             // Helper function to process each queue type
-            const processQueueType = (queueName, processCompleted) => {
+            const processSingleQueue = (queueName, processCompleted) => {
                 if (!currentState[queueName]?.length) return;
 
                 const activeQueue = [];
@@ -307,7 +318,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             };
 
             // Process each queue type
-            processQueueType('buildQueue', (completed, updates) => {
+            processSingleQueue('buildQueue', (completed, updates) => {
                 updates.buildings = updates.buildings || { ...currentState.buildings };
                 completed.forEach(task => {
                     if (!updates.buildings[task.buildingId]) {
@@ -317,21 +328,35 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 });
             });
 
-            processQueueType('unitQueue', (completed, updates) => {
+            processSingleQueue('barracksQueue', (completed, updates) => {
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
                 });
             });
 
-            processQueueType('researchQueue', (completed, updates) => {
+            processSingleQueue('shipyardQueue', (completed, updates) => {
+                updates.units = updates.units || { ...currentState.units };
+                completed.forEach(task => {
+                    updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                });
+            });
+
+            processSingleQueue('divineTempleQueue', (completed, updates) => {
+                updates.units = updates.units || { ...currentState.units };
+                completed.forEach(task => {
+                    updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                });
+            });
+
+            processSingleQueue('researchQueue', (completed, updates) => {
                 updates.research = updates.research || { ...currentState.research };
                 completed.forEach(task => {
                     updates.research[task.researchId] = true;
                 });
             });
 
-            processQueueType('healQueue', (completed, updates) => {
+            processSingleQueue('healQueue', (completed, updates) => {
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;

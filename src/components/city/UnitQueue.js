@@ -50,7 +50,7 @@ const UnitQueueItem = ({ item, onCancel, isFirst }) => {
     return (
         <div className="relative w-16 h-16 bg-gray-700 border-2 border-gray-600 rounded-md flex-shrink-0" title={`${item.amount}x ${unit.name}`}>
             <img src={imageSrc} alt={unit.name} className="w-full h-full object-contain p-1" />
-            <span className="absolute bottom-0 right-0 text-white bg-black bg-opacity-75 px-1.5 py-0.5 text-xs font-bold rounded-tl-md rounded-br-md">
+            <span className="absolute bottom-0 right-1 text-white bg-black bg-opacity-75 px-1.5 py-0.5 text-xs font-bold rounded-tl-md rounded-br-md">
                 {item.amount}
             </span>
             {isFirst && (
@@ -59,7 +59,7 @@ const UnitQueueItem = ({ item, onCancel, isFirst }) => {
                 </div>
             )}
             <button
-                onClick={onCancel}
+                onClick={() => onCancel(item)} // Pass the entire item object
                 className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
                 title="Cancel"
             >
@@ -86,9 +86,9 @@ const UnitQueue = ({ unitQueue, onCancel, title = "In Training" }) => {
             <div className="flex space-x-3 bg-gray-900 p-2 rounded-lg overflow-x-auto h-24 items-center">
                 {unitQueue.map((item, index) => (
                     <UnitQueueItem 
-                        key={`${item.unitId}-${index}`} 
+                        key={item.id || `${item.unitId}-${index}`} // Use item.id if available, fallback to old key
                         item={item} 
-                        onCancel={() => onCancel(index)} 
+                        onCancel={onCancel} 
                         isFirst={index === 0}
                     />
                 ))}

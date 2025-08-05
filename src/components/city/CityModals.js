@@ -98,16 +98,14 @@ const CityModals = ({
       )}
       {isBarracksMenuOpen && (
         <BarracksMenu
-          menuType="barracks"
           resources={cityGameState.resources}
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
           onFire={handleFireTroops}
           onClose={() => closeModal('isBarracksMenuOpen')}
-          buildings={cityGameState.buildings}
-          unitQueue={cityGameState.unitQueue}
-          onCancelTrain={handleCancelTrain}
           cityGameState={cityGameState}
+          unitQueue={cityGameState.barracksQueue} // Pass barracksQueue
+          onCancelTrain={(item) => handleCancelTrain(item, 'barracks')} // Pass item and queueType
         />
       )}
        {isDivineTempleMenuOpen && (
@@ -116,8 +114,8 @@ const CityModals = ({
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isDivineTempleMenuOpen')}
-          unitQueue={cityGameState.unitQueue}
-          onCancelTrain={handleCancelTrain}
+          unitQueue={cityGameState.divineTempleQueue} // Pass divineTempleQueue
+          onCancelTrain={(item) => handleCancelTrain(item, 'divineTemple')} // Pass item and queueType
           cityGameState={cityGameState}
         />
       )}
@@ -127,10 +125,9 @@ const CityModals = ({
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isShipyardMenuOpen')}
-          buildings={cityGameState.buildings}
-          unitQueue={cityGameState.unitQueue}
-          onCancelTrain={handleCancelTrain}
           cityGameState={cityGameState}
+          unitQueue={cityGameState.shipyardQueue} // Pass shipyardQueue
+          onCancelTrain={(item) => handleCancelTrain(item, 'shipyard')} // Pass item and queueType
         />
       )}
       {isTempleMenuOpen && (

@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import unitConfig from '../../gameData/units.json';
 import UnitQueue from './UnitQueue';
 import Modal from '../shared/Modal';
+import { useGame } from '../../contexts/GameContext'; // Import useGame
 
+// Dynamically import all unit images
 const unitImages = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
@@ -11,6 +13,7 @@ imageContext.keys().forEach((item) => {
     unitImages[key] = imageContext(item);
 });
 
+// #comment A component to display unit stats in a clean, consistent way
 const UnitStats = ({ unit }) => (
     <div className="w-1/2 bg-gray-900 p-4 rounded-lg space-y-2">
         <h5 className="font-bold text-lg text-yellow-300 mb-3">Unit Information</h5>
@@ -21,26 +24,52 @@ const UnitStats = ({ unit }) => (
 );
 
 const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose, cityGameState, unitQueue, onCancelTrain }) => {
+    const { gameState } = useGame();
+    const worshippedGod = gameState?.god;
+
     const [activeTab, setActiveTab] = useState('train');
-    // #comment Filter out mythical units from the barracks training list.
-    const landUnits = Object.keys(unitConfig).filter(id => unitConfig[id].type === 'land' && !unitConfig[id].mythical);
+    // Filter out mythical units from the barracks training list and units that belong to other gods
+    const landUnits = Object.keys(unitConfig).filter(id => {
+        const unit = unitConfig[id];
+        if (unit.type !== 'land') return false;
+        // Exclude all mythical units from barracks
+        if (unit.mythical) return false;
+        return true;
+    });
+
     const [selectedUnitId, setSelectedUnitId] = useState(landUnits[0] || null);
     const [trainAmount, setTrainAmount] = useState(1);
     const [fireAmounts, setFireAmounts] = useState({});
-
+    
     useEffect(() => {
         setTrainAmount(1);
     }, [selectedUnitId]);
 
-    if (!selectedUnitId && activeTab === 'train') {
+    // Check if there are any land units available to train
+    const hasTrainableUnits = landUnits.length > 0;
+    
+    // Check if there are any land units in the city to dismiss
+    const cityUnits = cityGameState?.units || {};
+    const hasDismissableUnits = Object.keys(cityUnits).some(id => unitConfig[id]?.type === 'land');
+    
+    if (!hasTrainableUnits && activeTab === 'train') {
         return (
-            <Modal message="No land units available to train." onClose={onClose} />
+            <Modal message="No land units available to train in your city." onClose={onClose} />
         );
     }
-
-    const selectedUnit = unitConfig[selectedUnitId];
-    const cityUnits = cityGameState?.units || {};
-    const landUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.type === 'land');
+    if (!hasDismissableUnits && activeTab === 'fire') {
+        // Fallback to train tab if no units to fire
+        if (hasTrainableUnits) {
+             setActiveTab('train');
+        } else {
+            return (
+                <Modal message="No land units in the city to dismiss." onClose={onClose} />
+            );
+        }
+    }
+    
+    const selectedUnit = selectedUnitId ? unitConfig[selectedUnitId] : null;
+    const barracksUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.type === 'land' && !unitConfig[item.unitId]?.mythical);
     
     const totalCost = {
         wood: selectedUnit ? selectedUnit.cost.wood * trainAmount : 0,
@@ -134,10 +163,10 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                                 />
                                 <button
                                     onClick={handleTrain}
-                                    disabled={!canAfford || (unitQueue || []).length >= 5}
-                                    className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (unitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                    disabled={!canAfford || (barracksUnitQueue || []).length >= 5}
+                                    className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (barracksUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                                 >
-                                    {(unitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
+                                    {(barracksUnitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
                                 </button>
                             </div>
                         </div>
@@ -188,7 +217,8 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                     </div>
                 )}
 
-                {activeTab === 'train' && <UnitQueue unitQueue={landUnitQueue} onCancel={onCancelTrain} />}
+                {/* Always show the queue regardless of the active tab, but filter it to only show land units */}
+                <UnitQueue unitQueue={barracksUnitQueue} onCancel={(item) => onCancelTrain(item, 'barracks')} title="Land Unit Queue" />
             </div>
         </div>
     );
