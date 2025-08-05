@@ -1,7 +1,7 @@
 /* src/components/QuestsButton.css */
 .quests-button-container {
     position: absolute;
-    top: 100px; /* Adjusted to be a bit lower */
+    top: 100px;
     left: 1rem;
     z-index: 50;
 }
@@ -12,43 +12,32 @@
     padding: 0;
     cursor: pointer;
     position: relative;
-    width: 60px;
-    height: 60px;
-}
-
-.quests-button .quests-icon {
-    width: 100%;
-    height: 100%;
-    transition: transform 0.2s;
+    width: 130px; /* Set to the width of one sprite */
+    height: 180px; /* Set to the height of the spritesheet */
+    background-size: 300% 100%;
+    background-repeat: no-repeat;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+    transition: transform 0.2s, background-position 0.5s ease-in-out;
 }
 
-.quests-button:hover .quests-icon {
+.quests-button:hover {
     transform: scale(1.1);
 }
 
-.quests-notification-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background-color: #ef4444; /* red-500 */
-    color: white;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 9999px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    animation: pulse-badge 1.5s infinite;
+/* Specific background positions for each state */
+.quests-button.unclaimed {
+    animation: glowing-border-animation 2s infinite;
+    background-position: 0% 0%;
 }
 
-@keyframes pulse-badge {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+.quests-button.idle {
+    background-position: 50% 0%;
+}
+
+.quests-button.completed {
+    /* No glowing animation for completed quests */
+    animation: none;
+    background-position: 100% 0%;
 }
 
 /* This animation is defined in index.css */
