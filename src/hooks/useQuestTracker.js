@@ -51,8 +51,8 @@ export const useQuestTracker = (cityState) => {
                         }
                         break;
                     case 'units':
-                        const totalUnits = Object.values(cityState.units).reduce((sum, count) => sum + count, 0);
-                        if (totalUnits >= questData.targetCount) {
+                        const unitCount = cityState.units[questData.targetId] || 0;
+                        if (unitCount >= questData.targetCount) {
                             isComplete = true;
                         }
                         break;

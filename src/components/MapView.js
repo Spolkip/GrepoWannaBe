@@ -245,9 +245,10 @@ const MapView = ({
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
             {isUnderAttack && <div className="screen-glow-attack"></div>}
             <Modal message={message} onClose={() => setMessage('')} />
+            // In both CityView.js and MapView.js
             <QuestsButton 
                 onOpenQuests={() => openModal('quests')}
-                hasUnclaimedQuests={hasUnclaimedQuests}
+                quests={quests}
             />
             <div className="flex-grow flex flex-row overflow-hidden">
                 <div className="main-content flex-grow relative map-background">
