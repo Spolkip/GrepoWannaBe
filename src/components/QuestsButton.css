@@ -1,0 +1,57 @@
+/* src/components/QuestsButton.css */
+.quests-button-container {
+    position: absolute;
+    top: 100px; /* Adjusted to be a bit lower */
+    left: 1rem;
+    z-index: 50;
+}
+
+.quests-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.quests-button .quests-icon {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.2s;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.quests-button:hover .quests-icon {
+    transform: scale(1.1);
+}
+
+.quests-notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ef4444; /* red-500 */
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 9999px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    animation: pulse-badge 1.5s infinite;
+}
+
+@keyframes pulse-badge {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* This animation is defined in index.css */
+.glowing-border {
+    animation: glowing-border-animation 2s infinite;
+}

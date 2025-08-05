@@ -91,7 +91,10 @@ const TopBar = ({
     isUnderAttack,
     incomingAttackCount,
     // #comment Prop for renaming city
-    onRenameCity
+    onRenameCity,
+    // #comment New props for quests
+    onOpenQuests,
+    hasUnclaimedQuests
 }) => {
     const { playerCities, setActiveCityId, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
@@ -216,6 +219,12 @@ const TopBar = ({
                     className="activity-tracker-container"
                     onMouseLeave={handleMouseLeave}
                 >
+                     <div className="relative" onMouseEnter={() => handleMouseEnter('quests')}>
+                        <button className="activity-icon" onClick={onOpenQuests}>
+                            📜
+                        </button>
+                        {hasUnclaimedQuests && <span className="activity-badge">!</span>}
+                    </div>
                     <div className="relative" onMouseEnter={() => handleMouseEnter('recruitment')}>
                         <button className="activity-icon">🗡️</button>
                         {recruitmentCount > 0 && <span className="activity-badge">{recruitmentCount}</span>}

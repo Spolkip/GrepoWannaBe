@@ -11,6 +11,8 @@ import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar'; // Import the TopBar
+import { useQuestTracker } from '../hooks/useQuestTracker';
+import QuestsButton from './QuestsButton';
 
 const CityView = ({ 
     showMap, 
@@ -67,6 +69,13 @@ const CityView = ({
         return getProductionRates(cityGameState.buildings);
     }, [cityGameState, getProductionRates]);
 
+    const { quests, claimReward: claimQuestReward } = useQuestTracker(cityGameState);
+    
+    // #comment New memoized value to check for unclaimed completed quests
+    const hasUnclaimedQuests = useMemo(() => {
+        return quests.some(q => q.isComplete && !q.isClaimed);
+    }, [quests]);
+
     if (!cityGameState) {
         return <div className="text-white text-center p-10">Loading City...</div>;
     }
@@ -74,6 +83,11 @@ const CityView = ({
     return (
         <div className="w-full h-screen bg-gray-900 city-view-wrapper relative">
             <Modal message={message} onClose={() => setMessage('')} />
+            
+            <QuestsButton 
+                onOpenQuests={() => openModal('quests')}
+                hasUnclaimedQuests={hasUnclaimedQuests}
+            />
 
             <SidebarNav
                 onToggleView={showMap}

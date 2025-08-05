@@ -14,6 +14,7 @@ import MapGrid from './map/MapGrid';
 import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import DivinePowers from './city/DivinePowers';
+import QuestsButton from './QuestsButton';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -34,7 +35,7 @@ const MapView = ({
     unreadReportsCount,
     unreadMessagesCount,
     quests,
-    claimQuestReward,
+    claimReward,
     handleMessageAction,
     panToCoords,
     setPanToCoords,
@@ -88,6 +89,11 @@ const MapView = ({
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
 
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
+    
+    // #comment New memoized value to check for unclaimed completed quests
+    const hasUnclaimedQuests = useMemo(() => {
+        return quests.some(q => q.isComplete && !q.isClaimed);
+    }, [quests]);
 
     const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };
@@ -239,6 +245,10 @@ const MapView = ({
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
             {isUnderAttack && <div className="screen-glow-attack"></div>}
             <Modal message={message} onClose={() => setMessage('')} />
+            <QuestsButton 
+                onOpenQuests={() => openModal('quests')}
+                hasUnclaimedQuests={hasUnclaimedQuests}
+            />
             <div className="flex-grow flex flex-row overflow-hidden">
                 <div className="main-content flex-grow relative map-background">
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
@@ -288,7 +298,7 @@ const MapView = ({
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimQuestReward={claimQuestReward} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
         </div>
     );

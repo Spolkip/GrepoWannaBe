@@ -218,6 +218,11 @@ const Game = ({ onBackToWorlds }) => {
     useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount);
     const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
 
+    // #comment New memoized value to check for unclaimed completed quests
+    const hasUnclaimedQuests = useMemo(() => {
+        return quests.some(q => q.isComplete && !q.isClaimed);
+    }, [quests]);
+
     const { incomingAttackCount, isUnderAttack } = useMemo(() => {
         if (!movements || !playerCities) return { incomingAttackCount: 0, isUnderAttack: false };
         const cityIds = Object.keys(playerCities);
@@ -329,7 +334,7 @@ const Game = ({ onBackToWorlds }) => {
             </div>
 
             <div className="absolute bottom-4 left-4 z-30 flex flex-col space-y-2">
-                {view === 'map' && <button onClick={onBackToWorlds} className="text-sm text-blue-400 hover:text-blue-300 bg-gray-800 px-3 py-1 rounded shadow-lg">Back to Worlds</button>}
+                {view === 'map' && <button onClick={onBackToWorlds} className="text-sm text-blue-400 hover:text-blue-300 bg-gray-800 px-3 py-1 rounded shadow-lg">Back to World Selection</button>}
                 <button onClick={() => signOut(auth)} className="text-sm text-red-400 hover:text-red-300 bg-gray-800 px-3 py-1 rounded shadow-lg">Logout</button>
             </div>
         </div>

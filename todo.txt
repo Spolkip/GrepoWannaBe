@@ -14,4 +14,3 @@ Maybe:
 - add cities inside the island
 
 Bugs:
-- fix apply method
