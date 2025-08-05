@@ -152,7 +152,7 @@ const Game = ({ onBackToWorlds }) => {
     
     const { handleCancelMovement } = useMapActions(openModal, closeModal, showCity, () => {});
 
-    // #comment This function handles cancelling a recruitment/healing item from any city's queue.
+    // #comment This function now handles cancelling a recruitment/healing item from any city's queue.
     const handleCancelTrain = useCallback(async (cityId, itemIndex, isHealing) => {
         const cityState = playerCities[cityId];
         const queueName = isHealing ? 'healQueue' : 'unitQueue';
@@ -272,6 +272,7 @@ const Game = ({ onBackToWorlds }) => {
                     onCancelMovement={handleCancelMovement}
                     combinedSlots={combinedSlots}
                     onRenameCity={renameCity}
+                    quests={quests}
                 />
             )}
             {view === 'map' && (

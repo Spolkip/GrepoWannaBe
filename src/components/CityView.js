@@ -29,7 +29,8 @@ const CityView = ({
     onCancelTrain,
     onCancelMovement,
     combinedSlots,
-    onRenameCity
+    onRenameCity,
+    quests
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame(); // Get worldState here
@@ -69,13 +70,6 @@ const CityView = ({
         return getProductionRates(cityGameState.buildings);
     }, [cityGameState, getProductionRates]);
 
-    const { quests, claimReward: claimQuestReward } = useQuestTracker(cityGameState);
-    
-    // #comment New memoized value to check for unclaimed completed quests
-    const hasUnclaimedQuests = useMemo(() => {
-        return quests.some(q => q.isComplete && !q.isClaimed);
-    }, [quests]);
-
     if (!cityGameState) {
         return <div className="text-white text-center p-10">Loading City...</div>;
     }
@@ -86,7 +80,7 @@ const CityView = ({
             
             <QuestsButton 
                 onOpenQuests={() => openModal('quests')}
-                hasUnclaimedQuests={hasUnclaimedQuests}
+                quests={quests}
             />
 
             <SidebarNav
