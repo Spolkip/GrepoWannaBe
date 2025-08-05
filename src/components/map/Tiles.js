@@ -1,6 +1,7 @@
 // src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import ruinImage from '../../images/ruin_new.png'; // Assuming you add a new image named ruin_new.png
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
@@ -132,7 +133,12 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
 
     return (
         <div className={`w-full h-full ${bgClass} ${borderClass} flex justify-center items-center`}>
-            <div onClick={(e) => onClick(e, ruinData)} className={ruinClass}>
+            <div
+                onClick={(e) => onClick(e, ruinData)}
+                className={ruinClass}
+                // Use the imported image here
+                style={{ backgroundImage: `url(${ruinImage})` }}
+            >
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>
         </div>

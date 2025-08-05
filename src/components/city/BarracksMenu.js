@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import unitConfig from '../../gameData/units.json';
 import UnitQueue from './UnitQueue';
 import Modal from '../shared/Modal';
-import { useGame } from '../../contexts/GameContext'; // Import useGame
 
 // Dynamically import all unit images
 const unitImages = {};
@@ -24,8 +23,6 @@ const UnitStats = ({ unit }) => (
 );
 
 const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose, cityGameState, unitQueue, onCancelTrain }) => {
-    const { gameState } = useGame();
-    const worshippedGod = gameState?.god;
 
     const [activeTab, setActiveTab] = useState('train');
     // Filter out mythical units from the barracks training list and units that belong to other gods

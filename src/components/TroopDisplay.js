@@ -19,8 +19,11 @@ imageContexts.forEach(context => {
 
 const TroopDisplay = ({ units, title }) => {
     const [hoveredUnit, setHoveredUnit] = useState(null);
-    const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land');
-    const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval');
+    // Filter land units to exclude mythical ones for Barracks display
+    const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land' && !unitConfig[id]?.mythical);
+    // Filter naval units to exclude mythical ones (though naval units are not mythical in current config, it's good practice)
+    const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval' && !unitConfig[id]?.mythical);
+    // Filter for only mythical units
     const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
 
 
@@ -72,7 +75,7 @@ const TroopDisplay = ({ units, title }) => {
             {renderTooltip()}
             {landUnits.length > 0 && (
                 <div className="troop-section">
-                    <h4 className="troop-section-header">Barracks</h4>
+                    <h4 className="troop-section-header">Units</h4>
                     <div className="troop-grid">
                         {landUnits.map(renderUnit)}
                     </div>
@@ -80,7 +83,7 @@ const TroopDisplay = ({ units, title }) => {
             )}
             {mythicUnits.length > 0 && (
                 <div className="troop-section">
-                    <h4 className="troop-section-header">Divine Temple</h4>
+                    <h4 className="troop-section-header">Mythic Units</h4>
                     <div className="troop-grid">
                         {mythicUnits.map(renderUnit)}
                     </div>
@@ -88,7 +91,7 @@ const TroopDisplay = ({ units, title }) => {
             )}
             {navalUnits.length > 0 && (
                  <div className="troop-section">
-                    <h4 className="troop-section-header">Harbor</h4>
+                    <h4 className="troop-section-header">Ships</h4>
                     <div className="troop-grid">
                         {navalUnits.map(renderUnit)}
                     </div>

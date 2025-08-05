@@ -59,6 +59,36 @@ const WeatherDisplay = ({ season, weather }) => {
         Foggy: '🌫️',
         Stormy: '⛈️',
     };
+
+    // Determine the wind range and a representative speed for the tooltip
+    const { windRange, representativeSpeed } = useMemo(() => {
+        let range = '';
+        let speed = 0;
+        switch (weather) {
+            case 'Clear':
+                range = '0-3 knots';
+                speed = 1.5; // Midpoint
+                break;
+            case 'Windy':
+                range = '3-6 knots';
+                speed = 4.5; // Midpoint
+                break;
+            case 'Rainy':
+                range = '6-9 knots';
+                speed = 7.5; // Midpoint
+                break;
+            case 'Stormy':
+                range = '9-10 knots';
+                speed = 9.5; // Midpoint
+                break;
+            default:
+                range = 'N/A';
+                speed = 0;
+                break;
+        }
+        return { windRange: range, representativeSpeed: speed };
+    }, [weather]);
+
     const seasonColors = {
         Spring: 'text-pink-400',
         Summer: 'text-yellow-400',
@@ -67,7 +97,7 @@ const WeatherDisplay = ({ season, weather }) => {
     };
 
     return (
-        <div className="weather-display" title={`${season}, ${weather}`}>
+        <div className="weather-display" title={`${season}, ${weather} | Wind: ${representativeSpeed.toFixed(1)} knots (${windRange})`}>
             <span className="text-xl mr-2">{weatherIcons[weather] || '❓'}</span>
             <span className={`font-bold ${seasonColors[season] || 'text-white'}`}>{season}</span>
             <span className="text-white mx-2">|</span>
@@ -314,8 +344,8 @@ const TopBar = ({
                 >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>
-                    {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.wood}/hr)</span>}
-                    {hoveredResource === 'wood' && (
+                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.wood}/hr)</span>}
+                    {hoveredResource === 'wood' && productionRates && (
                         <ResourceTooltip
                             resource="wood"
                             production={productionRates.wood}
@@ -330,8 +360,8 @@ const TopBar = ({
                 >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-300 font-bold">{Math.floor(resources.stone)}</span>
-                     {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.stone}/hr)</span>}
-                     {hoveredResource === 'stone' && (
+                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.stone}/hr)</span>}
+                     {hoveredResource === 'stone' && productionRates && (
                         <ResourceTooltip
                             resource="stone"
                             production={productionRates.stone}
@@ -346,8 +376,8 @@ const TopBar = ({
                 >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
-                     {productionRates && <span className="text-xs text-gray-400 ml-1">(+{productionRates.silver}/hr)</span>}
-                     {hoveredResource === 'silver' && (
+                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.silver}/hr)</span>}
+                     {hoveredResource === 'silver' && productionRates && (
                         <ResourceTooltip
                             resource="silver"
                             production={productionRates.silver}

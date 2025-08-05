@@ -447,14 +447,6 @@ const handleTrainTroops = async (unitId, amount) => {
     }
 };
 
-// Helper function to format time (HH:MM:SS)
-const formatTime = (seconds) => {
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-};
-
     const handleHealTroops = async (unitsToHeal) => {
         const currentState = cityGameState;
         if (!currentState || !worldId || Object.keys(unitsToHeal).length === 0) return;

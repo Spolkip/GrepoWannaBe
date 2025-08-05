@@ -23,12 +23,12 @@ imageContexts.forEach(context => {
 });
 
 // #comment Displays the current weather and wind conditions
-const WindInfo = ({ weather }) => {
+const WindInfo = ({ weather, windSpeed }) => {
     const [windRange, setWindRange] = useState('');
     const weatherIcons = {
         Clear: '☀️',
         Rainy: '🌧️',
-        Windy: '💨',
+        Windy: '�',
         Foggy: '🌫️',
         Stormy: '⛈️',
     };
@@ -56,7 +56,7 @@ const WindInfo = ({ weather }) => {
     }, [weather]);
 
     return (
-        <div className="text-gray-400 text-sm mt-2 flex items-center justify-center">
+        <div className="text-gray-400 text-sm mt-2 flex items-center justify-center" title={`${weather} | Wind: ${windSpeed.toFixed(2)} knots (${windRange})`}>
             <span>{weatherIcons[weather]} {weather} | Wind: {windRange}</span>
         </div>
     );
@@ -421,7 +421,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                     {renderContent()}
                 </div>
                 <p className="text-gray-400 mt-4">Travel Time: <span className="font-bold text-yellow-300">{finalTravelTime}</span></p>
-                {worldState?.weather && <WindInfo weather={worldState.weather} />}
+                {worldState?.weather && <WindInfo weather={worldState.weather} windSpeed={windSpeed} />}
                 <button onClick={handleSend} className="btn btn-primary w-full py-2 mt-6">
                     Send
                 </button>
