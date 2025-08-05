@@ -24,11 +24,11 @@ const AllianceOverview = () => {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <h3 className="text-xl font-bold mb-2">Alliance Description</h3>
-                <p className="text-gray-400 bg-gray-700/50 p-3 rounded-lg min-h-[100px]">
-                    {playerAlliance.description || 'No description provided.'}
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="alliance-bg-light alliance-text-light p-4 rounded-lg">
+                    <h3 className="text-xl font-bold mb-2">Alliance Description</h3>
+                    <p>{playerAlliance.description || 'No description provided.'}</p>
+                </div>
             </div>
             <div>
                 <h3 className="text-xl font-bold mb-2">Recent Events</h3>

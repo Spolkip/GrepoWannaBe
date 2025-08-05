@@ -55,7 +55,7 @@ const AllianceProperties = ({ onClose }) => {
     };
 
     return (
-        <div className="p-4">
+        <div className="p-4 alliance-bg-light alliance-text-light rounded-lg">
             {confirmAction && (
                 <ConfirmationModal 
                     message={confirmAction.message}

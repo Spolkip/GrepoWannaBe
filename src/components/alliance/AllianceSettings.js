@@ -59,14 +59,13 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
 
             <div className="settings-section">
                 <h3>Membership Settings</h3>
-                <div className="form-group">
-                    <label>Alliance Status {getStatusBadge()}</label>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="settings-input"
-                        disabled={!isLeader}
-                    >
+                    <div className="form-group">
+                        <label>Alliance Status {getStatusBadge()}</label>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="settings-input alliance-text-dark alliance-bg-dark"
+                            disabled={!isLeader}>
                         <option value="open">Open (Anyone can join)</option>
                         <option value="invite_only">Invite Only (Join by invite or application)</option>
                         <option value="closed">Closed (Join by invite only)</option>

@@ -60,33 +60,40 @@ const AllianceRanks = ({ alliance, isLeader }) => {
         });
     }, [alliance.members]);
 
-    return (
-        <div className="p-4">
-            <h3 className="text-xl font-bold mb-4">Alliance Ranks</h3>
-            {!isLeader && <p className="text-red-400 mb-4">Only the leader can manage ranks.</p>}
+     return (
+        <div className="bg-amber-100 text-gray-900 p-4 rounded-lg shadow-md">
+            <h3 className="text-xl font-bold mb-4 border-b border-amber-300 pb-2">Alliance Ranks</h3>
+            {!isLeader && <p className="text-red-600 mb-4">Only the leader can manage ranks.</p>}
             
             <div className="space-y-6">
                 <div>
-                    <h4 className="font-semibold text-lg mb-2">Current Ranks</h4>
+                    <h4 className="font-semibold text-lg mb-2 text-gray-900">Current Ranks</h4>
                     <ul className="space-y-2">
                         {alliance.ranks.map(rank => (
-                            <li key={rank.id} className="bg-gray-700 p-3 rounded" title={getPermissionsText(rank.permissions)}>
+                            <li 
+                                key={rank.id} 
+                                className="bg-white text-gray-900 p-3 rounded border border-amber-200"
+                                title={getPermissionsText(rank.permissions)}
+                            >
                                 <p className="font-bold">{rank.name}</p>
+                                <p className="text-xs text-amber-800 mt-1">
+                                    {getPermissionsText(rank.permissions)}
+                                </p>
                             </li>
                         ))}
                     </ul>
                 </div>
 
                 {isLeader && alliance.ranks.length < 6 && (
-                    <div>
-                        <h4 className="font-semibold text-lg mb-2">Create New Rank</h4>
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                        <h4 className="font-semibold text-lg mb-2 text-gray-900">Create New Rank</h4>
                         <div className="space-y-2">
                             <input
                                 type="text"
                                 value={newRankName}
                                 onChange={(e) => setNewRankName(e.target.value)}
                                 placeholder="New Rank Name"
-                                className="w-full bg-gray-900 p-2 rounded"
+                                className="w-full bg-white text-gray-900 p-2 rounded border border-amber-300"
                             />
                             <div className="grid grid-cols-2 gap-2 text-sm">
                                 {allPermissions.map(perm => (
@@ -98,32 +105,37 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                                             onChange={(e) => setNewRankPermissions(prev => ({ ...prev, [perm]: e.target.checked }))}
                                             className="mr-2"
                                         />
-                                        <label htmlFor={perm} className="capitalize">
+                                        <label htmlFor={perm} className="capitalize text-gray-900">
                                             {perm.replace(/([A-Z])/g, ' $1')}
                                         </label>
                                     </div>
                                 ))}
                             </div>
-                            <button onClick={handleCreateRank} className="btn btn-confirm w-full">Create Rank</button>
+                            <button 
+                                onClick={handleCreateRank} 
+                                className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white w-full"
+                            >
+                                Create Rank
+                            </button>
                         </div>
                     </div>
                 )}
                 
-                {message && <p className="text-green-400 mt-2 text-sm">{message}</p>}
+                {message && <p className="text-green-700 mt-2 text-sm">{message}</p>}
 
-                <div className="mt-6">
-                    <h4 className="font-semibold text-lg mb-2">Assign Ranks</h4>
+                <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <h4 className="font-semibold text-lg mb-2 text-gray-900">Assign Ranks</h4>
                     <ul className="space-y-2">
                         {sortedMembers.map(member => (
-                            <li key={member.uid} className="flex justify-between items-center bg-gray-700 p-2 rounded">
+                            <li key={member.uid} className="flex justify-between items-center bg-white text-gray-900 p-2 rounded border border-amber-200">
                                 <span>{member.username}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-400">{member.rank}</span>
+                                    <span className="text-sm text-amber-800">{member.rank}</span>
                                     {isLeader && member.uid !== alliance.leader.uid && (
                                         <select
                                             value={member.rank}
                                             onChange={(e) => handleUpdateMemberRank(member.uid, e.target.value)}
-                                            className="bg-gray-800 text-white p-1 rounded text-sm"
+                                            className="bg-white text-gray-900 p-1 rounded text-sm border border-amber-300"
                                         >
                                             {alliance.ranks.map(rank => (
                                                 <option key={rank.id} value={rank.id}>{rank.name}</option>

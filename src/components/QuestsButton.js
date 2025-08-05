@@ -20,6 +20,7 @@ const QuestsButton = ({ quests = [], onOpenQuests }) => {
                 className={`quests-button ${buttonState}`}
                 title="Open Quests"
                 style={{ backgroundImage: `url(${questSpritesheet})` }}
+                aria-label="Quests"
             />
         </div>
     );

@@ -480,3 +480,40 @@ body {
 .hide-number-spinners {
   appearance: none;
 }
+/* Add these to your index.css file */
+.alliance-text-light {
+    color: #000000; /* Black text for light backgrounds */
+}
+
+.alliance-text-dark {
+    color: #ffffff; /* White text for dark backgrounds */
+}
+
+/* Background color classes */
+.alliance-bg-light {
+    background-color: #f0e68c; /* Light khaki */
+}
+
+.alliance-bg-dark {
+    background-color: #0d202b; /* Dark teal/blue */
+}
+
+/* Status badge colors */
+.status-badge {
+    @apply px-2 py-1 rounded-full text-xs font-bold ml-2;
+}
+
+.status-open {
+    background-color: #4ade80; /* Green */
+    color: #000000;
+}
+
+.status-invite_only {
+    background-color: #fbbf24; /* Amber */
+    color: #000000;
+}
+
+.status-closed {
+    background-color: #f87171; /* Red */
+    color: #000000;
+}

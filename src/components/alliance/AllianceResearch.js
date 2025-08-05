@@ -34,10 +34,10 @@ const AllianceResearch = () => {
         }
     };
 
-    return (
-        <div>
-            <h3 className="text-xl font-bold mb-2">Alliance Research</h3>
-            {message && <p className="text-center text-yellow-300 mb-4">{message}</p>}
+     return (
+        <div className="bg-amber-100 text-gray-900 p-4 rounded-lg shadow-md">
+            <h3 className="text-xl font-bold mb-2 border-b border-amber-300 pb-2">Alliance Research</h3>
+            {message && <p className="text-center text-amber-800 mb-4">{message}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(allianceResearch).map(([id, research]) => {
                     const level = playerAlliance.research[id]?.level || 0;
@@ -50,9 +50,16 @@ const AllianceResearch = () => {
                     const isRecommended = playerAlliance.recommendedResearch === id;
 
                     return (
-                        <div key={id} className={`p-4 rounded-lg transition-all ${isRecommended ? 'bg-yellow-800/30 border-2 border-yellow-500' : 'bg-gray-700'}`}>
+                        <div 
+                            key={id} 
+                            className={`p-4 rounded-lg transition-all border ${
+                                isRecommended 
+                                    ? 'bg-yellow-300 text-gray-900 border-yellow-400 shadow-md' 
+                                    : 'bg-amber-50 text-gray-900 border-amber-200'
+                            }`}
+                        >
                             <h4 className="font-bold">{research.name} (Level {level})</h4>
-                            <p className="text-sm text-gray-400">{research.description}</p>
+                            <p className="text-sm text-amber-800">{research.description}</p>
                             {level < research.maxLevel ? (
                                 <>
                                     <div className="my-2">

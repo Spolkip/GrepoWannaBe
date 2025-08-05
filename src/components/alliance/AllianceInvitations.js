@@ -82,7 +82,7 @@ const AllianceInvitations = ({ isLeader }) => {
     const canInvite = isLeader;
 
     return (
-        <div className="p-4">
+       <div className="p-4 alliance-bg-light alliance-text-light rounded-lg">
             <h3 className="text-xl font-bold mb-4">Invitations & Applications</h3>
             {!canInvite && <p className="text-red-400 mb-4">You do not have permission to manage invitations.</p>}
             {canInvite && (
