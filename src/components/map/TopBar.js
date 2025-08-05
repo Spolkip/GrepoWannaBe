@@ -85,7 +85,7 @@ const TopBar = ({ view, gameState, availablePopulation, happiness, worldState, p
     };
 
     return (
-        <div className={`p-2 flex justify-between items-center top-bar-container ${view === 'map' ? 'absolute top-0 left-0 right-0 z-50' : 'flex-shrink-0'}`}>
+        <div className={`p-2 flex justify-between items-center top-bar-container relative z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'flex-shrink-0'}`}>
             {/* Left Section */}
             <div>
                 {worldState && <WeatherDisplay season={worldState.season} weather={worldState.weather} />}

@@ -20,6 +20,8 @@ export const useModalState = () => {
         isAllianceProfileOpen: false,
         isQuestsModalOpen: false,
         isSettingsModalOpen: false, // #comment Add state for settings modal
+        isRecruitmentPanelOpen: false, // Re-add this
+        isTradesPanelOpen: false, // Re-add this
         viewingProfileId: null,
         viewingAllianceId: null,
     });
@@ -42,6 +44,8 @@ export const useModalState = () => {
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: true, viewingAllianceId: data?.allianceId || null };
                 case 'quests': return { ...prevState, isQuestsModalOpen: true };
                 case 'settings': return { ...prevState, isSettingsModalOpen: true }; // #comment Handle opening settings modal
+                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: true }; // Re-add this
+                case 'trades': return { ...prevState, isTradesPanelOpen: true }; // Re-add this
                 default: return prevState;
             }
         });
@@ -65,6 +69,8 @@ export const useModalState = () => {
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: false, viewingAllianceId: null };
                 case 'quests': return { ...prevState, isQuestsModalOpen: false };
                 case 'settings': return { ...prevState, isSettingsModalOpen: false }; // #comment Handle closing settings modal
+                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: false }; // Re-add this
+                case 'trades': return { ...prevState, isTradesPanelOpen: false }; // Re-add this
                 default: return prevState;
             }
         });

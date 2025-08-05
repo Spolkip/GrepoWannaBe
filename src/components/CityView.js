@@ -21,7 +21,11 @@ const CityView = ({
     isUnderAttack,
     incomingAttackCount,
     handleOpenAlliance,
-    handleOpenProfile
+    handleOpenProfile,
+    movements,
+    unitQueue,
+    onOpenRecruitment,
+    onOpenTrades
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame(); // Get worldState here
@@ -98,6 +102,11 @@ const CityView = ({
                     happiness={happiness}
                     worldState={worldState} // Pass worldState
                     productionRates={productionRates} // Pass productionRates
+                    unitQueue={unitQueue}
+                    movements={movements}
+                    onOpenMovements={() => openModal('movements')}
+                    onOpenRecruitment={onOpenRecruitment}
+                    onOpenTrades={onOpenTrades}
                 />
                 <CityViewContent
                     cityGameState={cityGameState}

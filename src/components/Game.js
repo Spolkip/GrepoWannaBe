@@ -1,10 +1,10 @@
 // src/components/Game.js
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
 import { signOut } from "firebase/auth";
-import { auth } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import CityView from './CityView';
 import MapView from './MapView';
 import LoadingScreen from './shared/LoadingScreen';
@@ -15,6 +15,7 @@ import { useModalState } from '../hooks/useModalState';
 import { useMapState } from '../hooks/useMapState';
 import { useMapEvents } from '../hooks/useMapEvents';
 import { useQuestTracker } from '../hooks/useQuestTracker';
+import { useMapActions } from '../hooks/useMapActions';
 
 // Import all the modals
 import ReportsView from './ReportsView';
@@ -27,28 +28,85 @@ import ProfileView from './profile/ProfileView';
 import Leaderboard from './leaderboard/Leaderboard';
 import AllianceProfile from './profile/AllianceProfile';
 import QuestsModal from './quests/QuestsModal';
+import MovementsPanel from './map/MovementsPanel';
+import { collection, onSnapshot, query, where, getDocs, doc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 
 const Game = ({ onBackToWorlds }) => {
-    const { activeCityId, setActiveCityId, worldId, loading, gameState } = useGame();
-    const { currentUser } = useAuth();
+    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities } = useGame();
+    const { currentUser, userProfile } = useAuth();
     const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [panToCoords, setPanToCoords] = useState(null);
+
+    // #comment State for globally available map data
+    const [movements, setMovements] = useState([]);
+    const [villages, setVillages] = useState({});
+    const [ruins, setRuins] = useState({});
 
     useMovementProcessor(worldId);
 
     const { modalState, openModal, closeModal } = useModalState();
     const { unreadReportsCount, setUnreadReportsCount, unreadMessagesCount, setUnreadMessagesCount } = useMapState();
     
-    useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, () => {});
-    const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
-
     const showMap = () => setView('map');
     const showCity = (cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
     };
+
+    // #comment Fetch data that needs to be available in both City and Map views
+    useEffect(() => {
+        if (!worldId || !currentUser) return;
+
+        // Movements listener
+        const movementsRef = collection(db, 'worlds', worldId, 'movements');
+        const q = query(movementsRef, where('involvedParties', 'array-contains', currentUser.uid));
+        const unsubscribeMovements = onSnapshot(q, (snapshot) => {
+            const allMovements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setMovements(allMovements.sort((a, b) => a.arrivalTime.toMillis() - b.arrivalTime.toMillis()));
+        });
+
+        // Villages listener
+        const villagesColRef = collection(db, 'worlds', worldId, 'villages');
+        const unsubscribeVillages = onSnapshot(villagesColRef, (snapshot) => {
+            const villagesData = {};
+            snapshot.docs.forEach(doc => {
+                villagesData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setVillages(villagesData);
+        });
+
+        // Ruins listener
+        const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
+        const unsubscribeRuins = onSnapshot(ruinsColRef, (snapshot) => {
+            const ruinsData = {};
+            snapshot.docs.forEach(doc => {
+                ruinsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setRuins(ruinsData);
+        });
+
+        return () => {
+            unsubscribeMovements();
+            unsubscribeVillages();
+            unsubscribeRuins();
+        };
+    }, [worldId, currentUser]);
+    
+    // #comment We need some map actions available globally for the MovementsPanel
+    const { handleCancelMovement } = useMapActions(openModal, closeModal, showCity, () => {});
+
+    const handleRushMovement = useCallback(async (movementId) => {
+        if (userProfile?.is_admin) {
+            await updateDoc(doc(db, 'worlds', worldId, 'movements', movementId), { arrivalTime: new Date() });
+        }
+    }, [userProfile, worldId]);
+
+
+    useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, () => {});
+    const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
+
     
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
     const handleMessageAction = async (type, id) => {
@@ -97,6 +155,10 @@ const Game = ({ onBackToWorlds }) => {
                     panToCoords={panToCoords}
                     setPanToCoords={setPanToCoords}
                     handleGoToCityFromProfile={handleGoToCityFromProfile}
+                    // #comment Pass global data down to MapView
+                    movements={movements}
+                    villages={villages}
+                    ruins={ruins}
                 />
             )}
             
@@ -111,6 +173,18 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isLeaderboardOpen && <Leaderboard onClose={() => closeModal('leaderboard')} onOpenProfile={handleOpenProfile} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}
+            
+            {/* #comment Render MovementsPanel globally so it works in both views */}
+            {modalState.isMovementsPanelOpen && <MovementsPanel
+                movements={movements}
+                onClose={() => closeModal('movements')}
+                combinedSlots={{...playerCities, ...villages, ...ruins}}
+                villages={villages} // Keep for now, might be redundant
+                onCancel={handleCancelMovement}
+                onRush={handleRushMovement}
+                isAdmin={userProfile?.is_admin}
+            />}
+
 
             <div className="chat-container">
                 <button onClick={() => setIsChatOpen(prev => !prev)} className="chat-toggle-button">

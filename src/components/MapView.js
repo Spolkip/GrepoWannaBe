@@ -38,7 +38,11 @@ const MapView = ({
     handleMessageAction,
     panToCoords,
     setPanToCoords,
-    handleGoToCityFromProfile
+    handleGoToCityFromProfile,
+    // #comment Props from Game.js
+    movements,
+    villages,
+    ruins
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
@@ -49,7 +53,7 @@ const MapView = ({
 
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates, centerOnCity } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity);
-    const { movements, visibleSlots, villages, ruins, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
+    const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCancelMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
     
@@ -71,9 +75,9 @@ const MapView = ({
         const maxPop = getFarmCapacity(gameState.buildings.farm?.level);
         const usedPop = calculateUsedPopulation(gameState.buildings, gameState.units);
         const availablePop = maxPop - usedPop;
-        const happiness = calculateHappiness(gameState.buildings);
+        const happinessValue = calculateHappiness(gameState.buildings);
         const marketCap = getMarketCapacity(gameState.buildings.market?.level);
-        return { availablePopulation: availablePop, happiness, marketCapacity: marketCap };
+        return { availablePopulation: availablePop, happiness: happinessValue, marketCapacity: marketCap };
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
 
     const incomingAttackCount = useMemo(() => {
@@ -246,6 +250,9 @@ const MapView = ({
                             availablePopulation={availablePopulation} 
                             happiness={happiness} 
                             worldState={worldState} 
+                            unitQueue={gameState?.unitQueue}
+                            movements={movements}
+                            onOpenMovements={() => openModal('movements')}
                         />
                         <SidebarNav 
                             onToggleView={handleGoToActiveCity} 
