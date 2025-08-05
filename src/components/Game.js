@@ -69,17 +69,15 @@ const Game = ({ onBackToWorlds }) => {
         }
     }, [view, playerCity]);
 
-    // #comment Cycles through the player's cities, panning the map if in map view.
-    const cycleCity = useCallback((direction) => {
-        // #comment Sort cities by name to ensure consistent cycling order
+    // #comment This function now correctly pans on the map view without switching to city view.
+    const cycleCity = (direction, currentView) => {
         const sortedCities = Object.values(playerCities).sort((a, b) => a.cityName.localeCompare(b.cityName));
         const cityIds = sortedCities.map(c => c.id);
-
         if (cityIds.length <= 1) return;
-
+    
         const currentIndex = cityIds.indexOf(activeCityId);
         let nextIndex;
-
+    
         if (direction === 'right') {
             nextIndex = (currentIndex + 1) % cityIds.length;
         } else {
@@ -87,21 +85,15 @@ const Game = ({ onBackToWorlds }) => {
         }
         
         const nextCityId = cityIds[nextIndex];
-        
-        // #comment This is the only place we update the active city from this action
         setActiveCityId(nextCityId);
-
-        // #comment If on the map, pan to the new city without changing the view.
-        // #comment The view state itself is NOT changed here, ensuring the user stays on the map.
-        if (view === 'map') {
+    
+        if (currentView === 'map') {
             const nextCity = playerCities[nextCityId];
             if (nextCity) {
                 setPanToCoords({ x: nextCity.x, y: nextCity.y });
             }
         }
-        // #comment If in city view, the view remains 'city', but the content will update
-        // #comment automatically because the activeCityId in the context has changed.
-    }, [playerCities, activeCityId, setActiveCityId, view]);
+    };
 
     // #comment Setup keyboard controls
     useKeyboardControls({
@@ -114,8 +106,8 @@ const Game = ({ onBackToWorlds }) => {
         openLeaderboard: () => openModal('leaderboard'),
         openProfile: () => openModal('profile'),
         openSettings: () => openModal('settings'),
-        cycleCityLeft: () => cycleCity('left'),
-        cycleCityRight: () => cycleCity('right'),
+        cycleCityLeft: () => cycleCity('left', view),
+        cycleCityRight: () => cycleCity('right', view),
     });
 
 

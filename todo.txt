@@ -1,7 +1,7 @@
 - add special buildings
 - different troops for different nationalities
 - add a request alliance system with options for each alliance to follow, like tarrifs, resources per some time etc
-
+- god towns for pve events per sometime to be able to get war points and resources and someone can conquer it(pvp), starts as strange ruins, becomes a city, solves a puzzle(random per person)
 
 Later:
 - if the city has the the whole island to be able to contruct a building that give buffs to the guild
@@ -9,6 +9,9 @@ Later:
 - make it so you can conquer other cities
 - add a battle simulation
 - add troops into the city
-
+- be able to surrender if you have one city and you are about to lose it 
 Maybe: 
 - add cities inside the island
+
+Bugs:
+- fix apply method
