@@ -5,25 +5,37 @@ const Countdown = ({ arrivalTime }) => {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
-        const calculateTimeLeft = () => {
-            // Ensure arrivalTime is a valid Firestore Timestamp object with toDate() method
-            if (!arrivalTime?.toDate) {
-                setTimeLeft('Invalid Date');
-                return;
+        // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
+        const getSafeDate = (timestamp) => {
+            if (!timestamp) return null;
+            if (typeof timestamp.toDate === 'function') {
+                return timestamp.toDate();
             }
+            return new Date(timestamp);
+        };
+
+        const arrival = getSafeDate(arrivalTime);
+
+        // #comment If the date is invalid, show 'Completed'
+        if (!arrival || isNaN(arrival.getTime())) {
+            setTimeLeft('Completed');
+            return;
+        }
+
+        const calculateTimeLeft = () => {
             const now = new Date();
-            const arrival = arrivalTime.toDate();
             const difference = arrival - now;
 
             if (difference > 0) {
-                // Calculate hours, minutes, and seconds remaining
-                const hours = Math.floor((difference / (1000 * 60 * 60)));
-                const minutes = Math.floor((difference / 1000 / 60) % 60);
-                const seconds = Math.floor((difference / 1000) % 60);
+                // #comment Use Math.ceil to ensure the timer doesn't show 00:00:00
+                const totalSeconds = Math.ceil(difference / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
                 // Format time to HH:MM:SS
                 setTimeLeft(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
             } else {
-                setTimeLeft('Arrived'); // Display 'Arrived' when time is up
+                setTimeLeft('Completed'); // Display 'Completed' when time is up
             }
         };
 

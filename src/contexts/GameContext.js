@@ -1,6 +1,6 @@
 // src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { doc, onSnapshot, collection } from "firebase/firestore";
+import { doc, onSnapshot, collection, writeBatch } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -104,6 +104,30 @@ export const GameProvider = ({ children, worldId }) => {
         if (!islandId || !playerCities) return 0;
         return Object.values(playerCities).filter(city => city.islandId === islandId).length;
     }, [playerCities]);
+    
+    // #comment Function to handle renaming a city
+    const renameCity = useCallback(async (cityId, newName) => {
+        if (!currentUser || !worldId || !cityId || !newName.trim()) {
+            throw new Error("Invalid parameters for renaming city.");
+        }
+
+        const cityToRename = playerCities[cityId];
+        if (!cityToRename) {
+            throw new Error("City not found.");
+        }
+
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', cityId);
+        const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', cityToRename.slotId);
+
+        const batch = writeBatch(db);
+
+        batch.update(cityDocRef, { cityName: newName.trim() });
+        batch.update(citySlotRef, { cityName: newName.trim() });
+
+        await batch.commit();
+        // The onSnapshot listener will update the local state automatically.
+
+    }, [currentUser, worldId, playerCities]);
 
     const value = { 
         worldId,
@@ -120,6 +144,7 @@ export const GameProvider = ({ children, worldId }) => {
         gameSettings,
         setGameSettings,
         countCitiesOnIsland, // #comment Make the function available through the context
+        renameCity, // #comment Expose the rename function
         // #comment Legacy support
         gameState,
         playerCity,

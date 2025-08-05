@@ -22,10 +22,12 @@ const CityView = ({
     incomingAttackCount,
     handleOpenAlliance,
     handleOpenProfile,
+    // #comment Props passed down from Game.js
     movements,
-    unitQueue,
-    onOpenRecruitment,
-    onOpenTrades
+    onCancelTrain,
+    onCancelMovement,
+    combinedSlots,
+    onRenameCity
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame(); // Get worldState here
@@ -76,7 +78,6 @@ const CityView = ({
             <SidebarNav
                 onToggleView={showMap}
                 view="city"
-                onOpenMovements={() => openModal('movements')}
                 onOpenReports={() => openModal('reports')}
                 onOpenAlliance={handleOpenAlliance}
                 onOpenForum={() => openModal('allianceForum')}
@@ -89,8 +90,6 @@ const CityView = ({
                 unreadMessagesCount={unreadMessagesCount}
                 isAdmin={userProfile?.is_admin}
                 onToggleDummyCityPlacement={() => {}} // Not applicable in city view
-                isUnderAttack={isUnderAttack}
-                incomingAttackCount={incomingAttackCount}
                 onOpenCheats={() => openCityModal('isCheatMenuOpen')}
             />
 
@@ -100,13 +99,17 @@ const CityView = ({
                     gameState={cityGameState}
                     availablePopulation={availablePopulation}
                     happiness={happiness}
-                    worldState={worldState} // Pass worldState
-                    productionRates={productionRates} // Pass productionRates
-                    unitQueue={unitQueue}
+                    worldState={worldState}
+                    productionRates={productionRates}
+                    // #comment Pass props for activity tracker
                     movements={movements}
+                    onCancelTrain={onCancelTrain}
+                    onCancelMovement={onCancelMovement}
+                    combinedSlots={combinedSlots}
                     onOpenMovements={() => openModal('movements')}
-                    onOpenRecruitment={onOpenRecruitment}
-                    onOpenTrades={onOpenTrades}
+                    isUnderAttack={isUnderAttack}
+                    incomingAttackCount={incomingAttackCount}
+                    onRenameCity={onRenameCity}
                 />
                 <CityViewContent
                     cityGameState={cityGameState}
@@ -132,14 +135,14 @@ const CityView = ({
                 handleUpgrade={actions.handleUpgrade}
                 handleCancelBuild={actions.handleCancelBuild}
                 handleTrainTroops={actions.handleTrainTroops}
-                handleCancelTrain={actions.handleCancelTrain}
+                handleCancelTrain={actions.handleCancelTrain} // This is the city-specific one, might need adjustment
                 handleFireTroops={actions.handleFireTroops}
                 handleStartResearch={actions.handleStartResearch}
                 handleCancelResearch={actions.handleCancelResearch}
                 handleWorshipGod={actions.handleWorshipGod}
                 handleCheat={actions.handleCheat}
                 handleHealTroops={actions.handleHealTroops}
-                handleCancelHeal={actions.handleCancelHeal}
+                handleCancelHeal={actions.handleCancelHeal} // Also city-specific
                 availablePopulation={availablePopulation}
                 modalState={modalState}
                 openModal={openCityModal}

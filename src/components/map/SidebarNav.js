@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SidebarNav = ({ onToggleView, view, onOpenMovements, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, isUnderAttack, incomingAttackCount, onOpenCheats }) => {
+const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, onOpenCheats }) => {
     
     // #comment Helper component for the new button style
     const NavButton = ({ icon, text, onClick, notificationCount, glowing }) => (
@@ -19,7 +19,6 @@ const SidebarNav = ({ onToggleView, view, onOpenMovements, onOpenReports, onOpen
         <div className="sidebar" onMouseDown={(e) => e.stopPropagation()}>
             <NavButton icon="🗺️" text={view === 'map' ? 'City View' : 'Map View'} onClick={onToggleView} />
             <NavButton icon="📜" text="Quests" onClick={onOpenQuests} />
-            <NavButton icon="⚔️" text="Movements" onClick={onOpenMovements} notificationCount={incomingAttackCount} glowing={isUnderAttack} />
             <NavButton icon="✉️" text="Reports" onClick={onOpenReports} notificationCount={unreadReportsCount} glowing={unreadReportsCount > 0} />
             <NavButton icon="🛡️" text="Alliance" onClick={onOpenAlliance} />
             <NavButton icon="📖" text="Forum" onClick={onOpenForum} />

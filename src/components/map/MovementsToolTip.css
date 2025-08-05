@@ -1,0 +1,15 @@
+.activity-tooltip {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 10px);
+    width: 380px;
+    background-color: #F5DEB3;
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 100;
+    color: #4a2c2a;
+    max-height: 400px;
+    overflow-y: auto;
+}

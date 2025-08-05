@@ -114,6 +114,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             movementData = {
                 type: 'attack_village',
                 targetVillageId: targetCity.id,
+                targetVillageName: targetCity.name, // #comment Added village name
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
@@ -133,6 +134,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             movementData = {
                 type: 'attack_ruin',
                 targetRuinId: targetCity.id,
+                targetRuinName: targetCity.name, // #comment Added ruin name
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,

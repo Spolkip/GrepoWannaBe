@@ -42,7 +42,13 @@ const MapView = ({
     // #comment Props from Game.js
     movements,
     villages,
-    ruins
+    ruins,
+    onCancelTrain,
+    onCancelMovement,
+    combinedSlots,
+    isUnderAttack,
+    incomingAttackCount,
+    onRenameCity
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
@@ -54,7 +60,7 @@ const MapView = ({
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates, centerOnCity } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCancelMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
+    const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
     
     useEffect(() => {
@@ -80,18 +86,9 @@ const MapView = ({
         return { availablePopulation: availablePop, happiness: happinessValue, marketCapacity: marketCap };
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
 
-    const incomingAttackCount = useMemo(() => {
-        if (!movements || !playerCity) return 0;
-        return movements.filter(m =>
-            (m.type === 'attack' && m.targetCityId === playerCity.id && m.status === 'moving') ||
-            (m.type === 'attack_village' && m.targetVillageId && conqueredVillages[m.targetVillageId] && m.status === 'moving')
-        ).length;
-    }, [movements, playerCity, conqueredVillages]);
-    const isUnderAttack = incomingAttackCount > 0;
-
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
 
-    const combinedSlots = useMemo(() => {
+    const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };
         for (const cityId in playerCities) {
             const pCity = playerCities[cityId];
@@ -220,7 +217,7 @@ const MapView = ({
                 }
             }
         });
-        Object.values(combinedSlots).forEach(slot => {
+        Object.values(combinedSlotsForGrid).forEach(slot => {
             if (slot.x !== undefined && slot.y !== undefined) {
                 const x = Math.round(slot.x), y = Math.round(slot.y);
                 if (grid[y]?.[x]) grid[y][x] = { type: 'city_slot', data: slot };
@@ -235,7 +232,7 @@ const MapView = ({
             if (grid[y]?.[x]?.type === 'water') grid[y][x] = { type: 'ruin', data: ruin };
         });
         return grid;
-    }, [worldState, combinedSlots, villages, ruins]);
+    }, [worldState, combinedSlotsForGrid, villages, ruins]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -250,14 +247,18 @@ const MapView = ({
                             availablePopulation={availablePopulation} 
                             happiness={happiness} 
                             worldState={worldState} 
-                            unitQueue={gameState?.unitQueue}
                             movements={movements}
+                            onCancelTrain={onCancelTrain}
+                            onCancelMovement={onCancelMovement}
+                            combinedSlots={combinedSlots}
                             onOpenMovements={() => openModal('movements')}
+                            isUnderAttack={isUnderAttack}
+                            incomingAttackCount={incomingAttackCount}
+                            onRenameCity={onRenameCity}
                         />
                         <SidebarNav 
                             onToggleView={handleGoToActiveCity} 
                             view="map"
-                            onOpenMovements={() => openModal('movements')} 
                             onOpenReports={() => openModal('reports')} 
                             onOpenAlliance={handleOpenAlliance} 
                             onOpenForum={() => openModal('allianceForum')} 
@@ -270,8 +271,6 @@ const MapView = ({
                             unreadMessagesCount={unreadMessagesCount} 
                             isAdmin={userProfile?.is_admin} 
                             onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
-                            isUnderAttack={isUnderAttack} 
-                            incomingAttackCount={incomingAttackCount} 
                         />
                         <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
@@ -282,13 +281,13 @@ const MapView = ({
                         {/* Wrapper to control stacking context of the map grid */}
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
-                                <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlots} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
+                                <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlotsForGrid} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={handleCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimQuestReward={claimQuestReward} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimQuestReward={claimQuestReward} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
         </div>
     );

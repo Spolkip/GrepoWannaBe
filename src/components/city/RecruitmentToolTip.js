@@ -1,8 +1,8 @@
-// src/components/city/RecruitmentTooltip.js
+// src/components/city/RecruitmentToolTip.js
 import React from 'react';
 import Countdown from '../map/Countdown';
 import unitConfig from '../../gameData/units.json';
-import './RecruitmentTooltip.css';
+import './RecruitmentToolTip.css';
 
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
@@ -12,10 +12,28 @@ imageContext.keys().forEach((item) => {
 });
 
 const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
+    // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
+    const getSafeDate = (timestamp) => {
+        if (!timestamp) return null;
+        if (typeof timestamp.toDate === 'function') {
+            return timestamp.toDate(); // It's a Firestore Timestamp
+        }
+        return new Date(timestamp); // It's a JS Date or milliseconds
+    };
+    
     const allQueues = Object.values(playerCities).flatMap(city => 
         (city.unitQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, index }))
         .concat((city.healQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: true, index })))
-    ).sort((a, b) => (a.endTime?.toDate() || new Date()) - (b.endTime?.toDate() || new Date()));
+    )
+    .filter(item => {
+        const endDate = getSafeDate(item.endTime);
+        return endDate && endDate > new Date(); // Filter out completed items
+    })
+    .sort((a, b) => {
+        const dateA = getSafeDate(a.endTime) || new Date(0);
+        const dateB = getSafeDate(b.endTime) || new Date(0);
+        return dateA - dateB;
+    });
 
     if (allQueues.length === 0) {
         return (

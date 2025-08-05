@@ -37,6 +37,7 @@
 
 /* New styles for Activity Tracker */
 .activity-tracker-container {
+    position: relative; /* #comment Added for tooltip positioning */
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -44,6 +45,7 @@
     border: 1px solid #4a2c2a;
     border-radius: 9999px;
     padding: 0.25rem 0.5rem;
+    margin-right: 2rem; /* #comment Increased margin to add space */
 }
 
 .activity-icon {
@@ -76,4 +78,111 @@
     align-items: center;
     justify-content: center;
     border: 1px solid white;
+}
+
+.glowing-attack-icon {
+    animation: glowing-icon-animation 1.5s infinite;
+}
+
+@keyframes glowing-icon-animation {
+    0% {
+        text-shadow: 0 0 3px #ef4444;
+    }
+    50% {
+        text-shadow: 0 0 10px #f87171, 0 0 5px #f87171;
+    }
+    100% {
+        text-shadow: 0 0 3px #ef4444;
+    }
+}
+```css
+/* src/components/city/RecruitmentToolTip.css */
+.activity-tooltip {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 10px);
+    width: 380px;
+    background-color: #F5DEB3;
+    border: 4px solid #8B4513;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 100;
+    color: #4a2c2a;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.tooltip-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #d2b48c;
+}
+.tooltip-item:last-child {
+    border-bottom: none;
+}
+
+.tooltip-item-image {
+    width: 48px;
+    height: 48px;
+    margin-right: 12px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.tooltip-item-details {
+    flex-grow: 1;
+}
+
+.tooltip-timer {
+    font-family: monospace;
+    font-weight: bold;
+    background-color: #333;
+    color: #f0e68c;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.tooltip-cancel-btn {
+    background-color: #c0392b;
+    color: white;
+    border: 1px solid #a03022;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 12px;
+}
+.tooltip-cancel-btn:hover {
+    background-color: #e74c3c;
+}
+```css
+/* src/components/map/TradesToolTip.css */
+.activity-tooltip {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 10px);
+    width: 380px;
+    background-color: #F5DEB3;
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    z-index: 100;
+    color: #4a2c2a;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.trades-tooltip .movements-header {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-family: 'IM Fell English SC', serif;
+    font-size: 1.25rem;
+    border-bottom: 2px solid #2563eb;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }

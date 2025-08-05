@@ -1,5 +1,5 @@
 // src/components/Game.js
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
@@ -30,9 +30,10 @@ import AllianceProfile from './profile/AllianceProfile';
 import QuestsModal from './quests/QuestsModal';
 import MovementsPanel from './map/MovementsPanel';
 import { collection, onSnapshot, query, where, getDocs, doc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
 
 const Game = ({ onBackToWorlds }) => {
-    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities } = useGame();
+    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity } = useGame();
     const { currentUser, userProfile } = useAuth();
     const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
@@ -94,8 +95,64 @@ const Game = ({ onBackToWorlds }) => {
         };
     }, [worldId, currentUser]);
     
-    // #comment We need some map actions available globally for the MovementsPanel
     const { handleCancelMovement } = useMapActions(openModal, closeModal, showCity, () => {});
+
+    // #comment This function handles cancelling a recruitment/healing item from any city's queue.
+    const handleCancelTrain = useCallback(async (cityId, itemIndex, isHealing) => {
+        const cityState = playerCities[cityId];
+        const queueName = isHealing ? 'healQueue' : 'unitQueue';
+        const costField = isHealing ? 'heal_cost' : 'cost';
+        const refundField = isHealing ? 'wounded' : 'units';
+
+        if (!cityState || !cityState[queueName] || itemIndex < 0 || itemIndex >= cityState[queueName].length) {
+            return;
+        }
+
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) throw new Error("City data not found.");
+                
+                const currentState = cityDoc.data();
+                const newQueue = [...currentState[queueName]];
+                const canceledTask = newQueue.splice(itemIndex, 1)[0];
+                const unit = unitConfig[canceledTask.unitId];
+
+                const newResources = { ...currentState.resources };
+                newResources.wood += (unit[costField].wood || 0) * canceledTask.amount;
+                newResources.stone += (unit[costField].stone || 0) * canceledTask.amount;
+                newResources.silver += (unit[costField].silver || 0) * canceledTask.amount;
+
+                const newRefundUnits = { ...currentState[refundField] };
+                if (isHealing) {
+                    newRefundUnits[canceledTask.unitId] = (newRefundUnits[canceledTask.unitId] || 0) + canceledTask.amount;
+                }
+
+                for (let i = itemIndex; i < newQueue.length; i++) {
+                    const prevEndTime = (i === 0) ? Date.now() : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                    const task = newQueue[i];
+                    const taskUnit = unitConfig[task.unitId];
+                    const taskTime = (isHealing ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
+                    newQueue[i].endTime = new Date(prevEndTime + taskTime * 1000);
+                }
+
+                const updates = {
+                    resources: newResources,
+                    [queueName]: newQueue,
+                };
+                if (isHealing) {
+                    updates.wounded = newRefundUnits;
+                }
+
+                transaction.update(cityDocRef, updates);
+            });
+        } catch (error) {
+            console.error("Error cancelling training:", error);
+        }
+    }, [worldId, currentUser, playerCities]);
+
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
@@ -103,10 +160,20 @@ const Game = ({ onBackToWorlds }) => {
         }
     }, [userProfile, worldId]);
 
-
     useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, () => {});
     const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
 
+    const { incomingAttackCount, isUnderAttack } = useMemo(() => {
+        if (!movements || !playerCities) return { incomingAttackCount: 0, isUnderAttack: false };
+        const cityIds = Object.keys(playerCities);
+        const count = movements.filter(m =>
+            (m.type === 'attack' && cityIds.includes(m.targetCityId) && m.status === 'moving') ||
+            (m.type === 'attack_village' && m.targetVillageId && conqueredVillages[m.targetVillageId] && m.status === 'moving')
+        ).length;
+        return { incomingAttackCount: count, isUnderAttack: count > 0 };
+    }, [movements, playerCities, conqueredVillages]);
+
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...villages, ...ruins }), [playerCities, villages, ruins]);
     
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
     const handleMessageAction = async (type, id) => {
@@ -135,10 +202,16 @@ const Game = ({ onBackToWorlds }) => {
                     openModal={openModal}
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
-                    isUnderAttack={false}
-                    incomingAttackCount={0}
+                    isUnderAttack={isUnderAttack}
+                    incomingAttackCount={incomingAttackCount}
                     handleOpenAlliance={handleOpenAlliance}
                     handleOpenProfile={handleOpenProfile}
+                    // Pass global data down to CityView
+                    movements={movements}
+                    onCancelTrain={handleCancelTrain}
+                    onCancelMovement={handleCancelMovement}
+                    combinedSlots={combinedSlots}
+                    onRenameCity={renameCity}
                 />
             )}
             {view === 'map' && (
@@ -159,6 +232,12 @@ const Game = ({ onBackToWorlds }) => {
                     movements={movements}
                     villages={villages}
                     ruins={ruins}
+                    onCancelTrain={handleCancelTrain}
+                    onCancelMovement={handleCancelMovement}
+                    combinedSlots={combinedSlots}
+                    isUnderAttack={isUnderAttack}
+                    incomingAttackCount={incomingAttackCount}
+                    onRenameCity={renameCity}
                 />
             )}
             
@@ -178,7 +257,7 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isMovementsPanelOpen && <MovementsPanel
                 movements={movements}
                 onClose={() => closeModal('movements')}
-                combinedSlots={{...playerCities, ...villages, ...ruins}}
+                combinedSlots={combinedSlots}
                 villages={villages} // Keep for now, might be redundant
                 onCancel={handleCancelMovement}
                 onRush={handleRushMovement}

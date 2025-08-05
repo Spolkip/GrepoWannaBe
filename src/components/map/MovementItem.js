@@ -1,4 +1,3 @@
-// src/components/map/MovementItem.js
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import unitConfig from '../../gameData/units.json';
@@ -15,8 +14,10 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
     const [isCancellable, setIsCancellable] = useState(false);
 
     const originCity = citySlots[movement.originCityId];
-    const targetId = movement.targetCityId || movement.targetVillageId || movement.targetRuinId;
-    const targetCity = citySlots[targetId];
+    
+    // #comment Determine the correct target ID from the movement object, prioritizing the city document ID
+    const targetId = movement.targetCityId || movement.targetSlotId || movement.targetVillageId || movement.targetRuinId;
+    const targetLocation = citySlots[targetId];
 
     const movementTypes = {
         attack: { icon: '⚔️' },
@@ -44,8 +45,10 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
         const interval = setInterval(checkCancellable, 1000);
         return () => clearInterval(interval);
     }, [movement.cancellableUntil]);
-
-    const toCity = movement.status === 'returning' ? originCity : targetCity;
+    
+    // #comment Determine the destination name based on movement status, with fallbacks
+    const destination = movement.status === 'returning' ? originCity : targetLocation;
+    const destinationName = destination?.cityName || destination?.name || movement.targetCityName || movement.targetVillageName || movement.targetRuinName || 'Unknown';
     const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace('_', ' ');
 
     const cancellableDate = movement.cancellableUntil?.toDate();
@@ -56,7 +59,7 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
             <span className="movement-type-icon">{config.icon}</span>
             <div className="movement-details">
                 <p className="title capitalize">
-                    {actionText} to {toCity?.cityName || toCity?.name || 'Unknown'}
+                    {actionText} to {destinationName}
                 </p>
                 <p className="timing">
                     <Countdown arrivalTime={movement.arrivalTime} />

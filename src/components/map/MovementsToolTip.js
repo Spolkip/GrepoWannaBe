@@ -1,9 +1,9 @@
-// src/components/map/TradesToolTip.js
+// src/components/map/MovementsToolTip.js
 import React from 'react';
 import MovementItem from './MovementItem';
-import './TradesToolTip.css';
+import './MovementsToolTip.css';
 
-const TradesTooltip = ({ movements, combinedSlots, onCancel }) => {
+const MovementsTooltip = ({ movements, combinedSlots, onCancel }) => {
     // #comment Helper to identify if a movement is trade-related
     const isTradeMovement = (m) => {
         if (m.type === 'trade') return true;
@@ -16,12 +16,13 @@ const TradesTooltip = ({ movements, combinedSlots, onCancel }) => {
         return false;
     };
 
-    const tradeMovements = movements.filter(isTradeMovement);
+    // #comment Filter out trade movements, as they are handled by the trades tooltip.
+    const activeMovements = movements.filter(m => !isTradeMovement(m));
 
     return (
         <div className="activity-tooltip">
-            {tradeMovements.length > 0 ? (
-                tradeMovements.map(movement => (
+            {activeMovements.length > 0 ? (
+                activeMovements.map(movement => (
                     <MovementItem
                         key={movement.id}
                         movement={movement}
@@ -30,10 +31,10 @@ const TradesTooltip = ({ movements, combinedSlots, onCancel }) => {
                     />
                 ))
             ) : (
-                <p className="p-4 text-center text-sm">No active trade movements.</p>
+                <p className="p-4 text-center text-sm">No active movements.</p>
             )}
         </div>
     );
 };
 
-export default TradesTooltip;
+export default MovementsTooltip;
