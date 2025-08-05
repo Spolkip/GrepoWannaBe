@@ -11,7 +11,6 @@ import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar'; // Import the TopBar
-import { useQuestTracker } from '../hooks/useQuestTracker';
 import QuestsButton from './QuestsButton';
 
 const CityView = ({ 

@@ -14,8 +14,10 @@ const ResearchQueueItem = ({ item, onCancel }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
+        // #comment This useEffect is now solely responsible for calculating the time left for the item.
         const calculateTimeLeft = () => {
-            const endTime = item.endTime?.toDate ? item.endTime.toDate() : new Date(item.endTime);
+            // #comment Ensure endTime is a valid Date object before calling getTime()
+            const endTime = (item.endTime instanceof Date) ? item.endTime : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
                 setTimeLeft(0);
                 return;

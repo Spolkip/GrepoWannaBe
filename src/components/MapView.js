@@ -7,7 +7,6 @@ import { db } from '../firebase/config';
 import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection } from 'firebase/firestore';
 
 // UI Components
-import Modal from './shared/Modal';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
 import MapGrid from './map/MapGrid';
@@ -62,7 +61,7 @@ const MapView = ({
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
+    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
     
     useEffect(() => {
@@ -89,11 +88,6 @@ const MapView = ({
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
 
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
-    
-    // #comment New memoized value to check for unclaimed completed quests
-    const hasUnclaimedQuests = useMemo(() => {
-        return quests.some(q => q.isComplete && !q.isClaimed);
-    }, [quests]);
 
     const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };

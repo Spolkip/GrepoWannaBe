@@ -115,9 +115,10 @@ export const useCityActions = ({
         };
 
         for (let i = itemIndex; i < newQueue.length; i++) {
+            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             const taskToUpdate = newQueue[i];
             const taskCost = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level);
             const newEndTime = new Date(previousTaskEndTime + taskCost.time * 1000);
@@ -218,9 +219,10 @@ export const useCityActions = ({
         };
 
         for (let i = itemIndex; i < newQueue.length; i++) {
+            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             const taskToUpdate = newQueue[i];
             const taskResearchTime = getResearchCost(taskToUpdate.researchId).time;
             const newEndTime = new Date(previousTaskEndTime + taskResearchTime * 1000);
@@ -251,9 +253,10 @@ export const useCityActions = ({
         };
 
         for (let i = itemIndex; i < newQueue.length; i++) {
+            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];
             const newEndTime = new Date(previousTaskEndTime + (isInstantUnits ? 1 : taskUnit.cost.time * taskToUpdate.amount) * 1000);
@@ -265,88 +268,120 @@ export const useCityActions = ({
         setCityGameState(newGameState);
         setMessage(`Training for ${canceledTask.amount} ${unit.name}s canceled and resources refunded.`);
     };
+const handleTrainTroops = async (unitId, amount) => {
+    const currentState = cityGameState;
+    if (!currentState || !worldId || amount <= 0) return;
 
-    const handleTrainTroops = async (unitId, amount) => {
-        const currentState = cityGameState;
-        if (!currentState || !worldId || amount <= 0) return;
+    // Validate unit exists
+    const unit = unitConfig[unitId];
+    if (!unit) {
+        setMessage("Invalid unit type");
+        return;
+    }
 
-        const currentQueue = currentState.unitQueue || [];
-        if (currentQueue.length >= 5) {
-            setMessage("Unit training queue is full (max 5).");
-            return;
-        }
+    // Check queue capacity first
+    const currentQueue = currentState.unitQueue || [];
+    if (currentQueue.length >= 5) {
+        setMessage("Unit training queue is full (max 5).");
+        return;
+    }
 
-        const unit = unitConfig[unitId];
-        const totalCost = {
-            wood: unit.cost.wood * amount,
-            stone: unit.cost.stone * amount,
-            silver: unit.cost.silver * amount,
-            population: unit.cost.population * amount,
-        };
-
-        let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
-        currentQueue.forEach(task => {
-            effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
-        });
-        const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
-        const availablePopulation = maxPopulation - effectiveUsedPopulation;
-
-        if (unit.type === 'naval' && (!currentState.buildings.shipyard || currentState.buildings.shipyard.level === 0)) {
-            setMessage("Naval units can only be built in the Shipyard.");
-            return;
-        }
-        if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0) && !unit.mythical) {
-            setMessage("Land units can only be trained in the Barracks.");
-            return;
-        }
-        if (unit.mythical && (!currentState.buildings.divine_temple || currentState.buildings.divine_temple.level === 0)) {
-            setMessage("Mythical units can only be trained in the Divine Temple.");
-            return;
-        }
-
-        if (
-            currentState.resources.wood >= totalCost.wood &&
-            currentState.resources.stone >= totalCost.stone &&
-            currentState.resources.silver >= totalCost.silver &&
-            availablePopulation >= totalCost.population
-        ) {
-            const newGameState = JSON.parse(JSON.stringify(currentState));
-            newGameState.resources.wood -= totalCost.wood;
-            newGameState.resources.stone -= totalCost.stone;
-            newGameState.resources.silver -= totalCost.silver;
-
-            let lastEndTime = Date.now();
-            if (currentQueue.length > 0) {
-                const lastQueueItem = currentQueue[currentQueue.length - 1];
-                if (lastQueueItem.endTime) {
-                    lastEndTime = lastQueueItem.endTime.toDate
-                        ? lastQueueItem.endTime.toDate().getTime()
-                        : new Date(lastQueueItem.endTime).getTime();
-                }
-            }
-            const trainingTime = unit.cost.time * amount;
-            const endTime = new Date(lastEndTime + (isInstantUnits ? 1 : trainingTime) * 1000);
-
-            const newQueueItem = {
-                unitId,
-                amount,
-                endTime: endTime,
-            };
-            newGameState.unitQueue = [...currentQueue, newQueueItem];
-
-            try {
-                await saveGameState(newGameState);
-                setCityGameState(newGameState);
-                setMessage(`Training ${amount} ${unit.name}s.`);
-            }
-            catch (error) {
-                console.error("Error adding to unit queue:", error);
-                setMessage("Could not start training. Please try again.");
-            }
-        } else {
-            setMessage(availablePopulation < totalCost.population ? 'Not enough available population!' : 'Not enough resources to train troops!');
-        }
+    // Calculate costs
+    const totalCost = {
+        wood: unit.cost.wood * amount,
+        stone: unit.cost.stone * amount,
+        silver: unit.cost.silver * amount,
+        population: unit.cost.population * amount,
     };
+
+    // Check building requirements
+    if (unit.type === 'naval' && (!currentState.buildings.shipyard || currentState.buildings.shipyard.level === 0)) {
+        setMessage("Naval units can only be built in the Shipyard.");
+        return;
+    }
+    if (unit.type === 'land' && (!currentState.buildings.barracks || currentState.buildings.barracks.level === 0) && !unit.mythical) {
+        setMessage("Land units can only be trained in the Barracks.");
+        return;
+    }
+    if (unit.mythical && (!currentState.buildings.divine_temple || currentState.buildings.divine_temple.level === 0)) {
+        setMessage("Mythical units can only be trained in the Divine Temple.");
+        return;
+    }
+
+    // Check population capacity
+    let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+    currentQueue.forEach(task => {
+        effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount;
+    });
+    const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
+    const availablePopulation = maxPopulation - effectiveUsedPopulation;
+
+    // Validate resources and population
+    if (currentState.resources.wood < totalCost.wood) {
+        setMessage(`Need ${totalCost.wood - currentState.resources.wood} more wood`);
+        return;
+    }
+    if (currentState.resources.stone < totalCost.stone) {
+        setMessage(`Need ${totalCost.stone - currentState.resources.stone} more stone`);
+        return;
+    }
+    if (currentState.resources.silver < totalCost.silver) {
+        setMessage(`Need ${totalCost.silver - currentState.resources.silver} more silver`);
+        return;
+    }
+    if (availablePopulation < totalCost.population) {
+        setMessage(`Need ${totalCost.population - availablePopulation} more population capacity`);
+        return;
+    }
+
+    // Create new game state
+    const newGameState = JSON.parse(JSON.stringify(currentState));
+    newGameState.resources.wood -= totalCost.wood;
+    newGameState.resources.stone -= totalCost.stone;
+    newGameState.resources.silver -= totalCost.silver;
+
+    // Calculate end time - filter out any completed tasks first
+    const activeQueue = currentQueue.filter(task => {
+        const taskEndTime = task.endTime?.toDate ? task.endTime.toDate() : new Date(task.endTime);
+        return taskEndTime.getTime() > Date.now();
+    });
+
+    let lastEndTime = Date.now();
+    if (activeQueue.length > 0) {
+        const lastItem = activeQueue[activeQueue.length - 1];
+        const lastItemEndTime = lastItem.endTime?.toDate ? lastItem.endTime.toDate() : new Date(lastItem.endTime);
+        lastEndTime = lastItemEndTime.getTime();
+    }
+
+    // Calculate training time (instant mode takes 1 second)
+    const trainingTime = isInstantUnits ? 1 : unit.cost.time * amount;
+    const endTime = new Date(lastEndTime + trainingTime * 1000);
+
+    // Add to queue
+    const newQueueItem = {
+        unitId,
+        amount,
+        endTime: endTime,
+    };
+    newGameState.unitQueue = [...activeQueue, newQueueItem];
+
+    try {
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage(`Training ${amount} ${unit.name}s (ready in ${formatTime(trainingTime)})`);
+    } catch (error) {
+        console.error("Error adding to unit queue:", error);
+        setMessage("Could not start training. Please try again.");
+    }
+};
+
+// Helper function to format time (HH:MM:SS)
+const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+};
 
     const handleHealTroops = async (unitsToHeal) => {
         const currentState = cityGameState;
@@ -467,9 +502,10 @@ export const useCityActions = ({
         newWounded[canceledTask.unitId] = (newWounded[canceledTask.unitId] || 0) + canceledTask.amount;
 
         for (let i = itemIndex; i < newQueue.length; i++) {
+            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];

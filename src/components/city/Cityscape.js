@@ -1,7 +1,7 @@
 // src/components/city/Cityscape.js
 import React from 'react';
 import BuildingSpot from './BuildingSpot';
-import buildingLayout from './BuildingLayout.json';
+import buildingLayout from '../../gameData/BuildingLayout.json';
 import buildingConfig from '../../gameData/buildings.json'; // Import building config
 
 const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {

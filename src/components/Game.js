@@ -30,7 +30,7 @@ import Leaderboard from './leaderboard/Leaderboard';
 import AllianceProfile from './profile/AllianceProfile';
 import QuestsModal from './quests/QuestsModal';
 import MovementsPanel from './map/MovementsPanel';
-import { collection, onSnapshot, query, where, getDocs, doc, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
 
 const Game = ({ onBackToWorlds }) => {
@@ -217,11 +217,6 @@ const Game = ({ onBackToWorlds }) => {
 
     useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount);
     const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
-
-    // #comment New memoized value to check for unclaimed completed quests
-    const hasUnclaimedQuests = useMemo(() => {
-        return quests.some(q => q.isComplete && !q.isClaimed);
-    }, [quests]);
 
     const { incomingAttackCount, isUnderAttack } = useMemo(() => {
         if (!movements || !playerCities) return { incomingAttackCount: 0, isUnderAttack: false };
