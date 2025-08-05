@@ -40,7 +40,7 @@
     position: relative; /* #comment Added for tooltip positioning */
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     background: rgba(0,0,0,0.4);
     border: 1px solid #4a2c2a;
     border-radius: 9999px;
@@ -48,15 +48,41 @@
     margin-right: 2rem; /* #comment Increased margin to add space */
 }
 
+/* Base style for all activity icons */
 .activity-icon {
     position: relative;
     font-size: 1.25rem;
     background: none;
     border: none;
     cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+/* Style for the image container */
+.activity-icon-image-container {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
     padding: 0.25rem;
     border-radius: 50%;
     transition: background-color 0.2s;
+    width: 3rem; /* #comment Set a fixed size for the button */
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.activity-icon-image-container:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Style for the image itself */
+.activity-icon-image {
+    width: 2.3rem; /* #comment Match the emoji size */
+    height:2.3rem;
 }
 
 .activity-icon:hover {
@@ -94,95 +120,4 @@
     100% {
         text-shadow: 0 0 3px #ef4444;
     }
-}
-```css
-/* src/components/city/RecruitmentToolTip.css */
-.activity-tooltip {
-    position: absolute;
-    top: 0;
-    left: calc(100% + 10px);
-    width: 380px;
-    background-color: #F5DEB3;
-    border: 4px solid #8B4513;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    z-index: 100;
-    color: #4a2c2a;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.tooltip-item {
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    border-bottom: 1px solid #d2b48c;
-}
-.tooltip-item:last-child {
-    border-bottom: none;
-}
-
-.tooltip-item-image {
-    width: 48px;
-    height: 48px;
-    margin-right: 12px;
-    background-color: rgba(0,0,0,0.1);
-    border-radius: 4px;
-    padding: 2px;
-}
-
-.tooltip-item-details {
-    flex-grow: 1;
-}
-
-.tooltip-timer {
-    font-family: monospace;
-    font-weight: bold;
-    background-color: #333;
-    color: #f0e68c;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-}
-
-.tooltip-cancel-btn {
-    background-color: #c0392b;
-    color: white;
-    border: 1px solid #a03022;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    font-weight: bold;
-    font-size: 16px;
-    cursor: pointer;
-    margin-left: 12px;
-}
-.tooltip-cancel-btn:hover {
-    background-color: #e74c3c;
-}
-```css
-/* src/components/map/TradesToolTip.css */
-.activity-tooltip {
-    position: absolute;
-    top: 0;
-    left: calc(100% + 10px);
-    width: 380px;
-    background-color: #F5DEB3;
-    border: 8px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    z-index: 100;
-    color: #4a2c2a;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.trades-tooltip .movements-header {
-    background-color: #3b82f6;
-    color: white;
-    padding: 0.5rem 1rem;
-    font-family: 'IM Fell English SC', serif;
-    font-size: 1.25rem;
-    border-bottom: 2px solid #2563eb;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }

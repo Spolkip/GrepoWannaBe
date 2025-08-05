@@ -5,6 +5,9 @@ import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
 import silverImage from '../../images/resources/silver.png';
 import populationImage from '../../images/resources/population.png';
+import recruitmenticon from '../../images/helmet.png';
+import tradeicon from '../../images/trade.png';
+import movementicon from '../../images/movement.png'
 import './TopBar.css';
 
 // Lazy load the tooltip components to prevent circular dependencies
@@ -220,16 +223,18 @@ const TopBar = ({
                     onMouseLeave={handleMouseLeave}
                 >
                     <div className="relative" onMouseEnter={() => handleMouseEnter('recruitment')}>
-                        <button className="activity-icon">🗡️</button>
+                        <button className="activity-icon-image-container">
+                            <img src={recruitmenticon} alt="Recruitment" className="activity-icon-image" />
+                        </button>
                         {recruitmentCount > 0 && <span className="activity-badge">{recruitmentCount}</span>}
                     </div>
                     <div className="relative" onMouseEnter={() => handleMouseEnter('trades')}>
-                        <button className="activity-icon">💰</button>
+                        <img src={tradeicon} alt="Trade" className="activity-icon-image" />
                         {tradeCount > 0 && <span className="activity-badge">{tradeCount}</span>}
                     </div>
                      <div className="relative" onMouseEnter={() => handleMouseEnter('movements')}>
                         <button onClick={onOpenMovements} className={`activity-icon ${isUnderAttack ? 'glowing-attack-icon' : ''}`}>
-                            ⚔️
+                            <img src={movementicon} alt="Movement" className="activity-icon-image" />
                         </button>
                         {movementCount > 0 && <span className="activity-badge">{movementCount}</span>}
                     </div>
