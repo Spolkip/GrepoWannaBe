@@ -48,7 +48,8 @@ const MapView = ({
     combinedSlots,
     isUnderAttack,
     incomingAttackCount,
-    onRenameCity
+    onRenameCity,
+    centerOnCity // #comment Receive centerOnCity function
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
@@ -58,7 +59,7 @@ const MapView = ({
     const mapContainerRef = useRef(null);
 
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
-    const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates, centerOnCity } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity);
+    const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { message, setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);

@@ -204,14 +204,14 @@ const TopBar = ({
     };
 
     return (
-        <div className={`p-2 grid grid-cols-3 items-center top-bar-container relative z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'flex-shrink-0'}`}>
+        <div className={`p-2 flex items-center justify-between top-bar-container relative z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'flex-shrink-0'}`}>
             {/* Left Section */}
-            <div className="flex justify-start items-center space-x-4">
+            <div className="flex-1 flex justify-start items-center space-x-4">
                 {worldState && <WeatherDisplay season={worldState.season} weather={worldState.weather} />}
             </div>
 
             {/* Center Section */}
-            <div className="flex justify-center items-center space-x-8">
+            <div className="flex-none flex justify-center items-center space-x-8">
                 <div
                     className="activity-tracker-container"
                     onMouseLeave={handleMouseLeave}
@@ -275,7 +275,7 @@ const TopBar = ({
             </div>
 
             {/* Right Section */}
-            <div className="flex justify-end items-center space-x-2">
+            <div className="flex-1 flex justify-end items-center space-x-2">
                 <div className="resource-display">
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>

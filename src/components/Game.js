@@ -16,6 +16,7 @@ import { useMapState } from '../hooks/useMapState';
 import { useMapEvents } from '../hooks/useMapEvents';
 import { useQuestTracker } from '../hooks/useQuestTracker';
 import { useMapActions } from '../hooks/useMapActions';
+import { useKeyboardControls } from '../hooks/useKeyboardControls'; // #comment Import the new hook
 
 // Import all the modals
 import ReportsView from './ReportsView';
@@ -33,7 +34,7 @@ import { collection, onSnapshot, query, where, getDocs, doc, updateDoc, runTrans
 import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
 
 const Game = ({ onBackToWorlds }) => {
-    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity } = useGame();
+    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity } = useGame();
     const { currentUser, userProfile } = useAuth();
     const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
@@ -55,6 +56,30 @@ const Game = ({ onBackToWorlds }) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
     };
+
+    const toggleView = () => {
+        setView(prevView => prevView === 'city' ? 'map' : 'city');
+    };
+
+    const centerOnCity = useCallback(() => {
+        if (view === 'map' && playerCity) {
+            setPanToCoords({ x: playerCity.x, y: playerCity.y });
+        }
+    }, [view, playerCity]);
+
+    // #comment Setup keyboard controls
+    useKeyboardControls({
+        toggleView,
+        openAlliance: () => playerAlliance ? openModal('alliance') : openModal('allianceCreation'),
+        openQuests: () => openModal('quests'),
+        centerOnCity,
+        openForum: () => openModal('allianceForum'),
+        openMessages: () => openModal('messages'),
+        openLeaderboard: () => openModal('leaderboard'),
+        openProfile: () => openModal('profile'),
+        openSettings: () => openModal('settings'),
+    });
+
 
     // #comment Fetch data that needs to be available in both City and Map views
     useEffect(() => {
@@ -160,7 +185,7 @@ const Game = ({ onBackToWorlds }) => {
         }
     }, [userProfile, worldId]);
 
-    useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, () => {});
+    useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount);
     const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
 
     const { incomingAttackCount, isUnderAttack } = useMemo(() => {
@@ -238,6 +263,7 @@ const Game = ({ onBackToWorlds }) => {
                     isUnderAttack={isUnderAttack}
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={renameCity}
+                    centerOnCity={centerOnCity}
                 />
             )}
             

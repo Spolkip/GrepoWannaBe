@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 /**
  * #comment Manages event listeners and side effects for the MapView.
  */
-export const useMapEvents = (currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount, centerOnCity) => {
+export const useMapEvents = (currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount) => {
     useEffect(() => {
         if (!currentUser || !worldId) return;
 
@@ -37,15 +37,4 @@ export const useMapEvents = (currentUser, worldId, setUnreadReportsCount, setUnr
             unsubscribeMessages();
         };
     }, [currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount]);
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                centerOnCity();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [centerOnCity]);
 };
