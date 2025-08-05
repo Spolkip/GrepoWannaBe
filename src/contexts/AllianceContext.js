@@ -1,3 +1,4 @@
+// src/contexts/AllianceContext.js
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { doc, onSnapshot,deleteDoc, collection, runTransaction, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, setDoc, arrayUnion, arrayRemove, writeBatch } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -195,16 +196,29 @@ export const AllianceProvider = ({ children }) => {
     // send an invitation to another player to join the alliance
     const sendAllianceInvitation = async (targetUserId) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
-            return;
+            throw new Error("You do not have permission to send invitations.");
         }
         if (!targetUserId) {
-            return;
+            throw new Error("Target user ID is not specified.");
         }
     
         try {
             const targetUserDoc = await getDoc(doc(db, 'users', targetUserId));
-            const targetUsername = targetUserDoc.exists() ? targetUserDoc.data().username : 'Unknown Player';
+            if (!targetUserDoc.exists()) {
+                throw new Error("Target user not found.");
+            }
+            const targetUsername = targetUserDoc.data().username;
 
+            // #comment Add a document to the invitations subcollection for tracking
+            const invitesRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'invitations');
+            await addDoc(invitesRef, {
+                invitedUserId: targetUserId,
+                invitedUsername: targetUsername,
+                sentAt: serverTimestamp(),
+                sentBy: userProfile.username
+            });
+
+            // #comment Log the invitation in the alliance events
             const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
             await addDoc(allianceEventsRef, {
                 type: 'invitation_sent',
@@ -212,11 +226,12 @@ export const AllianceProvider = ({ children }) => {
                 timestamp: serverTimestamp(),
             });
 
+            // #comment Send a message to the user with actionable links
             const messageText = `You have been invited to join the alliance "${playerAlliance.name}".\n\n[action=accept_invite,allianceId=${playerAlliance.id}]Accept Invitation[/action]\n[action=decline_invite,allianceId=${playerAlliance.id}]Decline Invitation[/action]`;
     
             const conversationQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
-                where('participants', '==', [currentUser.uid, targetUserId].sort())
+                where('participants', 'in', [[currentUser.uid, targetUserId], [targetUserId, currentUser.uid]])
             );
             const conversationSnapshot = await getDocs(conversationQuery);
     
@@ -224,13 +239,13 @@ export const AllianceProvider = ({ children }) => {
             if (conversationSnapshot.empty) {
                 conversationRef = doc(collection(db, 'worlds', worldId, 'conversations'));
                 await setDoc(conversationRef, {
-                    participants: [currentUser.uid, targetUserId].sort(),
+                    participants: [currentUser.uid, targetUserId],
                     participantUsernames: {
                         [currentUser.uid]: userProfile.username,
                         [targetUserId]: targetUsername,
                     },
                     lastMessage: { text: "Alliance Invitation", senderId: 'system', timestamp: serverTimestamp() },
-                    readBy: [],
+                    readBy: [currentUser.uid], // Mark as read for the sender initially
                 });
             } else {
                 conversationRef = conversationSnapshot.docs[0].ref;
@@ -246,11 +261,13 @@ export const AllianceProvider = ({ children }) => {
     
             await updateDoc(conversationRef, {
                 lastMessage: { text: "Alliance Invitation Sent", senderId: 'system', timestamp: serverTimestamp() },
-                readBy: [],
+                readBy: [currentUser.uid], // Update readBy for the sender
             });
     
         } catch (error) {
             console.error("Error sending invitation:", error);
+            // #comment Re-throw the error so the UI component can catch it and display a message
+            throw error;
         }
     };
 
@@ -262,9 +279,28 @@ export const AllianceProvider = ({ children }) => {
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const invitesRef = collection(allianceDocRef, 'invitations');
         const q = query(invitesRef, where('invitedUserId', '==', invitedUserId));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            await deleteDoc(snapshot.docs[0].ref);
+        
+        try {
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const inviteDoc = snapshot.docs[0];
+                const inviteData = inviteDoc.data();
+                const invitedUsername = inviteData.invitedUsername || 'a player';
+
+                // #comment Log the revocation event
+                const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+                await addDoc(allianceEventsRef, {
+                    type: 'invitation_revoked',
+                    text: `${userProfile.username} has revoked the invitation for ${invitedUsername}.`,
+                    timestamp: serverTimestamp(),
+                });
+
+                // Delete the invitation
+                await deleteDoc(inviteDoc.ref);
+            }
+        } catch (error) {
+            console.error("Error revoking invitation:", error);
+            throw error; // Re-throw so the UI can catch it
         }
     };
 
@@ -350,6 +386,15 @@ export const AllianceProvider = ({ children }) => {
             member.uid === memberId ? { ...member, rank: newRankId } : member
         );
         await updateDoc(allianceDocRef, { members: updatedMembers });
+    };
+    
+    // #comment function to update the order of ranks
+    const updateRanksOrder = async (newRanks) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        await updateDoc(allianceDocRef, { ranks: newRanks });
     };
 
     // apply to join an invite-only alliance
@@ -638,6 +683,7 @@ export const AllianceProvider = ({ children }) => {
         acceptAllianceInvitation,
         createAllianceRank,
         updateAllianceMemberRank,
+        updateRanksOrder,
         applyToAlliance,
         sendAllyRequest,
         declareEnemy,

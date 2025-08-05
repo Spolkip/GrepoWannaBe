@@ -1,18 +1,27 @@
+// src/components/alliance/AllianceRanks.js
 import React, { useState, useMemo } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
+import { db } from '../../firebase/config';
+import { useAuth } from '../../contexts/AuthContext';
+import { useGame } from '../../contexts/GameContext';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const AllianceRanks = ({ alliance, isLeader }) => {
-    const { createAllianceRank, updateAllianceMemberRank } = useAlliance();
+    const { createAllianceRank, updateAllianceMemberRank, updateRanksOrder } = useAlliance();
+    const { userProfile } = useAuth();
+    const { worldId } = useGame();
     const [newRankName, setNewRankName] = useState('');
     const [newRankPermissions, setNewRankPermissions] = useState({
         manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false
     });
     const [message, setMessage] = useState('');
+    const [editingMemberId, setEditingMemberId] = useState(null);
 
     const allPermissions = Object.keys(newRankPermissions);
     
     const handleCreateRank = () => {
         if (!isLeader) return;
+        setMessage(''); // Clear previous messages
         if (newRankName.trim() === '') {
             setMessage('Rank name cannot be empty.');
             return;
@@ -35,10 +44,70 @@ const AllianceRanks = ({ alliance, isLeader }) => {
         setMessage('Rank created!');
     };
 
-    const handleUpdateMemberRank = (memberId, newRankId) => {
+    // #comment handle updating a member's rank and logging the event
+    const handleUpdateMemberRank = async (memberId, newRankId) => {
         if (!isLeader) return;
-        updateAllianceMemberRank(memberId, newRankId);
+        setMessage(''); // Clear previous messages
+        try {
+            const memberToUpdate = alliance.members.find(m => m.uid === memberId);
+            const oldRankId = memberToUpdate.rank;
+
+            await updateAllianceMemberRank(memberId, newRankId);
+
+            // #comment Log event after successful update
+            if (oldRankId !== newRankId) {
+                const oldRankIndex = alliance.ranks.findIndex(r => r.id === oldRankId);
+                const newRankIndex = alliance.ranks.findIndex(r => r.id === newRankId);
+                
+                if (oldRankIndex !== -1 && newRankIndex !== -1) {
+                    const actionText = newRankIndex < oldRankIndex ? 'promoted' : 'demoted';
+                    const memberUsername = memberToUpdate.username;
+                    const eventText = `${userProfile.username} has ${actionText} ${memberUsername} to ${newRankId}.`;
+
+                    const eventsRef = collection(db, 'worlds', worldId, 'alliances', alliance.id, 'events');
+                    await addDoc(eventsRef, {
+                        type: 'rank_change',
+                        text: eventText,
+                        timestamp: serverTimestamp(),
+                    });
+                }
+            }
+
+            setMessage('Member rank updated successfully!');
+            setTimeout(() => setMessage(''), 3000); // Clear message after 3 seconds
+        } catch (error) {
+            setMessage('Failed to update rank. Please try again.');
+            console.error('Error updating member rank:', error);
+        }
     };
+    
+    // #comment handle moving a rank up or down in the hierarchy
+    const handleMoveRank = async (index, direction) => {
+        if (!isLeader || index === 0) return; // Can't move the Leader rank
+
+        const newRanks = [...alliance.ranks];
+        const rankToMove = newRanks[index];
+
+        if (direction === 'up' && index > 1) { // Can't move above the rank just below Leader
+            newRanks.splice(index, 1);
+            newRanks.splice(index - 1, 0, rankToMove);
+        } else if (direction === 'down' && index < newRanks.length - 1) {
+            newRanks.splice(index, 1);
+            newRanks.splice(index + 1, 0, rankToMove);
+        } else {
+            return; // Invalid move
+        }
+
+        try {
+            await updateRanksOrder(newRanks); 
+            setMessage('Rank order updated.');
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            setMessage('Failed to update rank order.');
+            console.error(error);
+        }
+    };
+
 
     // #comment Generates a comma-separated string of permissions for the tooltip
     const getPermissionsText = (permissions) => {
@@ -69,16 +138,35 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                 <div>
                     <h4 className="font-semibold text-lg mb-2 text-gray-900">Current Ranks</h4>
                     <ul className="space-y-2">
-                        {alliance.ranks.map(rank => (
+                        {alliance.ranks.map((rank, index) => (
                             <li 
                                 key={rank.id} 
-                                className="bg-white text-gray-900 p-3 rounded border border-amber-200"
-                                title={getPermissionsText(rank.permissions)}
+                                className="bg-white text-gray-900 p-3 rounded border border-amber-200 flex justify-between items-center"
                             >
-                                <p className="font-bold">{rank.name}</p>
-                                <p className="text-xs text-amber-800 mt-1">
-                                    {getPermissionsText(rank.permissions)}
-                                </p>
+                                <div title={getPermissionsText(rank.permissions)}>
+                                    <p className="font-bold">{rank.name}</p>
+                                    <p className="text-xs text-amber-800 mt-1">
+                                        {getPermissionsText(rank.permissions)}
+                                    </p>
+                                </div>
+                                {isLeader && rank.id !== 'Leader' && (
+                                    <div className="flex flex-col">
+                                        <button 
+                                            onClick={() => handleMoveRank(index, 'up')} 
+                                            disabled={index <= 1} // Disable for the first rank after Leader
+                                            className="text-gray-600 hover:text-black disabled:opacity-50"
+                                        >
+                                            ▲
+                                        </button>
+                                        <button 
+                                            onClick={() => handleMoveRank(index, 'down')} 
+                                            disabled={index === alliance.ranks.length - 1} // Disable for the last rank
+                                            className="text-gray-600 hover:text-black disabled:opacity-50"
+                                        >
+                                            ▼
+                                        </button>
+                                    </div>
+                                )}
                             </li>
                         ))}
                     </ul>
@@ -130,17 +218,32 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                             <li key={member.uid} className="flex justify-between items-center bg-white text-gray-900 p-2 rounded border border-amber-200">
                                 <span>{member.username}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm text-amber-800">{member.rank}</span>
-                                    {isLeader && member.uid !== alliance.leader.uid && (
-                                        <select
-                                            value={member.rank}
-                                            onChange={(e) => handleUpdateMemberRank(member.uid, e.target.value)}
-                                            className="bg-white text-gray-900 p-1 rounded text-sm border border-amber-300"
-                                        >
-                                            {alliance.ranks.map(rank => (
-                                                <option key={rank.id} value={rank.id}>{rank.name}</option>
-                                            ))}
-                                        </select>
+                                    {isLeader && member.uid !== alliance.leader.uid ? (
+                                        editingMemberId === member.uid ? (
+                                            <select
+                                                value={member.rank}
+                                                onChange={(e) => {
+                                                    handleUpdateMemberRank(member.uid, e.target.value);
+                                                    setEditingMemberId(null);
+                                                }}
+                                                onBlur={() => setEditingMemberId(null)}
+                                                autoFocus
+                                                className="bg-white text-gray-900 p-1 rounded text-sm border border-amber-300"
+                                            >
+                                                {alliance.ranks.map(rank => (
+                                                    <option key={rank.id} value={rank.id}>{rank.name}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <button
+                                                onClick={() => setEditingMemberId(member.uid)}
+                                                className="text-sm text-amber-800 hover:underline cursor-pointer bg-transparent border-none p-0"
+                                            >
+                                                {member.rank}
+                                            </button>
+                                        )
+                                    ) : (
+                                        <span className="text-sm text-amber-800">{member.rank}</span>
                                     )}
                                 </div>
                             </li>

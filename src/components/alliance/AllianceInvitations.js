@@ -1,3 +1,4 @@
+// src/components/alliance/AllianceInvitations.js
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, getDocs, doc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
@@ -39,6 +40,7 @@ const AllianceInvitations = ({ isLeader }) => {
             setMessage('Please enter a player name.');
             return;
         }
+        setMessage(''); // Clear previous messages
 
         try {
             const usersQuery = query(collection(db, 'users'), where('username', '==', invitedPlayerName.trim()));
@@ -60,7 +62,7 @@ const AllianceInvitations = ({ isLeader }) => {
             setMessage(`Invitation sent to ${invitedPlayerName}!`);
             setInvitedPlayerName('');
         } catch (e) {
-            setMessage('Failed to send invitation. Please try again.');
+            setMessage(e.message); // Display specific error from context
             console.error(e);
         }
     };
