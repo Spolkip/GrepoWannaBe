@@ -5,8 +5,8 @@ const ScoutPanel = ({ selectedResources, gameState, handleResourceChange }) => {
     const availableCaveSilver = gameState.cave?.silver || 0;
 
     return (
-        <div className="space-y-2">
-            <h4 className="font-bold text-lg text-yellow-700 mt-4 mb-2">Silver for Espionage</h4>
+        <div className="unit-selection-section space-y-2">
+            <h4 className="font-bold text-lg text-yellow-700 mb-2">Silver for Espionage</h4>
             <div className="flex justify-between items-center">
                 <span className="capitalize">Silver in Cave ({Math.floor(availableCaveSilver)})</span>
                 <input

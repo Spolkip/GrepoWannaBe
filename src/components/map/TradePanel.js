@@ -13,7 +13,7 @@ const TradePanel = ({ selectedResources, currentResources, handleResourceChange 
 
 
     return (
-        <div className="space-y-2">
+        <div className="unit-selection-section space-y-2">
             <h4 className="font-bold text-lg text-yellow-700 mb-2">Select Resources</h4>
             <div className="flex justify-around items-end w-full">
                 {Object.keys(selectedResources).map(resource =>

@@ -329,7 +329,7 @@ const MapView = ({
                             onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
                             isAllianceMember={!!playerAlliance}
                         />
-                        <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
+                        <SideInfoPanel gameState={gameState} className="absolute top-[55%] right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>

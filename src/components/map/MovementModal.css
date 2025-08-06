@@ -1,6 +1,6 @@
-/* src/components/map/OtherCityModal.css */
+/* src/components/map/MovementModal.css */
 
-.other-city-modal-container {
+.movement-modal-container {
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3; /* wheat */
     border: 8px solid;
@@ -9,76 +9,95 @@
     box-shadow: 0 0 20px rgba(0,0,0,0.6);
     color: #4a2c2a;
     width: 90%;
-    max-width: 400px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
 }
 
-.other-city-modal-header {
+.movement-modal-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 0.75rem 1.5rem;
     background-color: #1e3a8a;
     color: #f0e68c;
     border-bottom: 2px solid #cd853f;
+    font-family: 'IM Fell English SC', serif;
+    font-size: 1.5rem;
 }
 
-.other-city-modal-content {
+.movement-modal-content {
+    padding: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.movement-modal-footer {
+    padding: 1rem;
+    border-top: 2px solid #8B4513;
+    background-color: rgba(139, 69, 19, 0.1);
+    text-align: center;
+}
+
+.unit-selection-section {
+    background-color: rgba(139, 69, 19, 0.1);
+    border: 1px solid #d2b48c;
+    border-radius: 8px;
     padding: 1rem;
 }
 
-.info-box {
-    background-color: rgba(139, 69, 19, 0.1);
-    border: 1px solid #d2b48c;
-    border-radius: 4px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+.unit-selection-header {
+    font-weight: bold;
+    font-size: 1.125rem; /* text-lg */
+    color: #8B4513; /* saddlebrown */
+    margin-bottom: 0.75rem;
+    text-align: center;
 }
 
-.action-buttons-grid {
+.unit-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
     gap: 0.75rem;
 }
 
-.action-btn {
-    @apply font-bold py-2 px-4 rounded-md transition-all duration-200 cursor-pointer transform;
+.unit-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.unit-image-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 4px;
+    padding: 2px;
+    margin-bottom: 4px;
+}
+
+.unit-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.unit-count-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background-color: rgba(0,0,0,0.7);
+    color: white;
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    border-radius: 8px;
+}
+
+.unit-input {
+    width: 56px;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid #d2b48c;
+    border-radius: 4px;
     color: #4a2c2a;
-    border: 2px solid #8B4513;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    background: linear-gradient(to bottom, #f0e68c, #cd853f);
-}
-
-.action-btn:hover {
-    background: linear-gradient(to bottom, #fff2b2, #d6914d);
-}
-
-.action-btn.attack-btn {
-    background: linear-gradient(to bottom, #fca5a5, #ef4444);
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    border-color: #991b1b;
-}
-.action-btn.attack-btn:hover {
-    background: linear-gradient(to bottom, #fecaca, #f87171);
-}
-
-.action-btn.reinforce-btn {
-    background: linear-gradient(to bottom, #93c5fd, #3b82f6);
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    border-color: #1e40af;
-}
-.action-btn.reinforce-btn:hover {
-    background: linear-gradient(to bottom, #bfdbfe, #60a5fa);
-}
-
-.action-btn.spell-btn {
-    background: linear-gradient(to bottom, #d8b4fe, #a855f7);
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    border-color: #6b21a8;
-}
-.action-btn.spell-btn:hover {
-    background: linear-gradient(to bottom, #e9d5ff, #c084fc);
 }
