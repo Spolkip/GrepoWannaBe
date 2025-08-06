@@ -55,7 +55,8 @@ const BuildingDetailsModal = ({ buildingId, buildingData, onClose, getProduction
                                      <button onClick={() => onRemoveWorker(buildingId)} disabled={workers <= 0} className="w-6 h-6 flex items-center justify-center bg-red-600 hover:bg-red-500 rounded-md text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed">-</button>
                                 </div>
                             </div>
-                            <p className="text-xs mt-2 text-gray-400">Each worker costs 20 population and boosts production by 10%. Each worker decreases happiness by 3%.</p>
+                            {/* #comment Updated text to reflect new happiness mechanic */}
+                            <p className="text-xs mt-2 text-gray-400">Each worker costs 20 population, boosts production by 10%, and reduces city happiness by 5.</p>
                         </div>
                     </div>
                 )}

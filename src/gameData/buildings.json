@@ -3,90 +3,120 @@
     "name": "Senate",
     "description": "Manage your city and view building levels.",
     "baseCost": { "wood": 200, "stone": 250, "silver": 150, "population": 10, "time": 120 },
-    "image": "senate.png"
+    "image": "senate.png",
+    "maxLevel": 10,
+    "points": 20
   },
   "timber_camp": {
     "name": "Timber Camp",
     "description": "Generates wood for your empire.",
     "baseCost": { "wood": 60, "stone": 80, "silver": 20, "population": 5, "time": 60 },
-    "image": "lumber_mill.png"
+    "image": "lumber_mill.png",
+    "maxLevel": 25,
+    "points": 5
   },
   "quarry": {
     "name": "Quarry",
     "description": "Mines stone for construction.",
     "baseCost": { "wood": 80, "stone": 60, "silver": 20, "population": 5, "time": 60 },
-    "image": "stone_quarry.png"
+    "image": "stone_quarry.png",
+    "maxLevel": 25,
+    "points": 5
   },
   "silver_mine": {
     "name": "Silver Mine",
     "description": "Mints silver coins.",
     "baseCost": { "wood": 100, "stone": 100, "silver": 50, "population": 8, "time": 90 },
-    "image": "silver_mines.png"
+    "image": "silver_mines.png",
+    "maxLevel": 25,
+    "points": 5
   },
   "warehouse": {
     "name": "Warehouse",
     "description": "Stores your precious resources.",
-    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 5, "time": 80 },
-    "image": "warehouse.png"
+    "baseCost": { "wood": 150, "stone": 200, "silver": 0, "population": 0, "time": 80 },
+    "image": "warehouse.png",
+    "maxLevel": 20,
+    "points": 8
   },
   "barracks": {
     "name": "Barracks",
     "description": "Train land units to attack and defend.",
     "baseCost": { "wood": 120, "stone": 100, "silver": 80, "population": 10, "time": 150 },
-    "image": "barracks.png"
+    "image": "barracks.png",
+    "maxLevel": 15,
+    "points": 12
   },
   "shipyard": {
     "name": "Shipyard",
     "description": "Build ships for naval warfare.",
     "baseCost": { "wood": 150, "stone": 100, "silver": 100, "population": 10, "time": 180 },
-    "image": "shipyard.png"
+    "image": "shipyard.png",
+    "maxLevel": 15,
+    "points": 12
   },
   "academy": {
     "name": "Academy",
     "description": "Research new technologies and units.",
     "baseCost": { "wood": 220, "stone": 220, "silver": 180, "population": 15, "time": 240 },
-    "image": "academy.png"
+    "image": "academy.png",
+    "maxLevel": 10,
+    "points": 15
   },
   "city_wall": {
     "name": "City Wall",
     "description": "Increases the defense of your city.",
     "baseCost": { "wood": 50, "stone": 250, "silver": 100, "population": 5, "time": 100 },
-    "image": "city_wall.png"
+    "image": "city_wall.png",
+    "maxLevel": 20,
+    "points": 10
   },
   "cave": {
     "name": "Cave",
     "description": "Train spies and store silver safely from raids.",
     "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5, "time": 120 },
-    "image": "cavepng.png"
+    "image": "cavepng.png",
+    "maxLevel": 10,
+    "points": 8
   },
   "market": {
     "name": "Market",
     "description": "Trade resources with other players.",
     "baseCost": { "wood": 180, "stone": 180, "silver": 180, "population": 10, "time": 200 },
-    "image": "market.png"
+    "image": "market.png",
+    "maxLevel": 10,
+    "points": 8
   },
   "temple": {
     "name": "Temple",
     "description": "Worship the gods to gain their favor.",
     "baseCost": { "wood": 250, "stone": 250, "silver": 250, "population": 10, "time": 300 },
-    "image": "temple.png"
+    "image": "temple.png",
+    "maxLevel": 10,
+    "points": 15
   },
   "divine_temple": {
     "name": "Divine Temple",
     "description": "A sacred place to train mythical units blessed by your worshipped god.",
     "baseCost": { "wood": 500, "stone": 500, "silver": 500, "population": 20, "time": 1800 },
-    "image": "divine_temple.png"
+    "image": "divine_temple.png",
+    "maxLevel": 5,
+    "points": 25
   },
   "farm": {
     "name": "Farm",
     "description": "Increases your city's population capacity.",
     "baseCost": { "wood": 100, "stone": 50, "silver": 30, "population": 0, "time": 70 },
-    "image": "farm.png"
+    "image": "farm.png",
+    "maxLevel": 30,
+    "points": 4
   },
   "hospital": {
     "name": "Hospital",
     "description": "Heal your wounded troops after battle.",
     "baseCost": { "wood": 200, "stone": 150, "silver": 100, "population": 8, "time": 180 },
-    "image": "hospital.jpg"
+    "image": "hospital.jpg",
+    "maxLevel": 10,
+    "points": 10
   }
 }

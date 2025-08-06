@@ -1,3 +1,4 @@
+// src/components/map/TopBar.js
 import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
@@ -125,6 +126,7 @@ const TopBar = ({
     gameState,
     availablePopulation,
     happiness,
+    getHappinessDetails,
     worldState,
     productionRates,
     // #comment Props for the activity tracker
@@ -203,8 +205,10 @@ const TopBar = ({
     if (!gameState) return null;
     const { resources, cityName } = gameState;
 
+    const happinessDetails = getHappinessDetails ? getHappinessDetails() : { base: 0, penalty: 0 };
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
-    const happinessTooltip = `Happiness: ${happiness}%. ${happiness > 70 ? 'Happy: +10% resource production!' : 'Content: No production bonus.'}`;
+    const happinessTooltip = `Happiness: ${happiness}%\nBase: +${happinessDetails.base} (from Senate)\nUpkeep: -${happinessDetails.penalty} (from workers)`;
+
 
     const handleCitySelect = (cityId) => {
         setActiveCityId(cityId);

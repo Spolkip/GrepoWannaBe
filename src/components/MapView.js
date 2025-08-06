@@ -62,7 +62,7 @@ const MapView = ({
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
-    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, getHappinessDetails } = useCityState(worldId);
     
     useEffect(() => {
         if (panToCoords) {
@@ -250,6 +250,7 @@ const MapView = ({
                             gameState={gameState} 
                             availablePopulation={availablePopulation} 
                             happiness={happiness} 
+                            getHappinessDetails={() => getHappinessDetails(gameState.buildings)}
                             worldState={worldState} 
                             movements={movements}
                             onCancelTrain={onCancelTrain}

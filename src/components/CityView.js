@@ -42,7 +42,7 @@ const CityView = ({
         cityGameState, setCityGameState, getUpgradeCost, getFarmCapacity,
         calculateUsedPopulation, getProductionRates, getWarehouseCapacity,
         getHospitalCapacity, saveGameState, getResearchCost, calculateHappiness,
-        getMaxWorkerSlots, getMarketCapacity,
+        getMaxWorkerSlots, getMarketCapacity, getHappinessDetails
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
 
     const { modalState, openModal: openCityModal, closeModal, setModalState } = useCityModalManager();
@@ -106,6 +106,7 @@ const CityView = ({
                     gameState={cityGameState}
                     availablePopulation={availablePopulation}
                     happiness={happiness}
+                    getHappinessDetails={() => getHappinessDetails(cityGameState.buildings)}
                     worldState={worldState}
                     productionRates={productionRates}
                     // #comment Pass props for activity tracker

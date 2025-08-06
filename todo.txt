@@ -3,7 +3,7 @@
 - make hapiness generate and balance with upkeep
 - autocomplete player names on messages
 - add more bbcodes
-- fix glow and when to stop
+- fix glow on reports and messages and when to stop
 - make forum unavailable when the player isnt on an alliance
 - add points to show on city hover
 - make the menu to become trasparent while the mouse isnt at it

@@ -12,9 +12,14 @@ buildingImageContext.keys().forEach((item) => {
 });
 
 const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFull }) => {
-    const buttonText = level === 0 ? 'Build' : `Expand to ${level + 1}`;
+    // #comment Check if the building has reached its maximum level.
+    const isMaxLevel = level >= (config.maxLevel || 99);
+    let buttonText = level === 0 ? 'Build' : `Expand to ${level + 1}`;
+    if (isMaxLevel) buttonText = 'Max Level';
+
     let disabledReason = '';
-    if (isQueueFull) disabledReason = 'Queue Full';
+    if (isMaxLevel) disabledReason = 'Max Level';
+    else if (isQueueFull) disabledReason = 'Queue Full';
     else if (!canAfford) disabledReason = 'Not enough resources/pop';
 
     return (
@@ -32,8 +37,8 @@ const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFu
 
             <button
                 onClick={() => onUpgrade(id)}
-                disabled={!canAfford || isQueueFull}
-                className={`w-full py-1.5 rounded font-bold text-sm transition-colors ${!canAfford || isQueueFull ? 'btn-disabled' : 'btn-upgrade'}`}
+                disabled={!canAfford || isQueueFull || isMaxLevel}
+                className={`w-full py-1.5 rounded font-bold text-sm transition-colors ${!canAfford || isQueueFull || isMaxLevel ? 'btn-disabled' : 'btn-upgrade'}`}
             >
                 {disabledReason || buttonText}
             </button>

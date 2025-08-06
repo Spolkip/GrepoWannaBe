@@ -27,10 +27,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         gameStateRef.current = cityGameState;
     }, [cityGameState]);
 
-    const calculateHappiness = useCallback((buildings) => {
-        if (!buildings || !buildings.senate) return 0;
-        const baseHappiness = buildings.senate.level * 5;
-        
+    // #comment Calculates city happiness details: base gain, penalty, and total.
+    const getHappinessDetails = useCallback((buildings) => {
+        if (!buildings || !buildings.senate) return { base: 0, penalty: 0, total: 0 };
+        const base = buildings.senate.level * 10;
+
         let workerCount = 0;
         const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
         productionBuildings.forEach(buildingId => {
@@ -39,20 +40,28 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             }
         });
 
-        const happinessPenalty = workerCount * 3;
-        return Math.max(0, Math.min(100, baseHappiness - happinessPenalty));
+        const penalty = workerCount * 5;
+        const total = Math.max(0, Math.min(100, base - penalty));
+        return { base, penalty, total };
     }, []);
+
+    // #comment Calculates city happiness based on Senate level and worker upkeep.
+    const calculateHappiness = useCallback((buildings) => {
+        if (!buildings || !buildings.senate) return 0;
+        return getHappinessDetails(buildings).total;
+    }, [getHappinessDetails]);
     
     const getMaxWorkerSlots = useCallback((level) => {
         if (!level || level < 1) return 0;
         return Math.min(6, 1 + Math.floor(level / 5));
     }, []);
 
+    // #comment Calculates resource production rates, applying happiness bonuses or penalties.
     const getProductionRates = useCallback((buildings) => {
         if (!buildings) return { wood: 0, stone: 0, silver: 0 };
         
         const happiness = calculateHappiness(buildings);
-        const happinessBonus = happiness > 70 ? 1.10 : 1.0;
+        const happinessBonus = happiness > 70 ? 1.10 : (happiness < 40 ? 0.9 : 1.0); // Bonus when happy, penalty when unhappy
 
         const rates = {
             wood: Math.floor(30 * Math.pow(1.2, (buildings.timber_camp?.level || 1) - 1)),
@@ -71,14 +80,16 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return rates;
     }, [calculateHappiness]);
 
+    // #comment Adjusted warehouse capacity for better resource balance.
     const getWarehouseCapacity = useCallback((level) => {
         if (!level) return 0;
-        return Math.floor(1000 * Math.pow(1.5, level - 1));
+        return Math.floor(1500 * Math.pow(1.4, level - 1));
     }, []);
 
+    // #comment Adjusted farm capacity for better population balance.
     const getFarmCapacity = useCallback((level) => {
         if (!level) return 0;
-        return Math.floor(100 * Math.pow(1.3, level - 1));
+        return Math.floor(200 * Math.pow(1.25, level - 1));
     }, []);
 
     const getHospitalCapacity = useCallback((level) => {
@@ -143,22 +154,29 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return used;
     }, [getUpgradeCost]);
 
+    // #comment Calculates total points from buildings, units, and research.
     const calculateTotalPoints = useCallback((gameState) => {
         if (!gameState) return 0;
         let points = 0;
         if (gameState.buildings) {
             for (const buildingId in gameState.buildings) {
-                points += gameState.buildings[buildingId].level * 10;
+                const buildingData = gameState.buildings[buildingId];
+                const buildingInfo = buildingConfig[buildingId];
+                if (buildingInfo && buildingInfo.points) {
+                    // #comment Points now increase with each level, using the sum of an arithmetic series.
+                    const level = buildingData.level;
+                    points += buildingInfo.points * (level * (level + 1) / 2);
+                }
             }
         }
         if (gameState.units) {
             for (const unitId in gameState.units) {
                 const unit = unitConfig[unitId];
-                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1);
+                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1); // Points for units based on population cost
             }
         }
         if (gameState.research) {
-            points += Object.keys(gameState.research).length * 50;
+            points += Object.keys(gameState.research).length * 50; // Points for research
         }
         return Math.floor(points);
     }, []);
@@ -407,7 +425,8 @@ return {
     saveGameState, 
     getResearchCost,
     calculateTotalPoints, 
-    calculateHappiness, 
+    calculateHappiness,
+    getHappinessDetails, 
     getMaxWorkerSlots, 
     getMarketCapacity
 }
