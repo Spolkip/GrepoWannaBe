@@ -30,6 +30,7 @@ import Leaderboard from './leaderboard/Leaderboard';
 import AllianceProfile from './profile/AllianceProfile';
 import QuestsModal from './quests/QuestsModal';
 import MovementsPanel from './map/MovementsPanel';
+import SharedReportView from './SharedReportView'; // #comment Import the new component
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
 
@@ -40,6 +41,7 @@ const Game = ({ onBackToWorlds }) => {
     const [view, setView] = useState('city');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [panToCoords, setPanToCoords] = useState(null);
+    const [viewingReportId, setViewingReportId] = useState(null); // #comment State for shared report modal
 
     // #comment State for globally available map data
     const [movements, setMovements] = useState([]);
@@ -232,8 +234,13 @@ const Game = ({ onBackToWorlds }) => {
     
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
     const handleMessageAction = async (type, id) => {
-        if (type === 'accept_invite') await acceptAllianceInvitation(id);
-        else if (type === 'decline_invite') alert("Invitation declined.");
+        if (type === 'accept_invite') {
+            await acceptAllianceInvitation(id);
+        } else if (type === 'decline_invite') {
+            alert("Invitation declined.");
+        } else if (type === 'view_report') {
+            setViewingReportId(id);
+        }
     };
     const handleOpenProfile = (userId) => openModal('profile', { userId });
     const handleOpenAllianceProfile = (allianceId) => openModal('allianceProfile', { allianceId });
@@ -303,13 +310,15 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleMessageAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
-            {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} />}
+            {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} onActionClick={handleMessageAction} />}
             {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} />}
             {modalState.isProfileModalOpen && <ProfileView onClose={() => closeModal('profile')} viewUserId={modalState.viewingProfileId} onGoToCity={handleGoToCityFromProfile} onInviteToAlliance={sendAllianceInvitation} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isLeaderboardOpen && <Leaderboard onClose={() => closeModal('leaderboard')} onOpenProfile={handleOpenProfile} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}
             
+            {viewingReportId && <SharedReportView reportId={viewingReportId} onClose={() => setViewingReportId(null)} />}
+
             {/* #comment Render MovementsPanel globally so it works in both views */}
             {modalState.isMovementsPanelOpen && <MovementsPanel
                 movements={movements}

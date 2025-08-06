@@ -21,7 +21,7 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
     </div>
 );
 
-const AllianceForum = ({ onClose }) => {
+const AllianceForum = ({ onClose, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId } = useGame();
     const { playerAlliance } = useAlliance();
@@ -260,6 +260,18 @@ const AllianceForum = ({ onClose }) => {
         });
     };
 
+    const handleContentClick = (e) => {
+        const target = e.target;
+        if (target.classList.contains('bbcode-action')) {
+            const actionType = target.dataset.actionType;
+            const actionId = target.dataset.actionId;
+            if (actionType && actionId && onActionClick) {
+                onActionClick(actionType, actionId);
+                onClose();
+            }
+        }
+    };
+
     const visibleForums = useMemo(() => {
         return forums.filter(forum => !forum.isSecret || canViewSecretForums);
     }, [forums, canViewSecretForums]);
@@ -288,7 +300,7 @@ const AllianceForum = ({ onClose }) => {
                         <button onClick={() => setSelectedThread(null)} className="text-yellow-300 hover:text-white mr-4 text-sm">{'< Back'}</button>
                         <span className="font-bold">{selectedThread.title}</span>
                     </div>
-                    <div className="space-y-4 mb-4 flex-grow overflow-y-auto p-2">
+                    <div className="space-y-4 mb-4 flex-grow overflow-y-auto p-2" onClick={handleContentClick}>
                         {posts.map(post => (
                             <div key={post.id} className="post-item">
                                 <p className="post-author">{post.authorUsername}</p>

@@ -1,6 +1,6 @@
 // src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext'; // Import useGame
@@ -35,6 +35,7 @@ const ReportsView = ({ onClose }) => {
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
     const [activeTab, setActiveTab] = useState('Combat');
+    const [message, setMessage] = useState('');
     const tabs = {
         'Combat': ['attack', 'attack_village', 'attack_ruin'],
         'Reinforce': ['reinforce'],
@@ -45,7 +46,6 @@ const ReportsView = ({ onClose }) => {
 
     useEffect(() => {
         if (!currentUser || !worldId) return;
-        // #comment Update query to be world-specific
         const reportsQuery = query(collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports'), orderBy('timestamp', 'desc'));
         const unsubscribe = onSnapshot(reportsQuery, (snapshot) => {
             const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -57,18 +57,36 @@ const ReportsView = ({ onClose }) => {
     const handleSelectReport = async (report) => {
         setSelectedReport(report);
         if (!report.read) {
-            // #comment Update path to be world-specific
             const reportRef = doc(db, 'users', currentUser.uid, 'worlds', worldId, 'reports', report.id);
             await updateDoc(reportRef, { read: true });
         }
     };
 
     const handleDeleteReport = async (reportId) => {
-        // #comment Update path to be world-specific
         const reportRef = doc(db, 'users', currentUser.uid, 'worlds', worldId, 'reports', reportId);
         await deleteDoc(reportRef);
         if (selectedReport && selectedReport.id === reportId) {
             setSelectedReport(null);
+        }
+    };
+
+    // #comment Handle sharing a report
+    const handleShareReport = async (report) => {
+        setMessage('');
+        try {
+            // Create a copy of the report in a public collection
+            const sharedReportRef = doc(db, 'worlds', worldId, 'shared_reports', report.id);
+            await setDoc(sharedReportRef, report);
+
+            // Copy the BBCode to the clipboard
+            const bbCode = `[report]${report.id}[/report]`;
+            navigator.clipboard.writeText(bbCode);
+            
+            setMessage('Report shared! BBCode copied to clipboard.');
+            setTimeout(() => setMessage(''), 3000);
+        } catch (error) {
+            console.error("Error sharing report:", error);
+            setMessage('Failed to share report.');
         }
     };
 
@@ -77,7 +95,6 @@ const ReportsView = ({ onClose }) => {
         setSelectedReport(null);
     };
 
-    // (Rendering logic remains the same, no changes needed there)
     const getReportTitleColor = (report) => {
         switch (report.type) {
             case 'attack':
@@ -411,7 +428,10 @@ const ReportsView = ({ onClose }) => {
                                             <span className={`truncate pr-2 ${getReportTitleColor(report)}`}>
                                                 {getReportTitle(report)}
                                             </span>
-                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="delete-btn">&times;</button>
+                                            <div className="flex gap-2">
+                                                <button onClick={(e) => { e.stopPropagation(); handleShareReport(report); }} className="text-blue-500 hover:text-blue-400">Share</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="delete-btn">&times;</button>
+                                            </div>
                                         </div>
                                         <p className="text-xs text-gray-500">{report.timestamp?.toDate().toLocaleString()}</p>
                                     </li>
@@ -422,6 +442,7 @@ const ReportsView = ({ onClose }) => {
                         </ul>
                     </div>
                     <div className="w-2/3 p-4 overflow-y-auto">
+                        {message && <p className="text-center text-green-500 mb-2">{message}</p>}
                         {selectedReport ? (
                             <div>
                                 <h3 className="text-lg font-bold mb-2">{selectedReport.title || 'Report Details'}</h3>
