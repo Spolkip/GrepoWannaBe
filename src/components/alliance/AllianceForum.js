@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { db } from '../../firebase/config';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +7,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 import TextEditor from '../shared/TextEditor';
 import { parseBBCode } from '../../utils/bbcodeParser';
+import SharedReportView from '../SharedReportView'; // Import the component
 import './AllianceForum.css';
 
 // #comment a simple confirmation modal
@@ -45,6 +47,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     const [editingForum, setEditingForum] = useState(null);
     const postsEndRef = useRef(null);
+    const postContainerRef = useRef(null); // Ref for the post container
 
     const isLeader = currentUser?.uid === playerAlliance?.leader?.uid;
 
@@ -104,6 +107,19 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     useEffect(() => {
         postsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [posts]);
+    
+    // #comment Effect to render React components from BBCode placeholders
+    useEffect(() => {
+        if (postContainerRef.current) {
+            const placeholders = postContainerRef.current.querySelectorAll('.shared-report-placeholder');
+            placeholders.forEach(placeholder => {
+                const reportId = placeholder.dataset.reportId;
+                if (reportId) {
+                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} />, placeholder);
+                }
+            });
+        }
+    }, [posts, worldId]);
 
     // handle creation of a new forum tab
     const handleCreateForum = async (e) => {
@@ -300,7 +316,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                         <button onClick={() => setSelectedThread(null)} className="text-yellow-300 hover:text-white mr-4 text-sm">{'< Back'}</button>
                         <span className="font-bold">{selectedThread.title}</span>
                     </div>
-                    <div className="space-y-4 mb-4 flex-grow overflow-y-auto p-2" onClick={handleContentClick}>
+                    <div ref={postContainerRef} className="space-y-4 mb-4 flex-grow overflow-y-auto p-2" onClick={handleContentClick}>
                         {posts.map(post => (
                             <div key={post.id} className="post-item">
                                 <p className="post-author">{post.authorUsername}</p>

@@ -26,8 +26,9 @@ imageContexts.forEach(context => {
     });
 });
 
-const SharedReportView = ({ reportId, onClose }) => {
-    const { worldId } = useGame();
+const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded }) => {
+    const gameContext = useGame();
+    const worldId = propWorldId || gameContext?.worldId;
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -236,6 +237,18 @@ const SharedReportView = ({ reportId, onClose }) => {
                 return <p>This type of report cannot be shared.</p>;
         }
     };
+
+    if (isEmbedded) {
+        if (loading) return <div className="text-xs">Loading report...</div>;
+        if (error) return <div className="text-xs text-red-500">{error}</div>;
+        if (!report) return null;
+        return (
+            <div className="p-2 border border-yellow-800/50 my-2">
+                <h4 className="font-bold text-center text-sm mb-2">{report.title}</h4>
+                {renderReportOutcome(report)}
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center" onClick={onClose}>

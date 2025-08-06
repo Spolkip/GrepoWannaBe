@@ -55,8 +55,8 @@ export const parseBBCode = (text) => {
         return `<span class="bbcode-action" data-action-type="${type}" data-action-id="${id}">${text}</span>`;
     });
     
-    // [report]reportId[/report]
-    html = html.replace(/\[report\](.*?)\[\/report\]/gs, '<span class="bbcode-action" data-action-type="view_report" data-action-id="$1">View Report</span>');
+    // [report]reportId[/report] - This will now be a placeholder for React to render the component
+    html = html.replace(/\[report\](.*?)\[\/report\]/gs, '<div class="shared-report-placeholder" data-report-id="$1"></div>');
 
 
     return html;

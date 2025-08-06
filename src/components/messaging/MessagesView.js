@@ -5,6 +5,8 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy,
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { parseBBCode } from '../../utils/bbcodeParser';
+import SharedReportView from '../SharedReportView'; // Import the component
+import ReactDOM from 'react-dom';
 import './MessagesView.css';
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
@@ -17,6 +19,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [newRecipient, setNewRecipient] = useState('');
     const [isComposing, setIsComposing] = useState(false);
     const messagesEndRef = useRef(null);
+    const messageContainerRef = useRef(null); // Ref for the message container
 
     // #comment Autocomplete states
     const [allPlayers, setAllPlayers] = useState([]);
@@ -106,6 +109,19 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    // #comment Effect to render React components from BBCode placeholders
+    useEffect(() => {
+        if (messageContainerRef.current) {
+            const placeholders = messageContainerRef.current.querySelectorAll('.shared-report-placeholder');
+            placeholders.forEach(placeholder => {
+                const reportId = placeholder.dataset.reportId;
+                if (reportId) {
+                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} />, placeholder);
+                }
+            });
+        }
+    }, [messages, worldId]);
 
     const handleSelectConversation = async (convo) => {
         setSelectedConversation(convo);
@@ -281,7 +297,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                         <h3 className="font-bold text-lg font-title">{getOtherParticipant(selectedConversation)}</h3>
                                     )}
                                 </div>
-                                <div className="flex-grow overflow-y-auto p-4 space-y-4" onClick={handleContentClick}>
+                                <div ref={messageContainerRef} className="flex-grow overflow-y-auto p-4 space-y-4" onClick={handleContentClick}>
                                     {messages.map(msg => (
                                         <div key={msg.id} className={`flex ${msg.senderId === currentUser.uid ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`${msg.senderId === currentUser.uid ? 'papyrus-message-sent' : 'papyrus-message-received'}`}>
