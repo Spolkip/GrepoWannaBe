@@ -1,6 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import './styles/base.css';
+import './styles/components.css';
+import './styles/effects.css';
+import './styles/map.css';
+import './styles/panels.css';
+import './styles/tooltips.css';
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 
