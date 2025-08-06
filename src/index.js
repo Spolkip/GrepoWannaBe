@@ -7,6 +7,9 @@ import './styles/effects.css';
 import './styles/map.css';
 import './styles/panels.css';
 import './styles/tooltips.css';
+import './components/ReportsView.css'; // Import the new CSS file
+import './components/map/MovementModal.css'; // Import the new CSS file
+import './components/map/OtherCityModal.css'; // Import the new CSS file
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 

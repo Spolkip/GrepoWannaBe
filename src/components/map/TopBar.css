@@ -1,25 +1,27 @@
 /* src/components/map/TopBar.css */
 .top-bar-container {
-    background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
-    border-bottom: 2px solid #8B4513; /* saddlebrown */
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3; /* wheat */
+    border-bottom: 4px solid #8B4513; /* saddlebrown */
     box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    color: #4a2c2a;
 }
 
 .city-name-dropdown-btn {
-    background-color: rgba(0,0,0,0.3);
-    border: 1px solid #4a2c2a;
+    background-color: rgba(0,0,0,0.1);
+    border: 1px solid #8B4513;
     padding: 0.25rem 0.75rem;
     border-radius: 4px;
     transition: background-color 0.2s;
 }
 
 .city-name-dropdown-btn:hover {
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0,0,0,0.2);
 }
 
 .weather-display {
-    background: rgba(0,0,0,0.4);
-    border: 1px solid #4a2c2a;
+    background: rgba(0,0,0,0.1);
+    border: 1px solid #8B4513;
     border-radius: 9999px;
     padding: 0.25rem 0.75rem;
     display: flex;
@@ -29,13 +31,13 @@
 .resource-display {
     display: flex;
     align-items: center;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.1);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
-    border: 1px solid #4a2c2a;
+    border: 1px solid #8B4513;
 }
 .resource-display:hover {
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.2);
 }
 
 /* New styles for resource tooltip */
@@ -62,8 +64,8 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid #4a2c2a;
+    background: rgba(0,0,0,0.1);
+    border: 1px solid #8B4513;
     border-radius: 9999px;
     padding: 0.25rem 0.5rem;
     margin-right: 2rem; /* #comment Increased margin to add space */
@@ -97,7 +99,7 @@
     justify-content: center;
 }
 .activity-icon-image-container:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0,0,0,0.1);
 }
 
 /* Style for the image itself */
@@ -107,7 +109,7 @@
 }
 
 .activity-icon:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0,0,0,0.1);
 }
 
 .activity-badge {

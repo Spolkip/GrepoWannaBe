@@ -18,6 +18,23 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [isComposing, setIsComposing] = useState(false);
     const messagesEndRef = useRef(null);
 
+    // #comment Autocomplete states
+    const [allPlayers, setAllPlayers] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+
+    // #comment Fetch all players for autocomplete
+    useEffect(() => {
+        const fetchPlayers = async () => {
+            const usersRef = collection(db, 'users');
+            const snapshot = await getDocs(usersRef);
+            const players = snapshot.docs
+                .map(doc => doc.data().username)
+                .filter(username => username !== userProfile.username); // Exclude self
+            setAllPlayers(players);
+        };
+        fetchPlayers();
+    }, [userProfile.username]);
+
     const handleCompose = useCallback(async (recipientId = null, recipientUsername = null) => {
         if (recipientId && recipientUsername) {
             // #comment Check if a conversation already exists
@@ -184,6 +201,26 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             }
         }
     };
+    
+    // #comment Handle input change for autocomplete
+    const handleRecipientChange = (e) => {
+        const value = e.target.value;
+        setNewRecipient(value);
+        if (value.length > 0) {
+            const filteredSuggestions = allPlayers.filter(player =>
+                player.toLowerCase().startsWith(value.toLowerCase())
+            );
+            setSuggestions(filteredSuggestions);
+        } else {
+            setSuggestions([]);
+        }
+    };
+
+    // #comment Handle clicking a suggestion
+    const handleSuggestionClick = (username) => {
+        setNewRecipient(username);
+        setSuggestions([]);
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -219,15 +256,27 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                     <div className="w-2/3 flex flex-col">
                         {selectedConversation || isComposing ? (
                             <>
-                                <div className="p-4 border-b-2 border-[#8B4513]">
+                                <div className="p-4 border-b-2 border-[#8B4513] autocomplete-suggestions-container">
                                     {isComposing ? (
-                                        <input
-                                            type="text"
-                                            value={newRecipient}
-                                            onChange={(e) => setNewRecipient(e.target.value)}
-                                            placeholder="Scribe the recipient's name..."
-                                            className="w-full papyrus-input text-lg"
-                                        />
+                                        <div>
+                                            <input
+                                                type="text"
+                                                value={newRecipient}
+                                                onChange={handleRecipientChange}
+                                                placeholder="Scribe the recipient's name..."
+                                                className="w-full papyrus-input text-lg"
+                                                autoComplete="off"
+                                            />
+                                            {suggestions.length > 0 && (
+                                                <ul className="autocomplete-suggestions-list light">
+                                                    {suggestions.map(player => (
+                                                        <li key={player} onClick={() => handleSuggestionClick(player)}>
+                                                            {player}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
                                     ) : (
                                         <h3 className="font-bold text-lg font-title">{getOtherParticipant(selectedConversation)}</h3>
                                     )}

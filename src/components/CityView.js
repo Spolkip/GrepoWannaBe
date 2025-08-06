@@ -12,6 +12,7 @@ import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar'; // Import the TopBar
 import QuestsButton from './QuestsButton';
+import { useAlliance } from '../contexts/AllianceContext';
 
 const CityView = ({ 
     showMap, 
@@ -33,6 +34,7 @@ const CityView = ({
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame(); // Get worldState here
+    const { playerAlliance } = useAlliance();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
     const [isInstantUnits, setIsInstantUnits] = useState(false);
@@ -42,7 +44,7 @@ const CityView = ({
         cityGameState, setCityGameState, getUpgradeCost, getFarmCapacity,
         calculateUsedPopulation, getProductionRates, getWarehouseCapacity,
         getHospitalCapacity, saveGameState, getResearchCost, calculateHappiness,
-        getMaxWorkerSlots, getMarketCapacity, getHappinessDetails
+        getMaxWorkerSlots, getMarketCapacity,
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
 
     const { modalState, openModal: openCityModal, closeModal, setModalState } = useCityModalManager();
@@ -98,6 +100,7 @@ const CityView = ({
                 isAdmin={userProfile?.is_admin}
                 onToggleDummyCityPlacement={() => {}} // Not applicable in city view
                 onOpenCheats={() => openCityModal('isCheatMenuOpen')}
+                isAllianceMember={!!playerAlliance}
             />
 
             <div className="h-full w-full flex flex-col overflow-hidden">
@@ -106,7 +109,6 @@ const CityView = ({
                     gameState={cityGameState}
                     availablePopulation={availablePopulation}
                     happiness={happiness}
-                    getHappinessDetails={() => getHappinessDetails(cityGameState.buildings)}
                     worldState={worldState}
                     productionRates={productionRates}
                     // #comment Pass props for activity tracker

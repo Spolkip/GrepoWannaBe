@@ -294,11 +294,24 @@ const AllianceForum = ({ onClose }) => {
                     </tbody>
                 </table>
                 <div className="mt-4 flex justify-start gap-4">
-                    <button onClick={() => setIsCreatingThread(true)} className="forum-btn">New Thread</button>
+                    {forums.length > 0 && (
+                        <button onClick={() => setIsCreatingThread(true)} className="forum-btn">New Thread</button>
+                    )}
                 </div>
             </div>
         );
     };
+    
+    if (!playerAlliance) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
+                <div className="forum-container w-full max-w-lg h-auto flex flex-col items-center justify-center p-8" onClick={e => e.stopPropagation()}>
+                    <p className="text-2xl text-center">You must be in an alliance to view the forum.</p>
+                    <button onClick={onClose} className="forum-btn mt-6">Close</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>

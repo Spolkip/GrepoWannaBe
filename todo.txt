@@ -1,8 +1,5 @@
-- autocomplete player names on messages
-- add more bbcodes
 - fix glow on reports and messages and when to stop
-- make forum unavailable when the player isnt on an alliance
-- make the menu to become trasparent while the mouse isnt at it
+- add an option to make hidden tabs, add a permission for ranks to have access to that tab
 - add special buildings
 - different troops for different nationalities
 - add a request alliance system with options for each alliance to follow, like tarrifs, resources per some time etc

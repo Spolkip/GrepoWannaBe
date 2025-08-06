@@ -93,16 +93,19 @@ const MapView = ({
         if (!currentUser || !worldId) return;
 
         const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
-        const q = query(reportsRef, where('type', '==', 'scout'), where('scoutSucceeded', '==', true), orderBy('timestamp', 'desc'));
+        // #comment This query is simplified to avoid needing a composite index. Filtering for success is now done on the client-side.
+        const q = query(reportsRef, orderBy('timestamp', 'desc'));
         
         const snapshot = await getDocs(q);
         const latestScouts = {};
         snapshot.forEach(doc => {
             const report = doc.data();
-            // #comment The targetSlotId is now stored on the movement, which is copied to the report
-            const targetId = report.targetSlotId; 
-            if (targetId && !latestScouts[targetId]) {
-                latestScouts[targetId] = report.units;
+            // #comment Client-side filtering for successful scout reports.
+            if (report.type === 'scout' && report.scoutSucceeded) {
+                const targetId = report.targetSlotId; 
+                if (targetId && !latestScouts[targetId]) {
+                    latestScouts[targetId] = report.units;
+                }
             }
         });
         setScoutedCities(latestScouts);
@@ -324,6 +327,7 @@ const MapView = ({
                             unreadMessagesCount={unreadMessagesCount} 
                             isAdmin={userProfile?.is_admin} 
                             onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
+                            isAllianceMember={!!playerAlliance}
                         />
                         <SideInfoPanel gameState={gameState} className="absolute top-16 right-4 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>

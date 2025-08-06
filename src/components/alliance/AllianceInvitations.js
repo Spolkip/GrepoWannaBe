@@ -4,14 +4,33 @@ import { collection, query, where, onSnapshot, getDocs, doc } from 'firebase/fir
 import { db } from '../../firebase/config';
 import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AllianceInvitations = ({ isLeader }) => {
     const { worldId } = useGame();
     const { playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useAlliance();
+    const { userProfile } = useAuth();
     const [invitedPlayerName, setInvitedPlayerName] = useState('');
     const [pendingInvites, setPendingInvites] = useState([]);
     const [applications, setApplications] = useState([]);
     const [message, setMessage] = useState('');
+
+    // #comment Autocomplete states
+    const [allPlayers, setAllPlayers] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+
+    // #comment Fetch all players for autocomplete
+    useEffect(() => {
+        const fetchPlayers = async () => {
+            const usersRef = collection(db, 'users');
+            const snapshot = await getDocs(usersRef);
+            const players = snapshot.docs
+                .map(doc => doc.data().username)
+                .filter(username => username !== userProfile.username); // Exclude self
+            setAllPlayers(players);
+        };
+        fetchPlayers();
+    }, [userProfile.username]);
 
     useEffect(() => {
         if (!worldId || !playerAlliance?.id) return;
@@ -80,6 +99,26 @@ const AllianceInvitations = ({ isLeader }) => {
             setMessage(`Error: ${error.message}`);
         }
     };
+    
+    // #comment Handle input change for autocomplete
+    const handleInviteInputChange = (e) => {
+        const value = e.target.value;
+        setInvitedPlayerName(value);
+        if (value.length > 0) {
+            const filteredSuggestions = allPlayers.filter(player =>
+                player.toLowerCase().startsWith(value.toLowerCase())
+            );
+            setSuggestions(filteredSuggestions);
+        } else {
+            setSuggestions([]);
+        }
+    };
+
+    // #comment Handle clicking a suggestion
+    const handleSuggestionClick = (username) => {
+        setInvitedPlayerName(username);
+        setSuggestions([]);
+    };
 
     const canInvite = isLeader;
 
@@ -88,18 +127,28 @@ const AllianceInvitations = ({ isLeader }) => {
             <h3 className="text-xl font-bold mb-4">Invitations & Applications</h3>
             {!canInvite && <p className="text-red-400 mb-4">You do not have permission to manage invitations.</p>}
             {canInvite && (
-                <div className="mb-6 space-y-2">
+                <div className="mb-6 space-y-2 autocomplete-suggestions-container">
                     <p className="font-semibold">Invite a Player</p>
                     <div className="flex gap-2">
                         <input
                             type="text"
                             value={invitedPlayerName}
-                            onChange={(e) => setInvitedPlayerName(e.target.value)}
+                            onChange={handleInviteInputChange}
                             placeholder="Player Username"
                             className="w-full bg-gray-900 p-2 rounded"
+                            autoComplete="off"
                         />
                         <button onClick={handleInvite} className="btn btn-confirm flex-shrink-0">Invite</button>
                     </div>
+                     {suggestions.length > 0 && (
+                        <ul className="autocomplete-suggestions-list dark">
+                            {suggestions.map(player => (
+                                <li key={player} onClick={() => handleSuggestionClick(player)}>
+                                    {player}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

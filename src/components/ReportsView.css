@@ -1,0 +1,109 @@
+/* src/components/ReportsView.css */
+
+.reports-container {
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3; /* wheat */
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    color: #4a2c2a;
+    width: 90%;
+    max-width: 1000px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background-color: #1e3a8a;
+    color: #f0e68c;
+    border-bottom: 2px solid #cd853f;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #f0e68c;
+    font-size: 2.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.reports-tabs {
+    display: flex;
+    background-color: #1e3a8a;
+    padding: 4px;
+    border-bottom: 4px solid #8B4513;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #4a2c2a;
+    border: 2px solid #8B4513;
+    border-bottom: none;
+    margin-right: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    position: relative;
+    flex-shrink: 0; /* Prevent tabs from shrinking */
+}
+.tab-btn:last-child {
+    margin-right: 0;
+}
+.tab-btn.active {
+    background: #F5DEB3;
+}
+
+.reports-list .report-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #d2b48c;
+}
+.report-item:hover {
+    background-color: rgba(139, 69, 19, 0.1);
+}
+.report-item.selected {
+    background-color: rgba(139, 69, 19, 0.2);
+    border-left: 4px solid #8B4513;
+}
+.report-item.unread {
+    font-weight: bold;
+}
+.delete-btn {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.glowing-tab::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 10px;
+    height: 10px;
+    background-color: #fde047;
+    border-radius: 50%;
+    animation: glowing-tab-animation 1.5s infinite;
+}
+
+@keyframes glowing-tab-animation {
+    0% {
+        box-shadow: 0 0 3px #fde047;
+    }
+    50% {
+        box-shadow: 0 0 10px #fef08a, 0 0 5px #fef08a;
+    }
+    100% {
+        box-shadow: 0 0 3px #fde047;
+    }
+}

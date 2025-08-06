@@ -1,10 +1,15 @@
 import React from 'react';
 
-const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, onOpenCheats }) => {
+const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, onOpenCheats, isAllianceMember }) => {
     
     // #comment Helper component for the new button style
-    const NavButton = ({ icon, text, onClick, notificationCount, glowing }) => (
-        <button onClick={onClick} className={`sidebar-button ${glowing ? 'glowing-border' : ''}`}>
+    const NavButton = ({ icon, text, onClick, notificationCount, glowing, disabled, title }) => (
+        <button 
+            onClick={onClick} 
+            className={`sidebar-button ${glowing ? 'glowing-border' : ''}`}
+            disabled={disabled}
+            title={title}
+        >
             <div className="icon-container">{icon}</div>
             <span className="button-text">{text}</span>
             {notificationCount > 0 && (
@@ -21,7 +26,13 @@ const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenM
             
             <NavButton icon="✉️" text="Reports" onClick={onOpenReports} notificationCount={unreadReportsCount} glowing={unreadReportsCount > 0} />
             <NavButton icon="🛡️" text="Alliance" onClick={onOpenAlliance} />
-            <NavButton icon="📖" text="Forum" onClick={onOpenForum} />
+            <NavButton 
+                icon="📖" 
+                text="Forum" 
+                onClick={onOpenForum} 
+                disabled={!isAllianceMember}
+                title={!isAllianceMember ? "You must be in an alliance to access the forum" : "Forum"}
+            />
             <NavButton icon="💬" text="Messages" onClick={onOpenMessages} notificationCount={unreadMessagesCount} glowing={unreadMessagesCount > 0} />
             <NavButton icon="🏆" text="Leaderboard" onClick={onOpenLeaderboard} />
             <NavButton icon="👤" text="Profile" onClick={() => onOpenProfile()} />

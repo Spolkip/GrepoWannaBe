@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { calculateTravelTime, formatTravelTime } from '../../utils/travel';
 import unitConfig from '../../gameData/units.json';
 import { useGame } from '../../contexts/GameContext';
+import './MovementModal.css';
 
 // Import new panels
 import TradePanel from './TradePanel';
@@ -28,7 +29,7 @@ const WindInfo = ({ weather, windSpeed }) => {
     const weatherIcons = {
         Clear: '☀️',
         Rainy: '🌧️',
-        Windy: '�',
+        Windy: '💨',
         Foggy: '🌫️',
         Stormy: '⛈️',
     };
@@ -56,7 +57,7 @@ const WindInfo = ({ weather, windSpeed }) => {
     }, [weather]);
 
     return (
-        <div className="text-gray-400 text-sm mt-2 flex items-center justify-center" title={`${weather} | Wind: ${windSpeed.toFixed(2)} knots (${windRange})`}>
+        <div className="text-gray-500 text-sm mt-2 flex items-center justify-center" title={`${weather} | Wind: ${windSpeed.toFixed(2)} knots (${windRange})`}>
             <span>{weatherIcons[weather]} {weather} | Wind: {windRange}</span>
         </div>
     );
@@ -287,16 +288,15 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
         if (mode === 'attack' || mode === 'reinforce') {
             return (
                 <div className="space-y-4">
-                    {/* Land Units Section */}
                     {landUnitsList.length > 0 && (
-                        <div className="bg-gray-700 p-3 rounded-lg ">
-                            <h4 className="font-bold text-lg text-yellow-300">Land Units</h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-0 ">
+                        <div className="unit-selection-section">
+                            <h4 className="unit-selection-header">Land Units</h4>
+                            <div className="unit-grid">
                                 {landUnitsList.map(unit => (
-                                    <div key={unit.id} className="flex flex-col items-center p-1 rounded-lg w-12">
-                                        <div className="relative w-11 h-12 mb-1">
-                                            <img src={images[unit.image]} alt="" className="w-full h-full object-cover rounded-md " />
-                                             <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs px-1 rounded-tl-md font-bold">
+                                    <div key={unit.id} className="unit-item">
+                                        <div className="unit-image-container">
+                                            <img src={images[unit.image]} alt={unit.name} className="unit-image" />
+                                             <span className="unit-count-badge">
                                                 {unit.currentCount}
                                             </span>
                                         </div>
@@ -304,7 +304,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                             type="number"
                                             value={selectedUnits[unit.id] || 0}
                                             onChange={(e) => handleUnitChange(unit.id, e.target.value)}
-                                            className="w-12 bg-gray-900 text-white text-center rounded p-0.5 text-sm hide-number-spinners"
+                                            className="unit-input hide-number-spinners"
                                             min="0"
                                             max={unit.currentCount}
                                         />
@@ -314,16 +314,15 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                         </div>
                     )}
 
-                    {/* Naval Units Section */}
                     {navalUnitsList.length > 0 && (
-                        <div className="bg-gray-700 p-3 rounded-lg">
-                            <h4 className="font-bold text-lg text-yellow-300">Naval Units</h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+                        <div className="unit-selection-section">
+                            <h4 className="unit-selection-header">Naval Units</h4>
+                            <div className="unit-grid">
                                 {navalUnitsList.map(unit => (
-                                    <div key={unit.id} className="flex flex-col items-center p-1">
-                                        <div className="relative w-12 h-12">
-                                            <img src={images[unit.image]} alt={unit.name} className="w-full h-full object-cover rounded-md" />
-                                            <span className="absolute bottom-0 right-0 bg-gray-900 text-white text-xs px-1 rounded-tl-md font-bold">
+                                    <div key={unit.id} className="unit-item">
+                                        <div className="unit-image-container">
+                                            <img src={images[unit.image]} alt={unit.name} className="unit-image" />
+                                            <span className="unit-count-badge">
                                                 {unit.currentCount}
                                             </span>
                                         </div>
@@ -331,7 +330,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                             type="number"
                                             value={selectedUnits[unit.id] || 0}
                                             onChange={(e) => handleUnitChange(unit.id, e.target.value)}
-                                            className="w-12 bg-gray-900 text-white text-center rounded p-0.5 text-sm"
+                                            className="unit-input hide-number-spinners"
                                             min="0"
                                             max={unit.currentCount}
                                         />
@@ -341,10 +340,9 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                         </div>
                     )}
 
-                    {/* Transport Capacity Bar */}
                     {transportCapacity > 0 && (
                         <div className="mt-4 pt-4 border-t border-gray-700">
-                            <h4 className="text-lg text-white font-bold">Transport Capacity</h4>
+                            <h4 className="text-lg font-bold">Transport Capacity</h4>
                             <div className="w-full bg-gray-700 rounded-full h-6 relative">
                                 <div 
                                     className={`h-full rounded-full ${progressBarColor}`} 
@@ -355,25 +353,23 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                 </div>
                             </div>
                             {capacityProgress > 100 && (
-                                <p className="text-red-400 text-sm mt-1">Over capacity! Reduce land units or add more transport ships.</p>
+                                <p className="text-red-500 text-sm mt-1">Over capacity!</p>
                             )}
                         </div>
                     )}
 
-                                      {mode === 'attack' && selectedLandUnitsForFormation.length > 0 && (
+                    {mode === 'attack' && selectedLandUnitsForFormation.length > 0 && (
                         <div className="mt-4 pt-4 border-t border-gray-700">
-                            <h4 className="text-lg text-white font-bold mb-2">Attack Formation</h4>
-                            {/* Render dropdowns for each attack layer */}
+                            <h4 className="text-lg font-bold mb-2">Attack Formation</h4>
                             {attackLayerOptions.map(layer => (
                                 <div key={layer.name} className="flex flex-col space-y-2 mt-2">
-                                    <label className="text-white">{layer.label}:</label>
+                                    <label>{layer.label}:</label>
                                     <select
                                         value={attackLayers[layer.name]}
                                         onChange={(e) => handleLayerChange(layer.name, e.target.value)}
                                         className="bg-gray-700 text-white rounded p-2"
                                     >
                                         <option value="">None</option>
-                                        {/* Filter out units already selected in other layers AND units not selected for attack */}
                                         {selectedLandUnitsForFormation
                                             .filter(unitId => !Object.entries(attackLayers).some(([key, selectedUnit]) => selectedUnit === unitId && key !== layer.name))
                                             .map(unitId => (
@@ -414,17 +410,19 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent" onClick={onClose}>
-            <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-[400px] max-h-[90vh] border-2 border-gray-600" onClick={e => e.stopPropagation()}>
-                <h3 className="font-title text-2xl text-white mb-4 capitalize">{mode} {targetCity ? targetCity.cityName || targetCity.name : ''}</h3>
-                <div className="max-h-[70vh] overflow-y-auto pr-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
+            <div className="movement-modal-container" onClick={e => e.stopPropagation()}>
+                <h3 className="movement-modal-header capitalize">{mode} {targetCity ? targetCity.cityName || targetCity.name : ''}</h3>
+                <div className="movement-modal-content">
                     {renderContent()}
                 </div>
-                <p className="text-gray-400 mt-4">Travel Time: <span className="font-bold text-yellow-300">{finalTravelTime}</span></p>
-                {worldState?.weather && <WindInfo weather={worldState.weather} windSpeed={windSpeed} />}
-                <button onClick={handleSend} className="btn btn-primary w-full py-2 mt-6">
-                    Send
-                </button>
+                <div className="movement-modal-footer">
+                    <p className="mb-2">Travel Time: <span className="font-bold text-yellow-600">{finalTravelTime}</span></p>
+                    {worldState?.weather && <WindInfo weather={worldState.weather} windSpeed={windSpeed} />}
+                    <button onClick={handleSend} className="btn btn-primary w-full py-2 mt-4">
+                        Send
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -71,7 +71,7 @@ const TroopDisplay = ({ units, title }) => {
     };
 
     return (
-        <div className="w-48 bg-gray-800 p-2 flex flex-col gap-2 border-2 border-gray-600 rounded-lg shadow-lg relative">
+        <div className="troop-display-container">
             {renderTooltip()}
             {landUnits.length > 0 && (
                 <div className="troop-section">
@@ -98,7 +98,7 @@ const TroopDisplay = ({ units, title }) => {
                 </div>
             )}
             {(landUnits.length === 0 && navalUnits.length === 0 && mythicUnits.length === 0) && (
-                 <p className="text-gray-400 text-xs text-center p-4">No troops in this city.</p>
+                 <p className="text-gray-500 text-xs text-center p-4">No troops in this city.</p>
             )}
         </div>
     );

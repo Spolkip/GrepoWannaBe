@@ -90,18 +90,18 @@ const WeatherDisplay = ({ season, weather }) => {
     }, [weather]);
 
     const seasonColors = {
-        Spring: 'text-pink-400',
-        Summer: 'text-yellow-400',
-        Autumn: 'text-orange-400',
-        Winter: 'text-blue-400',
+        Spring: 'text-pink-600',
+        Summer: 'text-yellow-600',
+        Autumn: 'text-orange-600',
+        Winter: 'text-blue-600',
     };
 
     return (
         <div className="weather-display" title={`${season}, ${weather} | Wind: ${representativeSpeed.toFixed(1)} knots (${windRange})`}>
             <span className="text-xl mr-2">{weatherIcons[weather] || '❓'}</span>
-            <span className={`font-bold ${seasonColors[season] || 'text-white'}`}>{season}</span>
-            <span className="text-white mx-2">|</span>
-            <span className="font-bold text-white">{weather}</span>
+            <span className={`font-bold ${seasonColors[season] || 'text-inherit'}`}>{season}</span>
+            <span className="mx-2">|</span>
+            <span className="font-bold">{weather}</span>
         </div>
     );
 };
@@ -334,7 +334,7 @@ const TopBar = ({
                 ) : (
                     <div className="relative" onDoubleClick={handleDoubleClick}>
                         <button
-                            className="font-title text-xl text-white city-name-dropdown-btn"
+                            className="font-title text-xl city-name-dropdown-btn"
                             onClick={() => setIsCityListOpen(prev => !prev)}
                             title="Click to switch city | Double-click to rename"
                         >
@@ -360,8 +360,8 @@ const TopBar = ({
                     onMouseLeave={handleResourceMouseLeave}
                 >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
-                    <span className="text-yellow-300 font-bold">{Math.floor(resources.wood)}</span>
-                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.wood}/hr)</span>}
+                    <span className="text-yellow-800 font-bold">{Math.floor(resources.wood)}</span>
+                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
                     {hoveredResource === 'wood' && productionRates && (
                         <ResourceTooltip
                             resource="wood"
@@ -376,8 +376,8 @@ const TopBar = ({
                     onMouseLeave={handleResourceMouseLeave}
                 >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
-                    <span className="text-gray-300 font-bold">{Math.floor(resources.stone)}</span>
-                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.stone}/hr)</span>}
+                    <span className="text-gray-600 font-bold">{Math.floor(resources.stone)}</span>
+                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
                      {hoveredResource === 'stone' && productionRates && (
                         <ResourceTooltip
                             resource="stone"
@@ -392,8 +392,8 @@ const TopBar = ({
                     onMouseLeave={handleResourceMouseLeave}
                 >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
-                    <span className="text-blue-300 font-bold">{Math.floor(resources.silver)}</span>
-                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-400 ml-1">(+{productionRates.silver}/hr)</span>}
+                    <span className="text-blue-800 font-bold">{Math.floor(resources.silver)}</span>
+                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
                      {hoveredResource === 'silver' && productionRates && (
                         <ResourceTooltip
                             resource="silver"
@@ -404,11 +404,11 @@ const TopBar = ({
                 </div>
                 <div className="resource-display">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
-                    <span className="font-bold text-red-400">{Math.floor(availablePopulation)}</span>
+                    <span className="font-bold text-red-800">{Math.floor(availablePopulation)}</span>
                 </div>
                 <div className="resource-display" title={happinessTooltip}>
                     <span className="text-xl mr-2">{happinessIcon}</span>
-                    <span className="font-bold text-green-400">{happiness}%</span>
+                    <span className="font-bold text-green-800">{happiness}%</span>
                 </div>
             </div>
         </div>

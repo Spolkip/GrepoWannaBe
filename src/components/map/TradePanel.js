@@ -14,20 +14,20 @@ const TradePanel = ({ selectedResources, currentResources, handleResourceChange 
 
     return (
         <div className="space-y-2">
-            <h4 className="text-lg text-white font-bold mb-2">Select Resources</h4>
+            <h4 className="font-bold text-lg text-yellow-700 mb-2">Select Resources</h4>
             <div className="flex justify-around items-end w-full">
                 {Object.keys(selectedResources).map(resource =>
                     <div key={resource} className="flex flex-col items-center">
                         <img
                             src={resourceImages[resource]}
                             alt={resource}
-                            className="w-12 h-12 mb-1 bg-gray-700 rounded"
+                            className="w-12 h-12 mb-1 bg-black/10 rounded"
                         />
                         <input
                             type="number"
                             value={selectedResources[resource] || 0}
                             onChange={(e) => handleResourceChange(resource, e.target.value)}
-                            className="bg-gray-700 text-white text-center rounded p-1 w-14 hide-number-spinners"
+                            className="bg-white/50 border border-yellow-800/50 p-1 rounded text-gray-800 text-center w-20 hide-number-spinners"
                             min="0"
                             max={currentResources[resource]}
                         />

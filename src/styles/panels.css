@@ -1,27 +1,51 @@
 /* src/styles/panels.css */
 
 .troop-display-container {
-    @apply absolute top-1/2 right-4 -translate-y-1/2 w-48 bg-gray-900 bg-opacity-80 p-2 flex flex-col gap-2 border-2 border-gray-600 rounded-lg shadow-lg z-20;
-    backdrop-filter: blur(2px);
+    @apply w-48 p-2 flex flex-col gap-2 rounded-lg;
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3;
+    border: 4px solid #8B4513;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    color: #4a2c2a;
 }
 .troop-section {
-    @apply bg-black bg-opacity-20 rounded p-1;
+    @apply bg-black/5 rounded p-1;
 }
 .troop-section-header {
-    @apply text-yellow-500 font-bold text-sm text-center pb-1 mb-1 border-b border-gray-700;
+    @apply font-bold text-sm text-center pb-1 mb-1 border-b border-[#8B4513];
 }
 .troop-grid {
     @apply grid grid-cols-3 gap-1.5;
 }
 .troop-item {
-    @apply relative w-full aspect-square bg-gray-700 rounded-md overflow-hidden border border-gray-500 hover:border-yellow-400 transition-all;
+    @apply relative w-full aspect-square bg-black/10 rounded-md overflow-hidden border border-transparent hover:border-yellow-600 transition-all;
 }
 .troop-image {
     @apply w-full h-full object-cover;
 }
 .troop-count {
-    @apply absolute bottom-0 right-1 text-white font-bold text-base;
+    @apply absolute bottom-0 right-1 font-bold text-base;
+    color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 1);
+}
+
+.worship-display-container {
+    @apply w-44 p-2 rounded-lg;
+    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3;
+    border: 4px solid #8B4513;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    color: #4a2c2a;
+}
+
+.worship-display-header {
+    @apply font-title text-xl text-center mb-1;
+}
+
+.spells-button {
+    @apply rounded-full w-10 h-10 mt-2 mx-auto overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 flex justify-center items-center;
+    background-color: rgba(0,0,0,0.1);
+    border: 2px solid #8B4513;
 }
 
 .alliance-text-light {
