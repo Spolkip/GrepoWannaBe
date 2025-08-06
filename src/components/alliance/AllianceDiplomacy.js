@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
+import { db } from '../../firebase/config';
+import { collection, getDocs } from 'firebase/firestore';
+import { useGame } from '../../contexts/GameContext';
 
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
+    const { worldId } = useGame();
     const [targetTag, setTargetTag] = useState('');
     const [message, setMessage] = useState('');
 
@@ -19,6 +23,47 @@ const AllianceDiplomacy = () => {
     const [frequency, setFrequency] = useState('once');
     const [occurrences, setOccurrences] = useState(1);
     const [treatyMessage, setTreatyMessage] = useState('');
+
+    // Autocomplete states
+    const [allAlliances, setAllAlliances] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [activeSuggestionInput, setActiveSuggestionInput] = useState(null);
+
+    // Fetch all alliances for autocomplete
+    useEffect(() => {
+        if (!worldId) return;
+        const fetchAlliances = async () => {
+            const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
+            const snapshot = await getDocs(alliancesRef);
+            const alliances = snapshot.docs
+                .map(doc => doc.data().tag)
+                .filter(tag => tag !== playerAlliance.tag); // Exclude self
+            setAllAlliances(alliances);
+        };
+        fetchAlliances();
+    }, [worldId, playerAlliance.tag]);
+
+    const handleInputChange = (value, fieldSetter, fieldName) => {
+        fieldSetter(value);
+        setActiveSuggestionInput(fieldName);
+        if (value.length > 0) {
+            const filteredSuggestions = allAlliances.filter(tag =>
+                tag.toLowerCase().startsWith(value.toLowerCase())
+            );
+            setSuggestions(filteredSuggestions);
+        } else {
+            setSuggestions([]);
+        }
+    };
+
+    const handleSuggestionClick = (tag) => {
+        if (activeSuggestionInput === 'targetTag') setTargetTag(tag);
+        if (activeSuggestionInput === 'treatyTargetTag') setTreatyTargetTag(tag);
+        if (activeSuggestionInput === 'offerTargetAlliance') setOfferTargetAlliance(tag);
+        if (activeSuggestionInput === 'demandTargetAlliance') setDemandTargetAlliance(tag);
+        setSuggestions([]);
+        setActiveSuggestionInput(null);
+    };
 
     const handleRequest = async () => {
         if (!targetTag.trim()) return;
@@ -70,7 +115,6 @@ const AllianceDiplomacy = () => {
             };
             await proposeTreaty(treatyTargetTag.trim().toUpperCase(), details);
             setMessage(`Treaty proposed to [${treatyTargetTag.trim().toUpperCase()}]`);
-            // Reset form
             setTreatyTargetTag('');
         } catch (error) {
             setMessage(`Failed to propose treaty: ${error.message}`);
@@ -88,32 +132,31 @@ const AllianceDiplomacy = () => {
                 <h3 className="text-xl font-bold mb-4 border-b border-amber-300 pb-2">Diplomacy</h3>
                 <div className="bg-amber-50 p-4 rounded-lg mb-6 border border-amber-200">
                     <h4 className="font-bold mb-2 text-gray-900">Make a Declaration</h4>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 autocomplete-suggestions-container">
                         <input 
                             type="text"
                             value={targetTag}
-                            onChange={(e) => setTargetTag(e.target.value)}
+                            onChange={(e) => handleInputChange(e.target.value, setTargetTag, 'targetTag')}
                             placeholder="Enter Alliance Tag"
                             className="w-full bg-white text-gray-900 p-2 rounded border border-amber-300"
                             maxLength="5"
+                            autoComplete="off"
                         />
-                        <button 
-                            onClick={handleRequest} 
-                            className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white"
-                        >
-                            Ally Request
-                        </button>
-                        <button 
-                            onClick={handleDeclareEnemy} 
-                            className="btn btn-danger bg-red-600 hover:bg-red-700 text-white"
-                        >
-                            Declare Enemy
-                        </button>
+                        {suggestions.length > 0 && activeSuggestionInput === 'targetTag' && (
+                            <ul className="autocomplete-suggestions-list light">
+                                {suggestions.map(tag => (
+                                    <li key={tag} onClick={() => handleSuggestionClick(tag)}>
+                                        {tag}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <button onClick={handleRequest} className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white">Ally Request</button>
+                        <button onClick={handleDeclareEnemy} className="btn btn-danger bg-red-600 hover:bg-red-700 text-white">Declare Enemy</button>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Incoming Requests */}
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <h4 className="font-bold mb-2 text-gray-900">Incoming Requests</h4>
                         <ul className="space-y-2">
@@ -121,55 +164,33 @@ const AllianceDiplomacy = () => {
                                 <li key={req.id} className="bg-white text-gray-900 p-2 rounded flex justify-between items-center border border-amber-200">
                                     <span>{req.name} [{req.tag}]</span>
                                     <div className="flex gap-1">
-                                        <button 
-                                            onClick={() => handleResponse(req.id, 'accept')} 
-                                            className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1"
-                                        >
-                                            ✓
-                                        </button>
-                                        <button 
-                                            onClick={() => handleResponse(req.id, 'reject')} 
-                                            className="btn btn-danger bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1"
-                                        >
-                                            ✗
-                                        </button>
+                                        <button onClick={() => handleResponse(req.id, 'accept')} className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1">✓</button>
+                                        <button onClick={() => handleResponse(req.id, 'reject')} className="btn btn-danger bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1">✗</button>
                                     </div>
                                 </li>
                             )) : <li className="text-amber-800 italic">None</li>}
                         </ul>
                     </div>
                     
-                    {/* Allies */}
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <h4 className="font-bold mb-2 text-gray-900">Allies</h4>
                         <ul className="space-y-2">
                             {allies.length > 0 ? allies.map(ally => (
                                 <li key={ally.id} className="bg-white text-gray-900 p-2 rounded flex justify-between items-center border border-amber-200">
                                     <span>{ally.name} [{ally.tag}]</span>
-                                    <button 
-                                        onClick={() => handleResponse(ally.id, 'removeAlly')} 
-                                        className="btn btn-danger bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1"
-                                    >
-                                        Remove
-                                    </button>
+                                    <button onClick={() => handleResponse(ally.id, 'removeAlly')} className="btn btn-danger bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1">Remove</button>
                                 </li>
                             )) : <li className="text-amber-800 italic">None</li>}
                         </ul>
                     </div>
                     
-                    {/* Enemies */}
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <h4 className="font-bold mb-2 text-gray-900">Enemies</h4>
                         <ul className="space-y-2">
                             {enemies.length > 0 ? enemies.map(enemy => (
                                 <li key={enemy.id} className="bg-white text-gray-900 p-2 rounded flex justify-between items-center border border-amber-200">
                                     <span>{enemy.name} [{enemy.tag}]</span>
-                                    <button 
-                                        onClick={() => handleResponse(enemy.id, 'removeEnemy')} 
-                                        className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1"
-                                    >
-                                        Remove
-                                    </button>
+                                    <button onClick={() => handleResponse(enemy.id, 'removeEnemy')} className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white text-xs px-2 py-1">Remove</button>
                                 </li>
                             )) : <li className="text-amber-800 italic">None</li>}
                         </ul>
@@ -181,10 +202,18 @@ const AllianceDiplomacy = () => {
                 <h3 className="text-xl font-bold mb-4 border-b border-amber-300 pb-2">Treaties</h3>
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-bold mb-2 text-gray-900">Propose a Treaty</h4>
-                    <div className="space-y-3">
-                        <input type="text" value={treatyTargetTag} onChange={(e) => setTreatyTargetTag(e.target.value)} placeholder="Target Alliance Tag" className="w-full p-2 rounded border border-amber-300" />
+                    <div className="space-y-3 autocomplete-suggestions-container">
+                        <input type="text" value={treatyTargetTag} onChange={(e) => handleInputChange(e.target.value, setTreatyTargetTag, 'treatyTargetTag')} placeholder="Target Alliance Tag" className="w-full p-2 rounded border border-amber-300" autoComplete="off" />
+                        {suggestions.length > 0 && activeSuggestionInput === 'treatyTargetTag' && (
+                            <ul className="autocomplete-suggestions-list light">
+                                {suggestions.map(tag => (
+                                    <li key={tag} onClick={() => handleSuggestionClick(tag)}>
+                                        {tag}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                         
-                        {/* Offer Section */}
                         <div className="border p-2 rounded">
                             <h5 className="font-semibold">You Offer:</h5>
                             <select value={offerType} onChange={(e) => setOfferType(e.target.value)}>
@@ -198,17 +227,25 @@ const AllianceDiplomacy = () => {
                                     <input type="number" value={offerResources.silver} onChange={(e) => setOfferResources(prev => ({...prev, silver: parseInt(e.target.value) || 0}))} placeholder="Silver" />
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div className="grid grid-cols-2 gap-2 mt-2 autocomplete-suggestions-container">
                                     <select value={offerAllianceAction} onChange={(e) => setOfferAllianceAction(e.target.value)}>
                                         <option value="declare_war">Declare War On</option>
                                         <option value="form_pact">Form Pact With</option>
                                     </select>
-                                    <input type="text" value={offerTargetAlliance} onChange={(e) => setOfferTargetAlliance(e.target.value)} placeholder="Target Alliance Tag" />
+                                    <input type="text" value={offerTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setOfferTargetAlliance, 'offerTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    {suggestions.length > 0 && activeSuggestionInput === 'offerTargetAlliance' && (
+                                        <ul className="autocomplete-suggestions-list light">
+                                            {suggestions.map(tag => (
+                                                <li key={tag} onClick={() => handleSuggestionClick(tag)}>
+                                                    {tag}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             )}
                         </div>
 
-                        {/* Demand Section */}
                         <div className="border p-2 rounded">
                             <h5 className="font-semibold">You Demand:</h5>
                             <select value={demandType} onChange={(e) => setDemandType(e.target.value)}>
@@ -222,12 +259,21 @@ const AllianceDiplomacy = () => {
                                     <input type="number" value={demandResources.silver} onChange={(e) => setDemandResources(prev => ({...prev, silver: parseInt(e.target.value) || 0}))} placeholder="Silver" />
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                <div className="grid grid-cols-2 gap-2 mt-2 autocomplete-suggestions-container">
                                     <select value={demandAllianceAction} onChange={(e) => setDemandAllianceAction(e.target.value)}>
                                         <option value="declare_war">Declare War On</option>
                                         <option value="form_pact">Form Pact With</option>
                                     </select>
-                                    <input type="text" value={demandTargetAlliance} onChange={(e) => setDemandTargetAlliance(e.target.value)} placeholder="Target Alliance Tag" />
+                                    <input type="text" value={demandTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setDemandTargetAlliance, 'demandTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    {suggestions.length > 0 && activeSuggestionInput === 'demandTargetAlliance' && (
+                                        <ul className="autocomplete-suggestions-list light">
+                                            {suggestions.map(tag => (
+                                                <li key={tag} onClick={() => handleSuggestionClick(tag)}>
+                                                    {tag}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                             )}
                         </div>

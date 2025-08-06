@@ -1,8 +1,6 @@
 - make a way to share reports 
 - add special buildings
 - different troops for different nationalities
-- add an alliance bank
-- add a request alliance system with options for each alliance to follow, like tarrifs, resources per some time etc
 - god towns for pve events per sometime to be able to get war points and resources and someone can conquer it(pvp), starts as strange ruins, becomes a city, solves a puzzle(random per person)
 
 Later:

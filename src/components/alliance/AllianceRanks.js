@@ -7,7 +7,7 @@ import { useGame } from '../../contexts/GameContext';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const AllianceRanks = ({ alliance, isLeader }) => {
-    const { createAllianceRank, updateAllianceMemberRank, updateRanksOrder } = useAlliance();
+    const { createAllianceRank, updateAllianceMemberRank, updateRanksOrder, updateAllianceRank, deleteAllianceRank } = useAlliance();
     const { userProfile } = useAuth();
     const { worldId } = useGame();
     const [newRankName, setNewRankName] = useState('');
@@ -16,14 +16,19 @@ const AllianceRanks = ({ alliance, isLeader }) => {
     });
     const [message, setMessage] = useState('');
     const [editingMemberId, setEditingMemberId] = useState(null);
+    const [editingRank, setEditingRank] = useState(null);
 
     const allPermissions = Object.keys(newRankPermissions);
     
     const handleCreateRank = () => {
         if (!isLeader) return;
-        setMessage(''); // Clear previous messages
+        setMessage('');
         if (newRankName.trim() === '') {
             setMessage('Rank name cannot be empty.');
+            return;
+        }
+        if (alliance.ranks.some(r => r.name.toLowerCase() === newRankName.trim().toLowerCase())) {
+            setMessage('A rank with this name already exists.');
             return;
         }
         if (alliance.ranks.length >= 10) {
@@ -44,17 +49,15 @@ const AllianceRanks = ({ alliance, isLeader }) => {
         setMessage('Rank created!');
     };
 
-    // #comment handle updating a member's rank and logging the event
     const handleUpdateMemberRank = async (memberId, newRankId) => {
         if (!isLeader) return;
-        setMessage(''); // Clear previous messages
+        setMessage('');
         try {
             const memberToUpdate = alliance.members.find(m => m.uid === memberId);
             const oldRankId = memberToUpdate.rank;
 
             await updateAllianceMemberRank(memberId, newRankId);
 
-            // #comment Log event after successful update
             if (oldRankId !== newRankId) {
                 const oldRankIndex = alliance.ranks.findIndex(r => r.id === oldRankId);
                 const newRankIndex = alliance.ranks.findIndex(r => r.id === newRankId);
@@ -74,28 +77,27 @@ const AllianceRanks = ({ alliance, isLeader }) => {
             }
 
             setMessage('Member rank updated successfully!');
-            setTimeout(() => setMessage(''), 3000); // Clear message after 3 seconds
+            setTimeout(() => setMessage(''), 3000);
         } catch (error) {
             setMessage('Failed to update rank. Please try again.');
             console.error('Error updating member rank:', error);
         }
     };
     
-    // #comment handle moving a rank up or down in the hierarchy
     const handleMoveRank = async (index, direction) => {
-        if (!isLeader || index === 0) return; // Can't move the Leader rank
+        if (!isLeader || index === 0) return;
 
         const newRanks = [...alliance.ranks];
         const rankToMove = newRanks[index];
 
-        if (direction === 'up' && index > 1) { // Can't move above the rank just below Leader
+        if (direction === 'up' && index > 1) {
             newRanks.splice(index, 1);
             newRanks.splice(index - 1, 0, rankToMove);
         } else if (direction === 'down' && index < newRanks.length - 1) {
             newRanks.splice(index, 1);
             newRanks.splice(index + 1, 0, rankToMove);
         } else {
-            return; // Invalid move
+            return;
         }
 
         try {
@@ -108,8 +110,44 @@ const AllianceRanks = ({ alliance, isLeader }) => {
         }
     };
 
+    const handleStartEdit = (rank) => {
+        setEditingRank({ ...rank });
+    };
 
-    // #comment Generates a comma-separated string of permissions for the tooltip
+    const handleCancelEdit = () => {
+        setEditingRank(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingRank || !editingRank.name.trim()) {
+            setMessage("Rank name cannot be empty.");
+            return;
+        }
+        if (alliance.ranks.some(r => r.name.toLowerCase() === editingRank.name.trim().toLowerCase() && r.id !== editingRank.id)) {
+            setMessage('A rank with this name already exists.');
+            return;
+        }
+        try {
+            await updateAllianceRank(editingRank.id, { name: editingRank.name, permissions: editingRank.permissions });
+            setMessage("Rank updated successfully.");
+            setEditingRank(null);
+        } catch (error) {
+            setMessage(`Error updating rank: ${error.message}`);
+        }
+    };
+
+    const handleDeleteRank = async (rankId) => {
+        setMessage('');
+        if (window.confirm(`Are you sure you want to delete the rank "${rankId}"? This cannot be undone.`)) {
+            try {
+                await deleteAllianceRank(rankId);
+                setMessage("Rank deleted successfully.");
+            } catch (error) {
+                setMessage(`Error deleting rank: ${error.message}`);
+            }
+        }
+    };
+
     const getPermissionsText = (permissions) => {
         const enabledPermissions = Object.entries(permissions || {})
             .filter(([, value]) => value)
@@ -139,32 +177,52 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                     <h4 className="font-semibold text-lg mb-2 text-gray-900">Current Ranks</h4>
                     <ul className="space-y-2">
                         {alliance.ranks.map((rank, index) => (
-                            <li 
-                                key={rank.id} 
-                                className="bg-white text-gray-900 p-3 rounded border border-amber-200 flex justify-between items-center"
-                            >
-                                <div title={getPermissionsText(rank.permissions)}>
-                                    <p className="font-bold">{rank.name}</p>
-                                    <p className="text-xs text-amber-800 mt-1">
-                                        {getPermissionsText(rank.permissions)}
-                                    </p>
-                                </div>
-                                {isLeader && rank.id !== 'Leader' && (
-                                    <div className="flex flex-col">
-                                        <button 
-                                            onClick={() => handleMoveRank(index, 'up')} 
-                                            disabled={index <= 1} // Disable for the first rank after Leader
-                                            className="text-gray-600 hover:text-black disabled:opacity-50"
-                                        >
-                                            ▲
-                                        </button>
-                                        <button 
-                                            onClick={() => handleMoveRank(index, 'down')} 
-                                            disabled={index === alliance.ranks.length - 1} // Disable for the last rank
-                                            className="text-gray-600 hover:text-black disabled:opacity-50"
-                                        >
-                                            ▼
-                                        </button>
+                            <li key={rank.id} className="bg-white text-gray-900 p-3 rounded border border-amber-200">
+                                {editingRank?.id === rank.id ? (
+                                    <div className="w-full">
+                                        <input
+                                            type="text"
+                                            value={editingRank.name}
+                                            onChange={(e) => setEditingRank(prev => ({ ...prev, name: e.target.value }))}
+                                            className="w-full bg-amber-50 text-gray-900 p-2 rounded border border-amber-300 mb-2"
+                                        />
+                                        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                                            {allPermissions.map(perm => (
+                                                <div key={perm} className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        id={`edit-${perm}`}
+                                                        checked={editingRank.permissions[perm]}
+                                                        onChange={(e) => setEditingRank(prev => ({ ...prev, permissions: { ...prev.permissions, [perm]: e.target.checked } }))}
+                                                        className="mr-2"
+                                                    />
+                                                    <label htmlFor={`edit-${perm}`} className="capitalize text-gray-900">{perm.replace(/([A-Z])/g, ' $1')}</label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={handleCancelEdit} className="btn btn-secondary">Cancel</button>
+                                            <button onClick={handleSaveEdit} className="btn btn-confirm">Save</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-between items-center w-full">
+                                        <div title={getPermissionsText(rank.permissions)}>
+                                            <p className="font-bold">{rank.name}</p>
+                                            <p className="text-xs text-amber-800 mt-1">{getPermissionsText(rank.permissions)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {isLeader && rank.id !== 'Leader' && (
+                                                <>
+                                                    <button onClick={() => handleStartEdit(rank)} className="text-xs btn btn-primary px-2 py-1">Edit</button>
+                                                    <button onClick={() => handleDeleteRank(rank.id)} className="text-xs btn btn-danger px-2 py-1">Delete</button>
+                                                    <div className="flex flex-col">
+                                                        <button onClick={() => handleMoveRank(index, 'up')} disabled={index <= 1} className="text-gray-600 hover:text-black disabled:opacity-50">▲</button>
+                                                        <button onClick={() => handleMoveRank(index, 'down')} disabled={index === alliance.ranks.length - 1} className="text-gray-600 hover:text-black disabled:opacity-50">▼</button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </li>
@@ -193,23 +251,16 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                                             onChange={(e) => setNewRankPermissions(prev => ({ ...prev, [perm]: e.target.checked }))}
                                             className="mr-2"
                                         />
-                                        <label htmlFor={perm} className="capitalize text-gray-900">
-                                            {perm.replace(/([A-Z])/g, ' $1')}
-                                        </label>
+                                        <label htmlFor={perm} className="capitalize text-gray-900">{perm.replace(/([A-Z])/g, ' $1')}</label>
                                     </div>
                                 ))}
                             </div>
-                            <button 
-                                onClick={handleCreateRank} 
-                                className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white w-full"
-                            >
-                                Create Rank
-                            </button>
+                            <button onClick={handleCreateRank} className="btn btn-confirm bg-green-600 hover:bg-green-700 text-white w-full">Create Rank</button>
                         </div>
                     </div>
                 )}
                 
-                {message && <p className="text-green-700 mt-2 text-sm">{message}</p>}
+                {message && <p className="text-amber-800 mt-2 text-sm text-center">{message}</p>}
 
                 <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-semibold text-lg mb-2 text-gray-900">Assign Ranks</h4>

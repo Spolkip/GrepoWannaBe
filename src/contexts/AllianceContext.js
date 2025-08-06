@@ -398,7 +398,7 @@ export const AllianceProvider = ({ children }) => {
         await updateDoc(allianceDocRef, { ranks: newRanks });
     };
 
-    // #comment function to update a specific rank's details
+    // #comment function to update a specific rank's details (name and permissions)
     const updateAllianceRank = async (rankId, updatedRankData) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
             throw new Error("You don't have permission to do this.");
@@ -406,9 +406,31 @@ export const AllianceProvider = ({ children }) => {
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         
         const newRanks = playerAlliance.ranks.map(rank => 
-            rank.id === rankId ? { ...rank, ...updatedRankData } : rank
+            rank.id === rankId ? { ...rank, ...updatedRankData, id: updatedRankData.name, name: updatedRankData.name } : rank
         );
+    
+        // Also update members who have the old rank name
+        const updatedMembers = playerAlliance.members.map(member => 
+            member.rank === rankId ? { ...member, rank: updatedRankData.name } : member
+        );
+    
+        await updateDoc(allianceDocRef, { ranks: newRanks, members: updatedMembers });
+    };
 
+    // #comment function to delete a rank
+    const deleteAllianceRank = async (rankId) => {
+        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+            throw new Error("You don't have permission to do this.");
+        }
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+    
+        // Cannot delete if any member has this rank
+        if (playerAlliance.members.some(m => m.rank === rankId)) {
+            throw new Error("Cannot delete rank as it is still assigned to members.");
+        }
+        
+        const newRanks = playerAlliance.ranks.filter(rank => rank.id !== rankId);
+    
         await updateDoc(allianceDocRef, { ranks: newRanks });
     };
 
@@ -687,31 +709,32 @@ export const AllianceProvider = ({ children }) => {
         });
     };
     
-    // #comment Donate resources to the alliance bank
+    // #comment Donate resources to the alliance bank and log the event
     const donateToBank = async (donation) => {
         if (!playerAlliance) throw new Error("You are not in an alliance.");
         if (Object.values(donation).every(v => v === 0)) throw new Error("Donation amount cannot be zero.");
-
+    
         const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const logRef = doc(collection(allianceDocRef, 'bank_logs'));
-
+        const eventRef = doc(collection(allianceDocRef, 'events'));
+    
         await runTransaction(db, async (transaction) => {
             const cityDoc = await transaction.get(cityDocRef);
             const allianceDoc = await transaction.get(allianceDocRef);
             if (!cityDoc.exists() || !allianceDoc.exists()) throw new Error("City or Alliance data not found.");
-
+    
             const cityData = cityDoc.data();
             const allianceData = allianceDoc.data();
             const newCityResources = { ...cityData.resources };
-            const newBank = { ...allianceData.bank };
-
+            const newBank = { ...(allianceData.bank || { wood: 0, stone: 0, silver: 0 }) };
+    
             for (const resource in donation) {
-                if (newCityResources[resource] < donation[resource]) throw new Error(`Not enough ${resource}.`);
+                if ((newCityResources[resource] || 0) < donation[resource]) throw new Error(`Not enough ${resource}.`);
                 newCityResources[resource] -= donation[resource];
                 newBank[resource] = (newBank[resource] || 0) + donation[resource];
             }
-
+    
             transaction.update(cityDocRef, { resources: newCityResources });
             transaction.update(allianceDocRef, { bank: newBank });
             transaction.set(logRef, {
@@ -720,47 +743,64 @@ export const AllianceProvider = ({ children }) => {
                 resources: donation,
                 timestamp: serverTimestamp()
             });
+    
+            const donationAmounts = Object.entries(donation).filter(([,a]) => a > 0).map(([r,a]) => `${a.toLocaleString()} ${r}`).join(', ');
+            transaction.set(eventRef, {
+                type: 'bank_donation',
+                text: `${userProfile.username} donated ${donationAmounts} to the bank.`,
+                timestamp: serverTimestamp()
+            });
         });
     };
 
-    // #comment Distribute resources from the alliance bank to a member
+    // #comment Distribute resources from the alliance bank to a member and log the event
     const distributeFromBank = async (targetMemberUid, distribution) => {
         if (!playerAlliance) throw new Error("You are not in an alliance.");
         if (Object.values(distribution).every(v => v === 0)) throw new Error("Distribution amount cannot be zero.");
-
+    
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const logRef = doc(collection(allianceDocRef, 'bank_logs'));
-
+        const eventRef = doc(collection(allianceDocRef, 'events'));
+    
         const targetCitiesRef = collection(db, `users/${targetMemberUid}/games`, worldId, 'cities');
         const q = query(targetCitiesRef, limit(1));
         const targetCitiesSnap = await getDocs(q);
         if (targetCitiesSnap.empty) throw new Error("Target member has no cities in this world.");
         const targetCityDoc = targetCitiesSnap.docs[0];
         const targetCityRef = targetCityDoc.ref;
-
+    
         await runTransaction(db, async (transaction) => {
             const allianceDoc = await transaction.get(allianceDocRef);
             const targetCitySnap = await transaction.get(targetCityRef);
             if (!allianceDoc.exists() || !targetCitySnap.exists()) throw new Error("Alliance or target city data not found.");
-
+    
             const allianceData = allianceDoc.data();
             const targetCityData = targetCitySnap.data();
-            const newBank = { ...allianceData.bank };
+            const newBank = { ...(allianceData.bank || { wood: 0, stone: 0, silver: 0 }) };
             const newCityResources = { ...targetCityData.resources };
-
+    
             for (const resource in distribution) {
-                if (newBank[resource] < distribution[resource]) throw new Error(`Not enough ${resource} in the bank.`);
+                if ((newBank[resource] || 0) < distribution[resource]) throw new Error(`Not enough ${resource} in the bank.`);
                 newBank[resource] -= distribution[resource];
                 newCityResources[resource] = (newCityResources[resource] || 0) + distribution[resource];
             }
-
+    
             transaction.update(allianceDocRef, { bank: newBank });
             transaction.update(targetCityRef, { resources: newCityResources });
+    
+            const targetUsername = allianceData.members.find(m => m.uid === targetMemberUid)?.username || 'Unknown';
             transaction.set(logRef, {
                 type: 'distribution',
                 from: userProfile.username,
-                to: allianceData.members.find(m => m.uid === targetMemberUid)?.username || 'Unknown',
+                to: targetUsername,
                 resources: distribution,
+                timestamp: serverTimestamp()
+            });
+    
+            const distributionAmounts = Object.entries(distribution).filter(([,a]) => a > 0).map(([r,a]) => `${a.toLocaleString()} ${r}`).join(', ');
+            transaction.set(eventRef, {
+                type: 'bank_distribution',
+                text: `${userProfile.username} distributed ${distributionAmounts} to ${targetUsername}.`,
                 timestamp: serverTimestamp()
             });
         });
@@ -865,6 +905,7 @@ export const AllianceProvider = ({ children }) => {
         updateAllianceMemberRank,
         updateRanksOrder,
         updateAllianceRank,
+        deleteAllianceRank,
         applyToAlliance,
         sendAllyRequest,
         declareEnemy,
