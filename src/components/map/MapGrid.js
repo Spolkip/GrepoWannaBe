@@ -7,7 +7,7 @@ import { useGame } from '../../contexts/GameContext';
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
     const { playerCities } = useGame();
 
     // #comment Create a comprehensive lookup for all map locations by their various IDs for the MovementIndicator.
@@ -41,7 +41,7 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
             let tileContent;
             switch (tile.type) {
                 case 'city_slot':
-                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} gameSettings={gameSettings} />;
+                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} gameSettings={gameSettings} cityPoints={cityPoints} scoutedCities={scoutedCities} />;
                     break;
                 case 'village':
                     tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />;

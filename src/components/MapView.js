@@ -1,10 +1,10 @@
 // src/components/MapView.js
-import React, { useRef, useMemo, useCallback, useEffect } from 'react';
+import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
 
 // UI Components
 import SidebarNav from './map/SidebarNav';
@@ -62,8 +62,57 @@ const MapView = ({
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
-    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints } = useCityState(worldId);
+    const [cityPoints, setCityPoints] = useState({});
+    const [scoutedCities, setScoutedCities] = useState({});
     
+    // #comment Fetch points for all cities on the map when the component mounts.
+    const fetchAllCityPoints = useCallback(async () => {
+        if (!worldId) return;
+    
+        const points = {};
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+    
+        for (const userDoc of usersSnapshot.docs) {
+            const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
+            const citiesSnapshot = await getDocs(citiesRef);
+            for (const cityDoc of citiesSnapshot.docs) {
+                const cityData = cityDoc.data();
+                if (cityData.slotId) {
+                    const totalPoints = calculateTotalPoints(cityData);
+                    points[cityData.slotId] = totalPoints;
+                }
+            }
+        }
+        setCityPoints(points);
+    }, [worldId, calculateTotalPoints]);
+
+    // #comment Fetch latest successful scout reports for all cities.
+    const fetchScoutedData = useCallback(async () => {
+        if (!currentUser || !worldId) return;
+
+        const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
+        const q = query(reportsRef, where('type', '==', 'scout'), where('scoutSucceeded', '==', true), orderBy('timestamp', 'desc'));
+        
+        const snapshot = await getDocs(q);
+        const latestScouts = {};
+        snapshot.forEach(doc => {
+            const report = doc.data();
+            // #comment The targetSlotId is now stored on the movement, which is copied to the report
+            const targetId = report.targetSlotId; 
+            if (targetId && !latestScouts[targetId]) {
+                latestScouts[targetId] = report.units;
+            }
+        });
+        setScoutedCities(latestScouts);
+    }, [currentUser, worldId]);
+    
+    useEffect(() => {
+        fetchAllCityPoints();
+        fetchScoutedData();
+    }, [fetchAllCityPoints, fetchScoutedData]);
+
     useEffect(() => {
         if (panToCoords) {
             goToCoordinates(panToCoords.x, panToCoords.y);
@@ -79,7 +128,7 @@ const MapView = ({
 
     const { availablePopulation, happiness, marketCapacity } = useMemo(() => {
         if (!gameState?.buildings) return { availablePopulation: 0, happiness: 0, marketCapacity: 0 };
-        const maxPop = getFarmCapacity(gameState.buildings.farm.level);
+        const maxPop = getFarmCapacity(gameState.buildings.farm?.level);
         const usedPop = calculateUsedPopulation(gameState.buildings, gameState.units);
         const availablePop = maxPop - usedPop;
         const happinessValue = calculateHappiness(gameState.buildings);
@@ -285,7 +334,26 @@ const MapView = ({
                         {/* Wrapper to control stacking context of the map grid */}
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
-                                <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlotsForGrid} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
+                                <MapGrid 
+                                    mapGrid={mapGrid} 
+                                    worldState={worldState} 
+                                    pan={pan} 
+                                    zoom={zoom} 
+                                    viewportSize={viewportSize} 
+                                    onCitySlotClick={onCitySlotClick} 
+                                    onVillageClick={onVillageClick} 
+                                    onRuinClick={onRuinClick} 
+                                    isPlacingDummyCity={isPlacingDummyCity} 
+                                    movements={movements} 
+                                    combinedSlots={combinedSlotsForGrid} 
+                                    villages={villages} 
+                                    ruins={ruins} 
+                                    playerAlliance={playerAlliance} 
+                                    conqueredVillages={conqueredVillages} 
+                                    gameSettings={gameSettings}
+                                    cityPoints={cityPoints}
+                                    scoutedCities={scoutedCities}
+                                />
                             </div>
                         </div>
                     </div>

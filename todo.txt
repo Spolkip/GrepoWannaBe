@@ -1,11 +1,7 @@
-- add points and max buildings
-- fix population and resource max
-- make hapiness generate and balance with upkeep
 - autocomplete player names on messages
 - add more bbcodes
 - fix glow on reports and messages and when to stop
 - make forum unavailable when the player isnt on an alliance
-- add points to show on city hover
 - make the menu to become trasparent while the mouse isnt at it
 - add special buildings
 - different troops for different nationalities
@@ -21,5 +17,6 @@ Later:
 - be able to surrender if you have one city and you are about to lose it 
 Maybe: 
 - add cities inside the island
+- fix population and resource max
 
 Bugs:

@@ -1,4 +1,3 @@
-// src/components/map/TopBar.js
 import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
@@ -126,7 +125,6 @@ const TopBar = ({
     gameState,
     availablePopulation,
     happiness,
-    getHappinessDetails,
     worldState,
     productionRates,
     // #comment Props for the activity tracker
@@ -201,14 +199,29 @@ const TopBar = ({
         if (!movements) return 0;
         return movements.filter(m => !isTradeMovement(m)).length;
     }, [movements]);
+    
+    // #comment Memoized calculation for the happiness tooltip
+    const happinessTooltip = useMemo(() => {
+        if (!gameState?.buildings) return `Happiness: ${happiness}%`;
+
+        const baseHappiness = (gameState.buildings.senate?.level || 0) * 5;
+        let workerCount = 0;
+        const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
+        productionBuildings.forEach(buildingId => {
+            if (gameState.buildings[buildingId]?.workers) {
+                workerCount += gameState.buildings[buildingId].workers;
+            }
+        });
+        const happinessPenalty = workerCount * 3;
+
+        return `Happiness: ${happiness}%\nBase: ${baseHappiness}%\nWorker Penalty: -${happinessPenalty}%`;
+    }, [gameState, happiness]);
+
 
     if (!gameState) return null;
     const { resources, cityName } = gameState;
 
-    const happinessDetails = getHappinessDetails ? getHappinessDetails() : { base: 0, penalty: 0 };
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
-    const happinessTooltip = `Happiness: ${happiness}%\nBase: +${happinessDetails.base} (from Senate)\nUpkeep: -${happinessDetails.penalty} (from workers)`;
-
 
     const handleCitySelect = (cityId) => {
         setActiveCityId(cityId);

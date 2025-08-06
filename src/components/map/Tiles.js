@@ -2,6 +2,15 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ruinImage from '../../images/ruin_new.png';
+import unitConfig from '../../gameData/units.json';
+
+// #comment Dynamically import all unit images so they can be used in the tooltip
+const images = {};
+const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+imageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    images[key] = imageContext(item);
+});
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
@@ -19,42 +28,81 @@ export const LandTile = React.memo(({ gameSettings = defaultSettings }) => {
     return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
 });
 
-export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings }) => {
+export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
     const { currentUser } = useAuth();
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
 
+    // #comment Helper to format the list of units for the tooltip with images.
+    const formatUnitsForTooltip = (units) => {
+        if (!units || Object.keys(units).length === 0) return '';
+        const unitEntries = Object.entries(units)
+            .filter(([, count]) => count > 0)
+            .map(([id, count]) => {
+                const unit = unitConfig[id];
+                if (!unit) return '';
+                const imageUrl = images[unit.image];
+                return `
+                    <div class="tooltip-troop-item">
+                        <img src="${imageUrl}" alt="${unit.name}" class="tooltip-troop-image" />
+                        <span class="tooltip-troop-count">${count}</span>
+                    </div>
+                `;
+            })
+            .join('');
+        if (!unitEntries) return '';
+        return `<hr class="tooltip-hr"><b>City Units</b><br><div class="tooltip-troop-grid">${unitEntries}</div>`;
+    };
+
     if (slotData.ownerId) {
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
+        const points = cityPoints[slotData.id] ? cityPoints[slotData.id].toLocaleString() : '...';
 
+        let troopsHTML = '';
+        // #comment Check for troops in own city or in scouted reports for other cities
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
-            tooltipText = `Your City: ${slotData.cityName}`;
-        } else if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
-            const allies = playerAlliance.diplomacy?.allies || [];
-            const enemies = playerAlliance.diplomacy?.enemies || [];
+            troopsHTML = formatUnitsForTooltip(slotData.units);
+        } else if (scoutedCities && scoutedCities[slotData.id]) {
+            troopsHTML = formatUnitsForTooltip(scoutedCities[slotData.id]);
+        }
 
-            if (cityAllianceTag.toUpperCase() === playerAlliance.tag.toUpperCase()) {
-                slotClass = 'alliance-city';
-                tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
-            } else if (allies.some(ally => ally && ally.tag && ally.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
-                slotClass = 'ally-city';
-                tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
-            } else if (enemies.some(enemy => enemy && enemy.tag && enemy.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
-                slotClass = 'enemy-city';
-                tooltipText = `Enemy: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
+        // #comment Construct the base info part of the tooltip
+        const baseInfo = `
+            <div class="tooltip-info-section">
+                <b>${slotData.cityName}</b><br>
+                Owner: ${ownerName}<br>
+                Points: ${points}<br>
+                Alliance: ${slotData.allianceName || 'None'}
+            </div>
+        `;
+
+        // #comment Combine base info with troops if available
+        tooltipText = `${baseInfo}${troopsHTML}`;
+        
+        // #comment Determine the city color based on diplomatic status if it's not the player's city
+        if (slotData.ownerId !== currentUser.uid) {
+            if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
+                const allies = playerAlliance.diplomacy?.allies || [];
+                const enemies = playerAlliance.diplomacy?.enemies || [];
+
+                if (cityAllianceTag.toUpperCase() === playerAlliance.tag.toUpperCase()) {
+                    slotClass = 'alliance-city';
+                } else if (allies.some(ally => ally && ally.tag && ally.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
+                    slotClass = 'ally-city';
+                } else if (enemies.some(enemy => enemy && enemy.tag && enemy.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
+                    slotClass = 'enemy-city';
+                } else {
+                    slotClass = 'neutral-city';
+                }
+            } else if (slotData.ownerId.startsWith('dummy_')) {
+                slotClass = 'dummy-city-plot';
             } else {
                 slotClass = 'neutral-city';
-                tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
             }
-        } else if (slotData.ownerId.startsWith('dummy_')) {
-            slotClass = 'dummy-city-plot';
-            tooltipText = `Dummy City: ${slotData.cityName}<br>Owner: ${ownerName}`;
-        } else {
-            slotClass = 'neutral-city';
-            tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
         }
+
     } else if (isPlacingDummyCity) {
         slotClass = 'dummy-placement-plot';
         tooltipText = 'Click to place dummy city';
