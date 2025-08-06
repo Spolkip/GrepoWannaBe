@@ -9,6 +9,7 @@ import AllianceSettings from '../alliance/AllianceSettings';
 import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
 import AllianceProperties from '../alliance/AllianceProperties';
+import AllianceBank from '../alliance/AllianceBank';
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose }) => {
@@ -34,10 +35,11 @@ const AllianceModal = ({ onClose }) => {
             case 'members': return <AllianceMembers />;
             case 'research': return <AllianceResearch />;
             case 'diplomacy': return <AllianceDiplomacy />;
+            case 'bank': return <AllianceBank />;
+            case 'properties': return <AllianceProperties onClose={onClose} />;
             case 'settings': return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
             case 'invitations': return <AllianceInvitations alliance={playerAlliance} isLeader={isLeader} />;
             case 'ranks': return <AllianceRanks alliance={playerAlliance} isLeader={isLeader} />;
-            case 'properties': return <AllianceProperties onClose={onClose} />;
             default: return <AllianceOverview />;
         }
     };
@@ -58,6 +60,7 @@ const AllianceModal = ({ onClose }) => {
                     <button onClick={() => setActiveTab('members')} className={activeTab === 'members' ? 'active' : ''}>Members</button>
                     <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
                     <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
+                    <button onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'active' : ''}>Bank</button>
                     <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}>Properties</button>
                     {isLeader && (
                         <>

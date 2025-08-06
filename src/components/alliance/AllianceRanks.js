@@ -12,7 +12,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
     const { worldId } = useGame();
     const [newRankName, setNewRankName] = useState('');
     const [newRankPermissions, setNewRankPermissions] = useState({
-        manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false
+        manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false
     });
     const [message, setMessage] = useState('');
     const [editingMemberId, setEditingMemberId] = useState(null);
@@ -26,8 +26,8 @@ const AllianceRanks = ({ alliance, isLeader }) => {
             setMessage('Rank name cannot be empty.');
             return;
         }
-        if (alliance.ranks.length >= 6) {
-            setMessage('Maximum of 6 ranks reached.');
+        if (alliance.ranks.length >= 10) {
+            setMessage('Maximum of 10 ranks reached.');
             return;
         }
 
@@ -39,7 +39,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
 
         setNewRankName('');
         setNewRankPermissions({
-            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false
+            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false
         });
         setMessage('Rank created!');
     };
@@ -172,7 +172,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
                     </ul>
                 </div>
 
-                {isLeader && alliance.ranks.length < 6 && (
+                {isLeader && alliance.ranks.length < 10 && (
                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                         <h4 className="font-semibold text-lg mb-2 text-gray-900">Create New Rank</h4>
                         <div className="space-y-2">
