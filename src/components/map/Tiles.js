@@ -6,7 +6,7 @@ import ruinImage from '../../images/ruin_new.png';
 const defaultSettings = { showVisuals: true, showGrid: true };
 
 export const WaterTile = React.memo(({ gameSettings = defaultSettings }) => {
-    // #comment Use the new animated class from index.css for the visual effect.
+    // #comment Use the new animated class from map.css for the visual effect.
     const bgClass = gameSettings.showVisuals ? 'water-tile-animated' : 'bg-blue-800';
     const borderClass = gameSettings.showGrid
         ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-900/20' : 'border-gray-800'}`
