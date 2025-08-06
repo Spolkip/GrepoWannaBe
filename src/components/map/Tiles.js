@@ -1,15 +1,18 @@
 // src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import ruinImage from '../../images/ruin_new.png'; // Assuming you add a new image named ruin_new.png
+import ruinImage from '../../images/ruin_new.png';
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
 export const WaterTile = React.memo(({ gameSettings = defaultSettings }) => {
-    const bgClass = gameSettings.showVisuals ? 'bg-blue-800' : 'bg-gray-900';
+    // #comment Use the new animated class from index.css for the visual effect.
+    const bgClass = gameSettings.showVisuals ? 'water-tile-animated' : 'bg-blue-800';
     const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-900' : 'border-gray-800'}`
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-900/20' : 'border-gray-800'}`
         : 'border-r border-b border-transparent';
+        
+    // #comment The background is now handled by the CSS class, not inline styles.
     return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
 });
 
@@ -26,12 +29,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
 
-    // #comment For debugging: This will log the alliance data the component receives.
-    // #comment Check your browser's developer console on both accounts to see the difference.
-    if (slotData.ownerId !== currentUser.uid && slotData.alliance) {
-        console.log(`Rendering tile for ${slotData.cityName}. Your alliance data:`, playerAlliance);
-    }
-
     if (slotData.ownerId) {
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
@@ -40,28 +37,26 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
             slotClass = 'my-city';
             tooltipText = `Your City: ${slotData.cityName}`;
         } else if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
-            // #comment Safely check for diplomacy and allies/enemies arrays before checking them
             const allies = playerAlliance.diplomacy?.allies || [];
             const enemies = playerAlliance.diplomacy?.enemies || [];
 
             if (cityAllianceTag.toUpperCase() === playerAlliance.tag.toUpperCase()) {
-                slotClass = 'alliance-city'; // Your own alliance members
+                slotClass = 'alliance-city';
                 tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
             } else if (allies.some(ally => ally && ally.tag && ally.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
-                slotClass = 'ally-city'; // Allied alliances
+                slotClass = 'ally-city';
                 tooltipText = `Ally: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
             } else if (enemies.some(enemy => enemy && enemy.tag && enemy.tag.toUpperCase() === cityAllianceTag.toUpperCase())) {
-                slotClass = 'enemy-city'; // Enemy alliances
+                slotClass = 'enemy-city';
                 tooltipText = `Enemy: ${slotData.cityName}<br>Owner: ${ownerName}<br>Alliance: ${slotData.allianceName || 'Unknown'}`;
             } else {
-                slotClass = 'neutral-city'; // A player in an alliance you have no diplomacy with
+                slotClass = 'neutral-city';
                 tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
             }
         } else if (slotData.ownerId.startsWith('dummy_')) {
             slotClass = 'dummy-city-plot';
             tooltipText = `Dummy City: ${slotData.cityName}<br>Owner: ${ownerName}`;
         } else {
-            // #comment Neutral player with no alliance
             slotClass = 'neutral-city';
             tooltipText = `City: ${slotData.cityName}<br>Owner: ${ownerName}<br>Faction: ${slotData.ownerFaction || 'Unknown'}`;
         }
@@ -136,7 +131,6 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
             <div
                 onClick={(e) => onClick(e, ruinData)}
                 className={ruinClass}
-                // Use the imported image here
                 style={{ backgroundImage: `url(${ruinImage})` }}
             >
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>

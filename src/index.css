@@ -193,8 +193,24 @@ body {
 
 /* --- Map & Tile Styles --- */
 
+/* #comment Define the water animation */
+@keyframes animate-water {
+  0% { background-position: 0 0; }
+  100% { background-position: 128px 0; } /* #comment Animate horizontally */
+}
+
+/* #comment Class for the animated water tile */
+.water-tile-animated {
+  background-image: url('./images/watertiles.webp');
+  background-color: #1e3a8a; /* Blue sea color as fallback */
+  background-repeat: repeat;
+  animation: animate-water 10s linear infinite; /* #comment Slower, smoother animation */
+  background-size: auto 100%; /* #comment Ensure the image covers the tile vertically */
+}
+
+
 .map-viewport {
-    @apply absolute inset-0 w-full h-full cursor-grab bg-blue-800 overflow-hidden;
+    @apply absolute inset-0 w-full h-full cursor-grab overflow-hidden;
 }
 .map-viewport:active {
     @apply cursor-grabbing;
@@ -213,7 +229,7 @@ body {
 }
 
 .map-tile {
-    @apply w-24 h-24 flex items-center justify-center relative;
+    @apply flex items-center justify-center relative;
 }
 
 /* Generic tooltip for all map objects */

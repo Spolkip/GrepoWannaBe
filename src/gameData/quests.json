@@ -24,7 +24,7 @@
     "description": "Did you get it yet?",
     "type": "building",
     "targetId": "timber_camp",
-    "targetLevel": 5,
+    "targetLevel": 15,
     "rewards": {
       "resources": { "wood": 500 }
     }
@@ -34,7 +34,7 @@
     "description": "Your wood is getting bigger",
     "type": "building",
     "targetId": "timber_camp",
-    "targetLevel": 5,
+    "targetLevel": 20,
     "rewards": {
       "resources": { "wood": 1000 }
     }
@@ -64,7 +64,7 @@
     "description": "Wealth is power. Upgrade your Silver Mine.",
     "type": "building",
     "targetId": "silver_mine",
-    "targetLevel": 2,
+    "targetLevel": 5,
     "rewards": {
       "resources": { "silver": 50 }
     }
@@ -74,7 +74,7 @@
     "description": "Wealth is power. Upgrade your Silver Mine.",
     "type": "building",
     "targetId": "silver_mine",
-    "targetLevel": 5,
+    "targetLevel": 10,
     "rewards": {
       "resources": { "silver": 50 }
     }
@@ -84,7 +84,7 @@
     "description": "Wealth is power. Upgrade your Silver Mine.",
     "type": "building",
     "targetId": "silver_mine",
-    "targetLevel": 10,
+    "targetLevel": 15,
     "rewards": {
       "resources": { "silver": 50 }
     }
