@@ -39,6 +39,7 @@
     background-color: #1e3a8a;
     padding: 4px;
     border-bottom: 4px solid #8B4513;
+    flex-wrap: wrap; /* Allow tabs to wrap */
 }
 
 .tab-btn {
@@ -48,6 +49,7 @@
     border: 2px solid #8B4513;
     border-bottom: none;
     margin-right: 4px;
+    margin-bottom: 4px; /* Add margin for wrapped tabs */
     cursor: pointer;
     font-weight: bold;
     position: relative;
@@ -84,26 +86,38 @@
     cursor: pointer;
 }
 
-.glowing-tab::after {
-    content: '';
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 10px;
-    height: 10px;
-    background-color: #fde047;
-    border-radius: 50%;
-    animation: glowing-tab-animation 1.5s infinite;
+.glowing-tab {
+    animation: glowing-tab-border-animation 1.5s infinite;
 }
 
-@keyframes glowing-tab-animation {
+@keyframes glowing-tab-border-animation {
     0% {
-        box-shadow: 0 0 3px #fde047;
+        box-shadow: 0 0 4px #fde047;
+        border-color: #fde047;
     }
     50% {
-        box-shadow: 0 0 10px #fef08a, 0 0 5px #fef08a;
+        box-shadow: 0 0 12px #fef08a, 0 0 8px #fef08a;
+        border-color: #fef08a;
     }
     100% {
-        box-shadow: 0 0 3px #fde047;
+        box-shadow: 0 0 4px #fde047;
+        border-color: #fde047;
     }
+}
+
+.tab-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #ef4444; /* red-500 */
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    border-radius: 9999px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
 }

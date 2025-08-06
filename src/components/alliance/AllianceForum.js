@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { db } from '../../firebase/config';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
@@ -35,6 +35,7 @@ const AllianceForum = ({ onClose }) => {
 
     // state for UI toggles and form inputs
     const [newForumName, setNewForumName] = useState('');
+    const [isNewForumSecret, setIsNewForumSecret] = useState(false);
     const [newThreadTitle, setNewThreadTitle] = useState('');
     const [newPostContent, setNewPostContent] = useState('');
     const [isCreatingForum, setIsCreatingForum] = useState(false);
@@ -42,9 +43,20 @@ const AllianceForum = ({ onClose }) => {
     const [editingPostId, setEditingPostId] = useState(null);
     const [editingPostContent, setEditingPostContent] = useState('');
     const [confirmAction, setConfirmAction] = useState(null);
+    const [editingForum, setEditingForum] = useState(null);
     const postsEndRef = useRef(null);
 
     const isLeader = currentUser?.uid === playerAlliance?.leader?.uid;
+
+    // #comment Get current member's rank and permissions
+    const memberRankData = useMemo(() => {
+        if (!playerAlliance || !currentUser) return null;
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        if (!member) return null;
+        return playerAlliance.ranks.find(r => r.id === member.rank);
+    }, [playerAlliance, currentUser]);
+
+    const canViewSecretForums = memberRankData?.permissions?.viewSecretForums || isLeader;
 
     // fetch forum categories (tabs)
     useEffect(() => {
@@ -100,9 +112,11 @@ const AllianceForum = ({ onClose }) => {
         const forumsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums');
         await addDoc(forumsRef, {
             name: newForumName,
+            isSecret: isNewForumSecret,
             createdAt: serverTimestamp(),
         });
         setNewForumName('');
+        setIsNewForumSecret(false);
         setIsCreatingForum(false);
     };
 
@@ -199,6 +213,56 @@ const AllianceForum = ({ onClose }) => {
 
         handleCancelEdit();
     };
+
+    const handleUpdateForum = async (e, forumId) => {
+        e.preventDefault();
+        if (!editingForum || !editingForum.name.trim() || !isLeader) return;
+        const forumRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums', forumId);
+        await updateDoc(forumRef, {
+            name: editingForum.name,
+            isSecret: editingForum.isSecret,
+        });
+        setEditingForum(null);
+    };
+
+    const handleDeleteForum = (forumId) => {
+        setConfirmAction({
+            message: "Are you sure you want to delete this forum and all its threads? This cannot be undone.",
+            onConfirm: async () => {
+                if (!isLeader) return;
+
+                const forumRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums', forumId);
+                const threadsRef = collection(forumRef, 'threads');
+                const threadsSnapshot = await getDocs(threadsRef);
+
+                const batch = writeBatch(db);
+
+                for (const threadDoc of threadsSnapshot.docs) {
+                    const postsRef = collection(threadDoc.ref, 'posts');
+                    const postsSnapshot = await getDocs(postsRef);
+                    postsSnapshot.forEach(postDoc => {
+                        batch.delete(postDoc.ref);
+                    });
+                    batch.delete(threadDoc.ref);
+                }
+
+                batch.delete(forumRef);
+
+                await batch.commit();
+
+                if (selectedForum?.id === forumId) {
+                    setSelectedForum(null);
+                    setThreads([]);
+                    setSelectedThread(null);
+                }
+                setConfirmAction(null);
+            }
+        });
+    };
+
+    const visibleForums = useMemo(() => {
+        return forums.filter(forum => !forum.isSecret || canViewSecretForums);
+    }, [forums, canViewSecretForums]);
 
     const renderContent = () => {
         if (isCreatingThread) {
@@ -328,15 +392,52 @@ const AllianceForum = ({ onClose }) => {
                     <button onClick={onClose} className="text-3xl leading-none hover:text-red-700">&times;</button>
                 </div>
                 <div className="forum-tabs-container">
-                    {forums.map(forum => (
-                        <button key={forum.id} onClick={() => setSelectedForum(forum)} className={`forum-tab ${selectedForum?.id === forum.id ? 'active' : ''}`}>
-                            {forum.name}
-                        </button>
+                    {visibleForums.map(forum => (
+                        <div key={forum.id} className="relative group">
+                            {editingForum?.id === forum.id ? (
+                                <form onSubmit={(e) => handleUpdateForum(e, forum.id)} className="p-1 flex items-center">
+                                    <input
+                                        type="text"
+                                        value={editingForum.name}
+                                        onChange={(e) => setEditingForum(prev => ({ ...prev, name: e.target.value }))}
+                                        className="bg-white/20 text-white p-1 rounded text-sm"
+                                        autoFocus
+                                    />
+                                    <label className="flex items-center ml-2 text-sm text-white">
+                                        <input
+                                            type="checkbox"
+                                            checked={editingForum.isSecret}
+                                            onChange={(e) => setEditingForum(prev => ({ ...prev, isSecret: e.target.checked }))}
+                                            className="mr-1"
+                                        />
+                                        Secret
+                                    </label>
+                                    <button type="submit" className="ml-2 text-white text-xl">✓</button>
+                                    <button type="button" onClick={() => setEditingForum(null)} className="ml-1 text-white text-xl">x</button>
+                                </form>
+                            ) : (
+                                <>
+                                    <button onClick={() => setSelectedForum(forum)} className={`forum-tab ${selectedForum?.id === forum.id ? 'active' : ''}`}>
+                                        {forum.name} {forum.isSecret && '🔒'}
+                                    </button>
+                                    {isLeader && (
+                                        <div className="absolute top-0 right-0 flex opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setEditingForum({ id: forum.id, name: forum.name, isSecret: forum.isSecret || false })} className="text-white text-xs p-1">✏️</button>
+                                            <button onClick={() => handleDeleteForum(forum.id)} className="text-white text-xs p-1">🗑️</button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     ))}
                     {isLeader && (
                         isCreatingForum ? (
                             <form onSubmit={handleCreateForum} className="p-1 flex items-center">
                                 <input type="text" value={newForumName} onChange={(e) => setNewForumName(e.target.value)} placeholder="New Forum Name" className="bg-white/20 text-white p-1 rounded text-sm" />
+                                <label className="flex items-center ml-2 text-sm text-white">
+                                    <input type="checkbox" checked={isNewForumSecret} onChange={(e) => setIsNewForumSecret(e.target.checked)} className="mr-1" />
+                                    Secret
+                                </label>
                                 <button type="submit" className="ml-2 text-white text-xl">+</button>
                                 <button type="button" onClick={() => setIsCreatingForum(false)} className="ml-1 text-white text-xl">x</button>
                             </form>

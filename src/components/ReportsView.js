@@ -385,7 +385,8 @@ const ReportsView = ({ onClose }) => {
                     <div className="w-1/3 border-r-2 border-[#8B4513] flex flex-col">
                         <div className="reports-tabs">
                             {Object.keys(tabs).map(tabName => {
-                                const hasUnread = reports.some(report => tabs[tabName].includes(report.type) && !report.read);
+                                const unreadCount = reports.filter(report => tabs[tabName].includes(report.type) && !report.read).length;
+                                const hasUnread = unreadCount > 0;
                                 return (
                                     <button
                                         key={tabName}
@@ -393,6 +394,7 @@ const ReportsView = ({ onClose }) => {
                                         className={`tab-btn ${activeTab === tabName ? 'active' : ''} ${hasUnread ? 'glowing-tab' : ''}`}
                                     >
                                         {tabName}
+                                        {hasUnread && <span className="tab-badge">{unreadCount}</span>}
                                     </button>
                                 )
                             })}

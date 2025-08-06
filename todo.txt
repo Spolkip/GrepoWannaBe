@@ -1,4 +1,5 @@
 - fix glow on reports and messages and when to stop
+- make a way to share reports 
 - add an option to make hidden tabs, add a permission for ranks to have access to that tab
 - add special buildings
 - different troops for different nationalities

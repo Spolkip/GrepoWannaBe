@@ -243,7 +243,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                 return (
                                 <li
                                     key={convo.id}
-                                    className={`papyrus-list-item ${selectedConversation?.id === convo.id ? 'selected' : ''} ${isUnread ? 'font-bold' : ''}`}
+                                    className={`papyrus-list-item ${selectedConversation?.id === convo.id ? 'selected' : ''} ${isUnread ? 'unread glowing-message' : ''}`}
                                     onClick={() => handleSelectConversation(convo)}
                                 >
                                     <p className="font-title text-lg">{getOtherParticipant(convo)}</p>
