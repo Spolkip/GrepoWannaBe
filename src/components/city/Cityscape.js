@@ -11,9 +11,22 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {
         width: '2000px', // Large canvas for the city
         height: '1200px',
         position: 'relative',
-        background: `linear-gradient(to bottom, #2a623d 85%, #1e3a8a 25%)`, // 70% land, 30% sea
+        background: 'transparent', // Make this transparent so the parent background shows
       }}
     >
+      {/* Add a green overlay to represent the island's landmass */}
+      <div 
+        className="absolute"
+        style={{
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '85%', // Cover most of the area, leaving the bottom for the sea/shipyard
+          backgroundColor: '#2a623d', // Same land color as before
+          zIndex: 0
+        }}
+      />
+      
       {buildingLayout.map((building) => {
         const buildingData = buildings[building.id];
         const level = buildingData?.level || 0;

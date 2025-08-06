@@ -1,17 +1,10 @@
 /* src/styles/map.css */
 
 /* --- Map & Tile Styles --- */
-@keyframes animate-water {
-  0% { background-position: 0 0; }
-  100% { background-position: 128px 0; }
-}
-
-.water-tile-animated {
-  background-image: url('../images/watertiles.webp');
-  background-color: #1e3a8a;
+.map-surface {
+  background-image: url('../images/water.png');
   background-repeat: repeat;
-  animation: animate-water 10s linear infinite;
-  background-size: auto 100%;
+  background-size: 180px;
 }
 
 .map-viewport {

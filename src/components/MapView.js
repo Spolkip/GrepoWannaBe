@@ -62,7 +62,7 @@ const MapView = ({
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
-    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, getHappinessDetails } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity } = useCityState(worldId);
     
     useEffect(() => {
         if (panToCoords) {
@@ -79,7 +79,7 @@ const MapView = ({
 
     const { availablePopulation, happiness, marketCapacity } = useMemo(() => {
         if (!gameState?.buildings) return { availablePopulation: 0, happiness: 0, marketCapacity: 0 };
-        const maxPop = getFarmCapacity(gameState.buildings.farm?.level);
+        const maxPop = getFarmCapacity(gameState.buildings.farm.level);
         const usedPop = calculateUsedPopulation(gameState.buildings, gameState.units);
         const availablePop = maxPop - usedPop;
         const happinessValue = calculateHappiness(gameState.buildings);
@@ -243,14 +243,13 @@ const MapView = ({
                 quests={quests}
             />
             <div className="flex-grow flex flex-row overflow-hidden">
-                <div className="main-content flex-grow relative map-background">
+                <div className="main-content flex-grow relative map-surface">
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
                         <TopBar 
                             view="map" 
                             gameState={gameState} 
                             availablePopulation={availablePopulation} 
                             happiness={happiness} 
-                            getHappinessDetails={() => getHappinessDetails(gameState.buildings)}
                             worldState={worldState} 
                             movements={movements}
                             onCancelTrain={onCancelTrain}
@@ -285,7 +284,7 @@ const MapView = ({
                         
                         {/* Wrapper to control stacking context of the map grid */}
                         <div className="absolute inset-0 z-0">
-                            <div ref={mapContainerRef} style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
+                            <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
                                 <MapGrid mapGrid={mapGrid} worldState={worldState} pan={pan} zoom={zoom} viewportSize={viewportSize} onCitySlotClick={onCitySlotClick} onVillageClick={onVillageClick} onRuinClick={onRuinClick} isPlacingDummyCity={isPlacingDummyCity} movements={movements} combinedSlots={combinedSlotsForGrid} villages={villages} ruins={ruins} playerAlliance={playerAlliance} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />
                             </div>
                         </div>

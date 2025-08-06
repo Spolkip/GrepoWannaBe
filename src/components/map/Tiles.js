@@ -6,14 +6,9 @@ import ruinImage from '../../images/ruin_new.png';
 const defaultSettings = { showVisuals: true, showGrid: true };
 
 export const WaterTile = React.memo(({ gameSettings = defaultSettings }) => {
-    // #comment Use the new animated class from map.css for the visual effect.
-    const bgClass = gameSettings.showVisuals ? 'water-tile-animated' : 'bg-blue-800';
-    const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-900/20' : 'border-gray-800'}`
-        : 'border-r border-b border-transparent';
-        
-    // #comment The background is now handled by the CSS class, not inline styles.
-    return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
+    // #comment This tile is now completely transparent and borderless.
+    // #comment The background is handled by the parent .map-surface container.
+    return <div className="w-full h-full bg-transparent" />;
 });
 
 export const LandTile = React.memo(({ gameSettings = defaultSettings }) => {
@@ -121,13 +116,10 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
         }
     }
 
-    const bgClass = gameSettings.showVisuals ? 'bg-blue-900' : 'bg-gray-900';
-    const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-blue-950' : 'border-gray-800'}`
-        : 'border-r border-b border-transparent';
+    const bgClass = 'bg-transparent'; // Use the parent's water texture
 
     return (
-        <div className={`w-full h-full ${bgClass} ${borderClass} flex justify-center items-center`}>
+        <div className={`w-full h-full ${bgClass} flex justify-center items-center`}>
             <div
                 onClick={(e) => onClick(e, ruinData)}
                 className={ruinClass}
