@@ -1,6 +1,7 @@
 // src/components/city/BuildQueue.js
 import React, { useState, useEffect } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
+import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 
 // Dynamically import all building images
 const buildingImages = {};
@@ -26,7 +27,6 @@ const QueueItem = ({ item, isFirst, onCancel }) => {
         if (!isFirst) return; // Only calculate time for the first item in the queue
 
         const calculateTimeLeft = () => {
-            // #comment Ensure endTime is a valid Date object before calling getTime()
             const endTime = (item.endTime instanceof Date) ? item.endTime : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
                 setTimeLeft(0);
@@ -41,7 +41,11 @@ const QueueItem = ({ item, isFirst, onCancel }) => {
         return () => clearInterval(interval);
     }, [item.endTime, isFirst]);
 
-    const building = buildingConfig[item.buildingId];
+    // #comment Check if the item is a special building and get its config accordingly.
+    const building = item.isSpecial
+        ? specialBuildingsConfig[item.buildingId]
+        : buildingConfig[item.buildingId];
+
     if (!building) return null;
     const imageSrc = buildingImages[building.image];
 

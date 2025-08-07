@@ -59,7 +59,7 @@ const CityView = ({
     const { availablePopulation, happiness } = useMemo(() => {
         if (!cityGameState) return { availablePopulation: 0, happiness: 0 };
         const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
-        const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units);
+        const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units, cityGameState.specialBuilding);
         const availablePopulation = maxPopulation - usedPopulation;
         const happinessValue = calculateHappiness(cityGameState.buildings);
         return { availablePopulation, happiness: happinessValue };
@@ -127,6 +127,7 @@ const CityView = ({
                     handlePlotClick={actions.handlePlotClick}
                     onOpenPowers={() => openCityModal('isDivinePowersOpen')}
                     gameSettings={gameSettings}
+                    onOpenSpecialBuildingMenu={() => openCityModal('isSpecialBuildingMenuOpen')}
                 />
             </div>
 
@@ -146,14 +147,14 @@ const CityView = ({
                 handleUpgrade={actions.handleUpgrade}
                 handleCancelBuild={actions.handleCancelBuild}
                 handleTrainTroops={actions.handleTrainTroops}
-                handleCancelTrain={actions.handleCancelTrain} // This is the city-specific one, might need adjustment
+                handleCancelTrain={actions.handleCancelTrain}
                 handleFireTroops={actions.handleFireTroops}
                 handleStartResearch={actions.handleStartResearch}
                 handleCancelResearch={actions.handleCancelResearch}
                 handleWorshipGod={actions.handleWorshipGod}
                 handleCheat={actions.handleCheat}
                 handleHealTroops={actions.handleHealTroops}
-                handleCancelHeal={actions.handleCancelHeal} // Also city-specific
+                handleCancelHeal={actions.handleCancelHeal}
                 availablePopulation={availablePopulation}
                 modalState={modalState}
                 openModal={openCityModal}
@@ -163,6 +164,9 @@ const CityView = ({
                 onRemoveWorker={actions.handleRemoveWorker}
                 getMaxWorkerSlots={getMaxWorkerSlots}
                 getMarketCapacity={getMarketCapacity}
+                handleBuildSpecialBuilding={actions.handleBuildSpecialBuilding}
+                handleDemolish={actions.handleDemolish}
+                handleDemolishSpecialBuilding={actions.handleDemolishSpecialBuilding}
             />
             {modalState.isDivinePowersOpen && (
                 <DivinePowers

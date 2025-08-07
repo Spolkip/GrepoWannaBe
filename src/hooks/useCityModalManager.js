@@ -18,6 +18,7 @@ export const useCityModalManager = () => {
         isCheatMenuOpen: false,
         isDivinePowersOpen: false,
         isMarketMenuOpen: false,
+        isSpecialBuildingMenuOpen: false,
     });
 
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));

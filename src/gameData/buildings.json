@@ -118,5 +118,12 @@
     "image": "hospital.jpg",
     "maxLevel": 10,
     "points": 10
+  },
+  "special_building_plot": {
+    "name": "Wonders",
+    "description": "Construct a legendary building that provides a unique, city-wide bonus.",
+    "image": "special_building_plot.png",
+    "constructible": false,
+    "points": 0
   }
 }

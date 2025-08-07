@@ -11,6 +11,7 @@ import HospitalMenu from './HospitalMenu';
 import MarketMenu from './MarketMenu'; // #comment Import MarketMenu
 import { AcademyMenu } from './AcademyMenu';
 import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new DivineTempleMenu
+import SpecialBuildingMenu from './SpecialBuildingMenu';
 
 const CityModals = ({
   cityGameState,
@@ -45,6 +46,9 @@ const CityModals = ({
   onRemoveWorker,
   getMaxWorkerSlots,
   getMarketCapacity, // #comment Receive market capacity function
+  handleBuildSpecialBuilding,
+  handleDemolish,
+  handleDemolishSpecialBuilding
 }) => {
   const {
     selectedBuildingId,
@@ -58,6 +62,7 @@ const CityModals = ({
     isCheatMenuOpen,
     isMarketMenuOpen, // #comment Get market menu state
     isDivineTempleMenuOpen,
+    isSpecialBuildingMenuOpen,
   } = modalState;
 
   if (!cityGameState) return null;
@@ -88,12 +93,16 @@ const CityModals = ({
           buildings={cityGameState.buildings}
           resources={cityGameState.resources}
           onUpgrade={handleUpgrade}
+          onDemolish={handleDemolish}
           getUpgradeCost={getUpgradeCost}
           onClose={() => closeModal('isSenateViewOpen')}
-          usedPopulation={calculateUsedPopulation(cityGameState.buildings, cityGameState.units)}
+          usedPopulation={calculateUsedPopulation(cityGameState.buildings, cityGameState.units, cityGameState.specialBuilding)}
           maxPopulation={getFarmCapacity(cityGameState.buildings?.farm?.level)}
           buildQueue={cityGameState.buildQueue}
           onCancelBuild={handleCancelBuild}
+          cityGameState={cityGameState}
+          onOpenSpecialBuildingMenu={() => openModal('isSpecialBuildingMenuOpen')}
+          onDemolishSpecialBuilding={handleDemolishSpecialBuilding}
         />
       )}
       {isBarracksMenuOpen && (
@@ -173,6 +182,14 @@ const CityModals = ({
             worldId={worldId}
             marketCapacity={marketCapacity}
         />
+      )}
+      {isSpecialBuildingMenuOpen && (
+          <SpecialBuildingMenu
+            cityGameState={cityGameState}
+            onBuild={handleBuildSpecialBuilding}
+            onClose={() => closeModal('isSpecialBuildingMenuOpen')}
+            availablePopulation={availablePopulation}
+          />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (
         <AdminCheatMenu

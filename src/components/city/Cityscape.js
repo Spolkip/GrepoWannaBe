@@ -1,10 +1,11 @@
 // src/components/city/Cityscape.js
 import React from 'react';
 import BuildingSpot from './BuildingSpot';
+import SpecialBuildingPlot from './specialBuildingPlotpls';
 import buildingLayout from '../../gameData/BuildingLayout.json';
 import buildingConfig from '../../gameData/buildings.json'; // Import building config
 
-const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {
+const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, onOpenSpecialBuildingMenu }) => {
   return (
     <div
       style={{
@@ -28,6 +29,20 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages }) => {
       />
       
       {buildingLayout.map((building) => {
+        if (building.id === 'special_building_plot') {
+            // #comment Add a check to ensure cityGameState is defined before rendering the special plot.
+            // #comment This prevents a crash if the game state is temporarily unavailable during a render cycle.
+            if (!cityGameState) return null; 
+            
+            return (
+                <SpecialBuildingPlot
+                    key={building.id}
+                    cityGameState={cityGameState}
+                    onOpenMenu={onOpenSpecialBuildingMenu}
+                    buildingImages={buildingImages}
+                />
+            );
+        }
         const buildingData = buildings[building.id];
         const level = buildingData?.level || 0;
         const config = buildingConfig[building.id]; // Get config for the building

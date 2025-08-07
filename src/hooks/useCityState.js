@@ -130,7 +130,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         };
     }, [isInstantResearch]);
 
-    const calculateUsedPopulation = useCallback((buildings, units) => {
+    const calculateUsedPopulation = useCallback((buildings, units, specialBuilding) => {
         let used = 0;
         if (buildings) {
           for (const buildingId in buildings) {
@@ -150,6 +150,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
           for (const unitId in units) {
             used += (unitConfig[unitId]?.cost.population || 0) * units[unitId];
           }
+        }
+        if (specialBuilding) {
+            used += 60;
         }
         return used;
     }, [getUpgradeCost]);
@@ -283,10 +286,8 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         try {
             const currentState = gameStateRef.current;
             
-            // Early exit conditions
             if (!currentUser || !worldId || !activeCityId) return;
             
-            // Check if any queue has items to process
             if (!currentState?.buildQueue?.length && 
                 !currentState?.barracksQueue?.length &&
                 !currentState?.shipyardQueue?.length &&
@@ -300,7 +301,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             let updates = {};
             let hasUpdates = false;
 
-            // Helper function to process each queue type
             const processSingleQueue = (queueName, processCompleted) => {
                 if (!currentState[queueName]?.length) return;
 
@@ -309,7 +309,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
                 currentState[queueName].forEach(task => {
                     try {
-                        // Handle both Firestore Timestamp and JS Date objects
                         const endTime = task.endTime?.toDate?.() || 
                                       (task.endTime instanceof Date ? task.endTime : new Date(task.endTime));
                         
@@ -335,14 +334,17 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 }
             };
 
-            // Process each queue type
             processSingleQueue('buildQueue', (completed, updates) => {
                 updates.buildings = updates.buildings || { ...currentState.buildings };
                 completed.forEach(task => {
-                    if (!updates.buildings[task.buildingId]) {
-                        updates.buildings[task.buildingId] = { level: 0 };
+                    if (task.isSpecial) {
+                        updates.specialBuilding = task.buildingId;
+                    } else {
+                        if (!updates.buildings[task.buildingId]) {
+                            updates.buildings[task.buildingId] = { level: 0 };
+                        }
+                        updates.buildings[task.buildingId].level = task.level;
                     }
-                    updates.buildings[task.buildingId].level = task.level;
                 });
             });
 
@@ -381,12 +383,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 });
             });
 
-            // Save updates if any
             if (hasUpdates) {
                 const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
                 await setDoc(cityDocRef, { 
                     ...updates, 
-                    lastUpdated: serverTimestamp() // Now using the imported serverTimestamp
+                    lastUpdated: serverTimestamp()
                 }, { merge: true });
             }
         } catch (error) {
@@ -394,7 +395,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         }
     };
 
-    const interval = setInterval(processQueue, 1000); // Process every second
+    const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
 }, [currentUser, worldId, activeCityId]);
 
@@ -409,7 +410,7 @@ useEffect(() => {
         }
     };
 
-    const saveInterval = setInterval(autoSave, 30000); // Auto-save every 30 seconds
+    const saveInterval = setInterval(autoSave, 30000);
     return () => clearInterval(saveInterval);
 }, [saveGameState]);
 

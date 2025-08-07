@@ -51,7 +51,7 @@ export const useCityActions = ({
 
         const nextLevelToQueue = effectiveCurrentLevel + 1;
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
-        const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+        const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const newTotalPopulation = currentUsedPopulation + cost.population;
 
@@ -65,6 +65,11 @@ export const useCityActions = ({
             newGameState.resources.wood -= cost.wood;
             newGameState.resources.stone -= cost.stone;
             newGameState.resources.silver -= cost.silver;
+
+            // Add research points for academy upgrades
+            if (buildingId === 'academy') {
+                newGameState.researchPoints = (newGameState.researchPoints || 0) + 4;
+            }
 
             let lastEndTime = Date.now();
             if (currentQueue.length > 0) {
@@ -106,7 +111,13 @@ export const useCityActions = ({
 
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
-        const cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+        
+        let cost;
+        if (canceledTask.isSpecial) {
+            cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
+        } else {
+            cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+        }
 
         const newResources = {
             ...currentState.resources,
@@ -114,21 +125,58 @@ export const useCityActions = ({
             stone: currentState.resources.stone + cost.stone,
             silver: currentState.resources.silver + cost.silver,
         };
+        
+        const newGameState = { ...currentState, resources: newResources, buildQueue: newQueue };
+
+        if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
+            newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
+        }
 
         for (let i = itemIndex; i < newQueue.length; i++) {
-            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             const taskToUpdate = newQueue[i];
-            const taskCost = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level);
-            const newEndTime = new Date(previousTaskEndTime + taskCost.time * 1000);
+            
+            let taskTime;
+            if (taskToUpdate.isSpecial) {
+                taskTime = 7200;
+            } else {
+                taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
+            }
+            
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
-
-        const newGameState = { ...currentState, resources: newResources, buildQueue: newQueue };
+        
         await saveGameState(newGameState);
         setCityGameState(newGameState);
+    };
+    
+    const handleDemolish = async (buildingId) => {
+        const currentState = cityGameState;
+        const building = currentState.buildings[buildingId];
+        if (!building || building.level === 0) {
+            setMessage("Building not found or already at level 0.");
+            return;
+        }
+
+        const cost = getUpgradeCost(buildingId, building.level);
+        const refund = {
+            wood: Math.floor(cost.wood * 0.5),
+            stone: Math.floor(cost.stone * 0.5),
+            silver: Math.floor(cost.silver * 0.5),
+        };
+        
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        newGameState.resources.wood += refund.wood;
+        newGameState.resources.stone += refund.stone;
+        newGameState.resources.silver += refund.silver;
+        newGameState.buildings[buildingId].level = 0;
+
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage(`${buildingConfig[buildingId].name} has been demolished.`);
     };
 
     const handleStartResearch = async (researchId) => {
@@ -163,9 +211,10 @@ export const useCityActions = ({
         if (
             currentState.resources.wood < cost.wood ||
             currentState.resources.stone < cost.stone ||
-            currentState.resources.silver < cost.silver
+            currentState.resources.silver < cost.silver ||
+            (currentState.researchPoints || 0) < (cost.points || 0)
         ) {
-            setMessage("Not enough resources to start research.");
+            setMessage("Not enough resources or research points.");
             return;
         }
 
@@ -173,6 +222,7 @@ export const useCityActions = ({
         newGameState.resources.wood -= cost.wood;
         newGameState.resources.stone -= cost.stone;
         newGameState.resources.silver -= cost.silver;
+        newGameState.researchPoints = (newGameState.researchPoints || 0) - (cost.points || 0);
 
         let lastEndTime = Date.now();
         if (currentQueue.length > 0) {
@@ -218,9 +268,9 @@ export const useCityActions = ({
             stone: currentState.resources.stone + researchData.cost.stone,
             silver: currentState.resources.silver + researchData.cost.silver,
         };
+        const newResearchPoints = (currentState.researchPoints || 0) + (researchData.cost.points || 0);
 
         for (let i = itemIndex; i < newQueue.length; i++) {
-            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
@@ -230,17 +280,16 @@ export const useCityActions = ({
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
 
-        const newGameState = { ...currentState, resources: newResources, researchQueue: newQueue };
+        const newGameState = { ...currentState, resources: newResources, researchQueue: newQueue, researchPoints: newResearchPoints };
         await saveGameState(newGameState);
         setCityGameState(newGameState);
     };
 
-    // #comment Unified cancellation handler for all unit queues (training and healing)
-    const handleCancelTrain = async (canceledItem, queueType) => { // queueType: 'barracks', 'shipyard', 'divineTemple', 'heal'
+    const handleCancelTrain = async (canceledItem, queueType) => {
         const currentState = cityGameState;
         let queueName;
-        let costField; // 'cost' for training, 'heal_cost' for healing
-        let refundField; // 'units' for training, 'wounded' for healing
+        let costField;
+        let refundField;
     
         switch (queueType) {
             case 'barracks':
@@ -266,7 +315,6 @@ export const useCityActions = ({
         }
     
         const currentQueue = [...currentState[queueName]];
-        // Find the actual index of the item to cancel based on its unique ID
         const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
     
         if (itemIndex === -1) {
@@ -293,15 +341,14 @@ export const useCityActions = ({
         };
     
         const newRefundUnits = { ...currentState[refundField] };
-        if (queueType === 'heal') { // Only add back to wounded if it was a healing task
+        if (queueType === 'heal') {
             newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
         }
     
-        // Recalculate end times for subsequent items in the queue
         for (let i = itemIndex; i < newQueue.length; i++) {
             const previousTaskEndTime = (i === 0)
-                ? Date.now() // If it's the first item in the new queue, start from now
-                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now()); // Otherwise, use the previous item's end time
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
             
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];
@@ -324,7 +371,6 @@ const handleTrainTroops = async (unitId, amount) => {
     const currentState = cityGameState;
     if (!currentState || !worldId || amount <= 0) return;
 
-    // Validate unit exists
     const unit = unitConfig[unitId];
     if (!unit) {
         setMessage("Invalid unit type");
@@ -332,7 +378,7 @@ const handleTrainTroops = async (unitId, amount) => {
     }
 
     let queueName;
-    let requiredBuildingLevel = 0; // Default to 0, for buildings that don't need a specific level
+    let requiredBuildingLevel = 0;
     
     if (unit.type === 'naval') {
         queueName = 'shipyardQueue';
@@ -371,12 +417,10 @@ const handleTrainTroops = async (unitId, amount) => {
         stone: unit.cost.stone * amount,
         silver: unit.cost.silver * amount,
         population: unit.cost.population * amount,
-        favor: unit.cost.favor ? unit.cost.favor * amount : 0, // Mythical units might have favor cost
+        favor: unit.cost.favor ? unit.cost.favor * amount : 0,
     };
 
-    // Check population capacity
-    let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
-    // Include population from all active unit training queues (not just the one being added to)
+    let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
     Object.values(currentState.barracksQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
     Object.values(currentState.shipyardQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
     Object.values(currentState.divineTempleQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
@@ -384,7 +428,6 @@ const handleTrainTroops = async (unitId, amount) => {
     const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
     const availablePopulation = maxPopulation - effectiveUsedPopulation;
 
-    // Validate resources and population
     if (currentState.resources.wood < totalCost.wood) {
         setMessage(`Need ${totalCost.wood - currentState.resources.wood} more wood`);
         return;
@@ -414,7 +457,6 @@ const handleTrainTroops = async (unitId, amount) => {
         newGameState.worship[newGameState.god] -= totalCost.favor;
     }
 
-    // Calculate end time based ONLY on the specific queue
     const activeQueueForType = currentQueue.filter(task => {
         const taskEndTime = task.endTime?.toDate ? task.endTime.toDate() : new Date(task.endTime);
         return taskEndTime.getTime() > Date.now();
@@ -431,7 +473,7 @@ const handleTrainTroops = async (unitId, amount) => {
     const endTime = new Date(lastEndTime + trainingTime * 1000);
 
     const newQueueItem = {
-        id: uuidv4(), // Assign a unique ID
+        id: uuidv4(),
         unitId,
         amount,
         endTime: endTime,
@@ -455,7 +497,7 @@ const handleTrainTroops = async (unitId, amount) => {
         let currentQueue = newGameState.healQueue || [];
         
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
-        const usedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units);
+        const usedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
         const availablePopulation = maxPopulation - usedPopulation;
         let populationToHeal = 0;
         for (const unitId in unitsToHeal) {
@@ -523,7 +565,7 @@ const handleTrainTroops = async (unitId, amount) => {
             for (const task of tasksToAdd) {
                 const endTime = new Date(lastEndTime + task.time * 1000);
                 const newQueueItem = {
-                    id: uuidv4(), // Assign a unique ID
+                    id: uuidv4(),
                     unitId: task.unitId,
                     amount: task.amount,
                     endTime,
@@ -567,7 +609,6 @@ const handleTrainTroops = async (unitId, amount) => {
         newWounded[canceledTask.unitId] = (newWounded[canceledTask.unitId] || 0) + canceledTask.amount;
 
         for (let i = itemIndex; i < newQueue.length; i++) {
-            // #comment Check if the previous item in the queue exists before trying to get its endTime
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
@@ -626,10 +667,100 @@ const handleTrainTroops = async (unitId, amount) => {
         closeModal('isTempleMenuOpen');
     };
 
+    const handleBuildSpecialBuilding = async (buildingId, cost) => {
+        const currentState = cityGameState;
+        
+        if (currentState.specialBuilding || (currentState.buildQueue || []).some(task => task.isSpecial)) {
+            setMessage("You can only build one special building per city.");
+            return;
+        }
+
+        const currentQueue = currentState.buildQueue || [];
+        if (currentQueue.length >= 5) {
+            setMessage("Build queue is full (max 5).");
+            return;
+        }
+        
+        const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
+        const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
+        const availablePopulation = maxPopulation - currentUsedPopulation;
+
+        if (availablePopulation < cost.population) {
+            setMessage("Not enough population to construct this wonder.");
+            return;
+        }
+
+        if (
+            currentState.resources.wood < cost.wood ||
+            currentState.resources.stone < cost.stone ||
+            currentState.resources.silver < cost.silver
+        ) {
+            setMessage("Not enough resources to construct this wonder.");
+            return;
+        }
+
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        newGameState.resources.wood -= cost.wood;
+        newGameState.resources.stone -= cost.stone;
+        newGameState.resources.silver -= cost.silver;
+
+        let lastEndTime = Date.now();
+        if (currentQueue.length > 0) {
+            const lastQueueItem = currentQueue[currentQueue.length - 1];
+            if (lastQueueItem.endTime) {
+                lastEndTime = lastQueueItem.endTime.toDate
+                    ? lastQueueItem.endTime.toDate().getTime()
+                    : new Date(lastQueueItem.endTime).getTime();
+            }
+        }
+        const buildTimeInSeconds = 7200; // 2 hours for wonders
+        const endTime = new Date(lastEndTime + buildTimeInSeconds * 1000);
+
+        const newQueueItem = {
+            id: uuidv4(),
+            buildingId: buildingId,
+            isSpecial: true,
+            level: 1, // Special buildings are level 1
+            endTime: endTime,
+        };
+        newGameState.buildQueue = [...currentQueue, newQueueItem];
+
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        closeModal('isSpecialBuildingMenuOpen');
+        setMessage("Construction of your wonder has begun!");
+    };
+    
+    const handleDemolishSpecialBuilding = async () => {
+        const currentState = cityGameState;
+        if (!currentState.specialBuilding) {
+            setMessage("No special building to demolish.");
+            return;
+        }
+
+        const cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
+        const refund = {
+            wood: Math.floor(cost.wood * 0.5),
+            stone: Math.floor(cost.stone * 0.5),
+            silver: Math.floor(cost.silver * 0.5),
+        };
+
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        
+        newGameState.resources.wood += refund.wood;
+        newGameState.resources.stone += refund.stone;
+        newGameState.resources.silver += refund.silver;
+        
+        delete newGameState.specialBuilding;
+
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
+        setMessage("The wonder has been demolished and half of its resources have been returned.");
+    };
+
     const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity) => {
         if (!cityGameState || !userProfile?.is_admin) return;
 
-        // #comment Handle founding a second city as an admin action
         if (foundSecondCity) {
             if (!worldId) {
                 setMessage("Cannot found city: World ID is missing.");
@@ -665,7 +796,6 @@ const handleTrainTroops = async (unitId, amount) => {
 
             const batch = writeBatch(db);
             
-            // #comment Check for existing city names to avoid duplicates
             const citiesCollectionRef = collection(db, 'users', currentUser.uid, 'games', worldId, 'cities');
             const citiesSnapshot = await getDocs(citiesCollectionRef);
             const existingCityNames = citiesSnapshot.docs.map(doc => doc.data().cityName);
@@ -713,9 +843,9 @@ const handleTrainTroops = async (unitId, amount) => {
                 worship: {},
                 cave: { silver: 0 },
                 buildQueue: [],
-                barracksQueue: [], // New queue
-                shipyardQueue: [], // New queue
-                divineTempleQueue: [], // New queue
+                barracksQueue: [],
+                shipyardQueue: [],
+                divineTempleQueue: [],
                 healQueue: [],
                 lastUpdated: Date.now(),
             };
@@ -830,6 +960,7 @@ const handleTrainTroops = async (unitId, amount) => {
         handleAddWorker, handleRemoveWorker, handleUpgrade, handleCancelBuild,
         handleStartResearch, handleCancelResearch, handleCancelTrain, handleTrainTroops,
         handleHealTroops, handleCancelHeal, handleFireTroops, handleWorshipGod,
-        handleCheat, handlePlotClick, handleCastSpell
+        handleCheat, handlePlotClick, handleCastSpell, handleBuildSpecialBuilding, handleDemolishSpecialBuilding,
+        handleDemolish
     };
 };

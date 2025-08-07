@@ -13,5 +13,6 @@
   { "id": "cave", "name": "Cave", "position": { "x": 1300, "y": 600 } },
   { "id": "academy", "name": "Academy", "position": { "x": 1100, "y": 5 } },
   { "id": "hospital", "name": "Hospital", "position": { "x": 1250, "y": 300 } },
-  { "id": "shipyard", "name": "Shipyard", "position": { "x": 925, "y": 950 } }
+  { "id": "shipyard", "name": "Shipyard", "position": { "x": 925, "y": 950 } },
+  { "id": "special_building_plot", "name": "Special Building", "position": { "x": 925, "y": 700 } }
 ]

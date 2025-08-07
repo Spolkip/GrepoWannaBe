@@ -12,11 +12,11 @@ const formatTime = (seconds) => {
 };
 
 const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCancelResearch }) => { // Add researchQueue and onCancelResearch to props
-    const { buildings, resources, research = {} } = cityGameState;
+    const { buildings, resources, research = {}, researchPoints = 0 } = cityGameState;
     const academyLevel = buildings.academy?.level || 0;
 
     const canAfford = (cost) => {
-        return resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver;
+        return resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && researchPoints >= (cost.points || 0);
     };
 
     const meetsRequirements = (reqs) => {
@@ -39,6 +39,7 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl border-2 border-gray-600 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="font-title text-3xl text-white">Academy (Level {academyLevel})</h3>
+                    <p className="text-white">Research Points: {researchPoints}</p>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
                 
@@ -75,13 +76,13 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
                                     <h4 className="text-xl font-bold text-yellow-300">{config.name}</h4>
                                     <p className="text-sm text-gray-400">{config.description}</p>
                                     <div className="text-xs text-gray-300 mt-2">
-                                        <span>Cost: {config.cost.wood}W, {config.cost.stone}S, {config.cost.silver}Ag</span>
+                                        <span>Cost: {config.cost.wood}W, {config.cost.stone}S, {config.cost.silver}Ag, {config.cost.points || 0} RP</span>
                                         <span className="ml-4">Time: {formatTime(config.cost.time)}</span>
                                     </div>
                                 </div>
                                 <div className="w-1/4 ml-4">
                                     {button}
-                                </div> {/* Closing div tag added here, the extra '}' was removed */}
+                                </div>
                             </div>
                         );
                     })}

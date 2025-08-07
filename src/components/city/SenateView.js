@@ -1,6 +1,7 @@
 // src/components/city/SenateView.js
 import React, { useState } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
+import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 import BuildQueue from './BuildQueue';
 
 // Dynamically import all building images
@@ -12,7 +13,6 @@ buildingImageContext.keys().forEach((item) => {
 });
 
 const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFull }) => {
-    // #comment Check if the building has reached its maximum level.
     const isMaxLevel = level >= (config.maxLevel || 99);
     let buttonText = level === 0 ? 'Build' : `Expand to ${level + 1}`;
     if (isMaxLevel) buttonText = 'Max Level';
@@ -24,17 +24,13 @@ const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFu
 
     return (
         <div className="bg-gray-700/80 border-2 border-gray-600 rounded-lg p-2 w-48 text-center flex flex-col items-center relative shadow-lg">
-            {/* Connector line to parent row */}
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-500/50"></div>
-
             <h4 className="font-bold text-yellow-400 text-base">{config.name}</h4>
             <p className="text-sm text-gray-300 font-semibold">Level {level}</p>
             <img src={buildingImages[config.image]} alt={config.name} className="w-20 h-20 object-contain my-1" />
-            
             <div className="text-xs text-gray-400 mb-2">
                 <span>{cost.wood}W</span>, <span>{cost.stone}S</span>, <span>{cost.silver}Ag</span>, <span>{cost.population}P</span>
             </div>
-
             <button
                 onClick={() => onUpgrade(id)}
                 disabled={!canAfford || isQueueFull || isMaxLevel}
@@ -46,15 +42,38 @@ const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFu
     );
 };
 
-const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage }) => {
+const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
+    const specialBuildingId = cityGameState.specialBuilding;
+    const config = specialBuildingId ? specialBuildingsConfig[specialBuildingId] : buildingConfig.special_building_plot;
+    
+    return (
+        <div className="bg-gray-700/80 border-2 border-gray-600 rounded-lg p-2 w-48 text-center flex flex-col items-center relative shadow-lg">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-500/50"></div>
+            <h4 className="font-bold text-yellow-400 text-base">{config.name}</h4>
+            <p className="text-sm text-gray-300 font-semibold">{specialBuildingId ? 'Constructed' : 'Empty Plot'}</p>
+            <img src={buildingImages[config.image]} alt={config.name} className="w-20 h-20 object-contain my-1" />
+            <p className="text-xs text-gray-400 mb-2 h-8 overflow-hidden">{config.description}</p>
+            <button
+                onClick={onOpenSpecialBuildingMenu}
+                disabled={!!specialBuildingId}
+                className={`w-full py-1.5 rounded font-bold text-sm transition-colors ${!!specialBuildingId ? 'btn-disabled' : 'btn-upgrade'}`}
+            >
+                {specialBuildingId ? 'Constructed' : 'Build Wonder'}
+            </button>
+        </div>
+    );
+};
+
+
+const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
     
-    // #comment Added 'divine_temple' to the building layout rows.
     const buildingRows = [
         ['senate'],
-        ['timber_camp', 'farm', 'quarry', 'warehouse'],
-        ['silver_mine', 'barracks', 'temple', 'market'],
-        ['shipyard', 'academy', 'city_wall', 'cave', 'hospital', 'divine_temple']
+        ['timber_camp', 'quarry', 'silver_mine', 'farm'],
+        ['warehouse', 'market', 'barracks', 'shipyard'],
+        ['academy', 'temple', 'divine_temple', 'hospital'],
+        ['city_wall', 'cave', 'special_building_plot']
     ];
 
     const isBuildingInQueue = (buildingId) => (buildQueue || []).some(task => task.buildingId === buildingId);
@@ -90,6 +109,9 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                 <div key={rowIndex} className="flex justify-center items-start gap-6 relative">
                                     {row.length > 1 && rowIndex > 0 && <div className="absolute -top-9 left-0 right-0 h-0.5 bg-gray-500/50 z-0 w-3/4 mx-auto"></div>}
                                     {row.map(id => {
+                                        if (id === 'special_building_plot') {
+                                            return <SpecialBuildingCard key={id} cityGameState={cityGameState} onOpenSpecialBuildingMenu={onOpenSpecialBuildingMenu} />;
+                                        }
                                         const config = buildingConfig[id];
                                         if (config.constructible === false && id !== 'senate') return null;
                                         const level = buildings[id]?.level || 0;
@@ -138,6 +160,20 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                     );
                                 })
                             }
+                            {cityGameState.specialBuilding && (
+                                <div className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                                    <div>
+                                        <h4 className="text-xl font-semibold text-yellow-400">{specialBuildingsConfig[cityGameState.specialBuilding].name}</h4>
+                                        <p className="text-sm text-gray-300">Wonder</p>
+                                    </div>
+                                    <button 
+                                        onClick={onDemolishSpecialBuilding}
+                                        className="py-2 px-4 rounded font-bold btn-danger"
+                                    >
+                                        Demolish
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
