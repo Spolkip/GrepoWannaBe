@@ -9,7 +9,7 @@ Maybe:
 - fix population and resource max
 
 Bugs:
-
+- fix recruitment tooltip
 
 Models:
 - add a battle simulation

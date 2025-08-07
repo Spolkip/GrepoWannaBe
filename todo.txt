@@ -28,4 +28,14 @@
 - add counters and more stats to troops
 - make the city list with the new theme
 - make manager for troops and research spells, puzzles and buildings with a lot of options
-- fix spells
+- add more spells and make them work
+- fix the returning tiome of the troops 
+
+
+There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
+doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 
+
+If the city becomes a ghost town, any player can send the other agent with troops to hold the city for 5 hours. Anyone that scout the city will be able to see the unit and the time left
+for it to get conquered.
+
+For a player to found a city we need the second agent to go inside the city with at least one villager, the more the villager the less time it will take for the city to be found.
