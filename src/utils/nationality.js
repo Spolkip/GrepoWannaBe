@@ -62,14 +62,9 @@ export const getTrainableUnits = (nation) => {
         }
         return false;
     });
-
-    const genericUnits = Object.keys(unitConfig).filter(id => {
-        const unit = unitConfig[id];
-        // #comment A unit is generic if it has no nation, is not mythical, and is a LAND unit
-        return !unit.nation && !unit.mythical && unit.type === 'land';
-    });
     
-    return [...new Set([...nationalUnits, ...genericUnits])];
+    // #comment Generic units have been removed from this function to prevent them from being trainable.
+    return [...new Set([...nationalUnits])];
 };
 
 export const getTrainableNavalUnits = (nation) => {

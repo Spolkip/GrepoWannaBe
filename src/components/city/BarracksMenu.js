@@ -39,7 +39,8 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
     const hasTrainableUnits = landUnits.length > 0;
     
     const cityUnits = cityGameState?.units || {};
-    const hasDismissableUnits = Object.keys(cityUnits).some(id => unitConfig[id]?.type === 'land');
+    // #comment Check for dismissable units more accurately by checking count > 0
+    const hasDismissableUnits = Object.entries(cityUnits).some(([id, count]) => unitConfig[id]?.type === 'land' && count > 0);
     
     if (!hasTrainableUnits && activeTab === 'train') {
         return (
@@ -164,9 +165,11 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                 {activeTab === 'fire' && (
                     <div className="flex-grow overflow-y-auto pr-2">
                         <h4 className="text-xl font-semibold text-yellow-400 mb-2">Dismiss Units</h4>
-                        {Object.keys(cityUnits).filter(id => unitConfig[id].type === 'land').length > 0 ? (
+                        {hasDismissableUnits ? (
                             <div className="space-y-3">
-                                {Object.entries(cityUnits).filter(([id]) => unitConfig[id].type === 'land').map(([unitId, count]) => {
+                                {Object.entries(cityUnits)
+                                    .filter(([id, count]) => unitConfig[id].type === 'land' && count > 0)
+                                    .map(([unitId, count]) => {
                                     const unit = unitConfig[unitId];
                                     return (
                                         <div key={unitId} className="bg-gray-700 p-3 rounded-lg flex items-center justify-between">

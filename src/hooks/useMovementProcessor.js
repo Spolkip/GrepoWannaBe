@@ -106,8 +106,14 @@ export const useMovementProcessor = (worldId) => {
                 
                     const damageDealt = Object.values(combatResult.defenderLosses).reduce((sum, count) => sum + count, 0) * 5; // Example damage calculation
                     const newHealth = Math.max(0, townData.health - damageDealt);
+                    
+                    // #comment Calculate remaining troops in the god town
+                    const newTownTroops = { ...townData.troops };
+                    for (const unitId in combatResult.defenderLosses) {
+                        newTownTroops[unitId] = Math.max(0, (newTownTroops[unitId] || 0) - combatResult.defenderLosses[unitId]);
+                    }
                 
-                    batch.update(townRef, { health: newHealth });
+                    batch.update(townRef, { health: newHealth, troops: newTownTroops });
                 
                     const warPoints = Math.floor(damageDealt / 10);
                     const resourcesWon = {

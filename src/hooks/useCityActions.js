@@ -1,5 +1,5 @@
 // src/hooks/useCityActions.js
-import { collection, doc, query, where, limit, getDocs, writeBatch, setDoc as firestoreSetDoc } from 'firebase/firestore';
+import { collection, doc, query, where, limit, getDocs, writeBatch, setDoc as firestoreSetDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
@@ -652,32 +652,38 @@ const handleTrainTroops = async (unitId, amount) => {
         setCityGameState(newGameState);
     };
 
+    // #comment Use a Firestore transaction to safely dismiss troops.
     const handleFireTroops = async (unitsToFire) => {
-        const currentState = cityGameState;
-        if (!currentState || !worldId || Object.keys(unitsToFire).length === 0) return;
+        if (!cityGameState || !worldId || Object.keys(unitsToFire).length === 0) return;
 
-        const newGameState = JSON.parse(JSON.stringify(currentState));
-        const newUnits = { ...newGameState.units };
-
-        for (const unitId in unitsToFire) {
-            const amount = unitsToFire[unitId];
-            if (newUnits[unitId] && newUnits[unitId] >= amount) {
-                newUnits[unitId] -= amount;
-                if (newUnits[unitId] === 0) {
-                    delete newUnits[unitId];
-                }
-            }
-        }
-
-        newGameState.units = newUnits;
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityGameState.id);
 
         try {
-            await saveGameState(newGameState);
-            setCityGameState(newGameState);
+            await runTransaction(db, async (transaction) => {
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) {
+                    throw new Error("City document not found!");
+                }
+                const currentState = cityDoc.data();
+                const newUnits = { ...currentState.units };
+
+                for (const unitId in unitsToFire) {
+                    const amount = unitsToFire[unitId];
+                    if (newUnits[unitId] && newUnits[unitId] >= amount) {
+                        newUnits[unitId] -= amount;
+                        if (newUnits[unitId] === 0) {
+                            delete newUnits[unitId];
+                        }
+                    } else {
+                        throw new Error(`Trying to dismiss more ${unitId} than available.`);
+                    }
+                }
+                transaction.update(cityDocRef, { units: newUnits });
+            });
             setMessage("Units dismissed.");
         } catch (error) {
             console.error("Error firing units:", error);
-            setMessage("Could not dismiss units. Please try again.");
+            setMessage(`Could not dismiss units: ${error.message}`);
         }
     };
 
@@ -851,7 +857,7 @@ const handleTrainTroops = async (unitId, amount) => {
                 initialBuildings[id] = { level: 0 };
             });
             ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
-                initialBuildings[id].level = 1;
+                initialBuildings[id] = { level: 1 };
             });
 
             const newCityData = {
