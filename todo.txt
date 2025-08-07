@@ -1,8 +1,5 @@
-- add to select all units when you press on the icons
-- on trade to show the from and to
-- remake academy layout with icons for researches instead of name and on hover to say details
-- add a cooldown and also limit per daily, add a bank cap (can get more with alliance research)
 
+- on trade to show the from and to
 - put special buildings on cityscape
 - timer for the tooltip to lock until you click somewhere else
 - add icons to back to world selection and logout

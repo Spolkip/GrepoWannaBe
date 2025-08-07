@@ -14,8 +14,7 @@ export const useAlliance = () => useContext(AllianceContext);
 const calculateMaxMembers = (alliance) => {
     const baseMax = 20; // Base maximum members
     const researchLevel = alliance.research?.expanded_charter?.level || 0;
-    const researchInfo = allianceResearch.expanded_charter;
-    const researchBonus = researchInfo?.effect?.value * researchLevel || 0;
+    const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
     return baseMax + researchBonus;
 };
 
@@ -23,8 +22,7 @@ const calculateMaxMembers = (alliance) => {
 const calculateBankCapacity = (alliance) => {
     const baseCapacity = 100000; // Base capacity for each resource
     const researchLevel = alliance.research?.reinforced_vaults?.level || 0;
-    const researchInfo = allianceResearch.reinforced_vaults;
-    const researchBonus = researchInfo?.effect?.value * researchLevel || 0;
+    const researchBonus = allianceResearch.reinforced_vaults.effect.value * researchLevel;
     return baseCapacity + researchBonus;
 };
 
@@ -768,17 +766,23 @@ export const AllianceProvider = ({ children }) => {
             const allianceData = allianceDoc.data();
             const bankCapacity = calculateBankCapacity(allianceData);
             
-            // #comment Check cooldown
-            const userActivityData = userActivityDoc.exists() ? userActivityDoc.data() : { lastDonation: 0, dailyDonationTotal: 0 };
-            const now = Date.now();
-            if (now - userActivityData.lastDonation < 5 * 60 * 1000) { // 5 minute cooldown
-                throw new Error("You must wait 5 minutes between donations.");
+            const userActivityData = userActivityDoc.exists() ? userActivityDoc.data() : { lastDonation: 0, dailyDonationTotal: 0, lastDonationDate: new Date(0).toISOString().split('T')[0] };
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+
+            if (now.getTime() - (userActivityData.lastDonation || 0) < 5 * 60 * 1000) { // 5 minute cooldown
+                const waitTime = Math.ceil((5 * 60 * 1000 - (now.getTime() - userActivityData.lastDonation)) / 1000);
+                throw new Error(`You must wait ${waitTime} seconds between donations.`);
             }
             
-            // #comment Check daily limit
+            let dailyTotal = userActivityData.dailyDonationTotal || 0;
+            if(userActivityData.lastDonationDate !== today) {
+                dailyTotal = 0;
+            }
+
             const totalDonation = Object.values(donation).reduce((a, b) => a + b, 0);
-            if (userActivityData.dailyDonationTotal + totalDonation > 50000) { // 50k daily limit
-                throw new Error("You have reached your daily donation limit.");
+            if (dailyTotal + totalDonation > 50000) { // 50k daily limit
+                throw new Error(`You have reached your daily donation limit of 50,000. You have ${50000 - dailyTotal} left to donate today.`);
             }
 
             const newCityResources = { ...cityData.resources };
@@ -786,7 +790,7 @@ export const AllianceProvider = ({ children }) => {
     
             for (const resource in donation) {
                 if ((newCityResources[resource] || 0) < donation[resource]) throw new Error(`Not enough ${resource}.`);
-                if ((newBank[resource] || 0) + donation[resource] > bankCapacity) throw new Error(`Bank is full for ${resource}.`);
+                if ((newBank[resource] || 0) + donation[resource] > bankCapacity) throw new Error(`Bank is full for ${resource}. Capacity: ${bankCapacity.toLocaleString()}`);
                 newCityResources[resource] -= donation[resource];
                 newBank[resource] = (newBank[resource] || 0) + donation[resource];
             }
@@ -794,8 +798,9 @@ export const AllianceProvider = ({ children }) => {
             transaction.update(cityDocRef, { resources: newCityResources });
             transaction.update(allianceDocRef, { bank: newBank });
             transaction.set(userBankActivityRef, { 
-                lastDonation: now, 
-                dailyDonationTotal: userActivityData.dailyDonationTotal + totalDonation 
+                lastDonation: now.getTime(), 
+                dailyDonationTotal: dailyTotal + totalDonation,
+                lastDonationDate: today
             }, { merge: true });
 
             transaction.set(logRef, {

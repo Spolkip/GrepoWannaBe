@@ -48,10 +48,13 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
         return () => clearInterval(interval);
     }, [movement.cancellableUntil]);
     
-    // #comment Determine the destination name based on movement status, with fallbacks
-    const destination = movement.status === 'returning' ? originCity : targetLocation;
-    const destinationName = destination?.cityName || destination?.name || movement.targetCityName || movement.targetVillageName || movement.targetRuinName || movement.targetTownName || 'Unknown';
-    const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace(/_/g, ' ');
+    const destinationName = targetLocation?.cityName || targetLocation?.name || movement.targetCityName || movement.targetVillageName || movement.targetRuinName || movement.targetTownName || 'Unknown';
+    const originName = originCity?.cityName || movement.originCityName || 'Unknown';
+    
+    const actionText = movement.type.replace(/_/g, ' ');
+    const titleText = movement.status === 'returning' 
+        ? `Returning from ${destinationName}`
+        : `${actionText} from ${originName} to ${destinationName}`;
 
     const cancellableDate = movement.cancellableUntil?.toDate();
     const arrivalDate = movement.arrivalTime?.toDate();
@@ -61,7 +64,7 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
             <span className="movement-type-icon">{config.icon}</span>
             <div className="movement-details">
                 <p className="title capitalize">
-                    {actionText} to {destinationName}
+                    {titleText}
                 </p>
                 <p className="timing">
                     <Countdown arrivalTime={movement.arrivalTime} />

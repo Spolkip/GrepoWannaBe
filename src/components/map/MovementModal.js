@@ -136,6 +136,13 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
         setSelectedUnits(prev => ({ ...prev, [unitId]: amount }));
     };
 
+    // #comment Toggles selecting all units of a type or deselecting them.
+    const handleUnitIconClick = (unitId, maxAmount) => {
+        const currentAmount = selectedUnits[unitId] || 0;
+        const newAmount = currentAmount === maxAmount ? 0 : maxAmount;
+        handleUnitChange(unitId, newAmount);
+    };
+
     const handleResourceChange = (resource, value) => {
         const parsedAmount = parseInt(value, 10) || 0;
         let amount = parsedAmount;
@@ -294,7 +301,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                             <div className="unit-grid">
                                 {landUnitsList.map(unit => (
                                     <div key={unit.id} className="unit-item">
-                                        <div className="unit-image-container">
+                                        <div className="unit-image-container" title={`Select all/none of ${unit.name}`} onClick={() => handleUnitIconClick(unit.id, unit.currentCount)}>
                                             <img src={images[unit.image]} alt={unit.name} className="unit-image" />
                                              <span className="unit-count-badge">
                                                 {unit.currentCount}
@@ -320,7 +327,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                             <div className="unit-grid">
                                 {navalUnitsList.map(unit => (
                                     <div key={unit.id} className="unit-item">
-                                        <div className="unit-image-container">
+                                        <div className="unit-image-container" title={`Select all/none of ${unit.name}`} onClick={() => handleUnitIconClick(unit.id, unit.currentCount)}>
                                             <img src={images[unit.image]} alt={unit.name} className="unit-image" />
                                             <span className="unit-count-badge">
                                                 {unit.currentCount}

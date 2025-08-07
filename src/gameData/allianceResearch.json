@@ -35,7 +35,7 @@
         "name": "Reinforced Vaults",
         "description": "Increases the capacity of the alliance bank.",
         "maxLevel": 10,
-        "baseCost": { "wood": 150000, "stone": 150000, "silver": 150000 },
+        "baseCost": { "wood": 150000, "stone": 200000, "silver": 150000 },
         "costMultiplier": 1.6,
         "effect": { "type": "bank_capacity", "value": 50000 }
     }

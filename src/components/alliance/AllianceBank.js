@@ -3,8 +3,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
-import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import allianceResearch from '../../gameData/allianceResearch.json';
 
 const AllianceBank = () => {
     const { playerAlliance, donateToBank, distributeFromBank } = useAlliance();
@@ -21,6 +22,14 @@ const AllianceBank = () => {
     const [suggestions, setSuggestions] = useState([]);
 
     const bank = playerAlliance.bank || { wood: 0, stone: 0, silver: 0 };
+
+    const bankCapacity = useMemo(() => {
+        if (!playerAlliance) return 0;
+        const baseCapacity = 1000000;
+        const researchLevel = playerAlliance.research?.reinforced_vaults?.level || 0;
+        const researchBonus = (allianceResearch.reinforced_vaults?.effect.value || 0) * researchLevel;
+        return baseCapacity + researchBonus;
+    }, [playerAlliance]);
 
     const memberRankData = useMemo(() => {
         if (!playerAlliance || !currentUser) return null;
@@ -114,6 +123,7 @@ const AllianceBank = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-bold text-lg mb-2">Bank Holdings</h4>
+                    <p className="text-sm text-gray-600">Capacity: {bankCapacity.toLocaleString()} per resource</p>
                     <p>Wood: {bank.wood.toLocaleString()}</p>
                     <p>Stone: {bank.stone.toLocaleString()}</p>
                     <p>Silver: {bank.silver.toLocaleString()}</p>
@@ -121,6 +131,7 @@ const AllianceBank = () => {
 
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-bold text-lg mb-2">Donate Resources</h4>
+                    <p className="text-xs text-gray-500 mb-2">5 min cooldown | 50,000 daily limit</p>
                     <div className="space-y-2">
                         <div>
                             <label>Wood (Your: {Math.floor(gameState.resources.wood)})</label>
