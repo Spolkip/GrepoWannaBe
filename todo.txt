@@ -1,5 +1,5 @@
-- make a way to share reports 
 - add special buildings
+- add research points
 - different troops for different nationalities
 - god towns for pve events per sometime to be able to get war points and resources and someone can conquer it(pvp), starts as strange ruins, becomes a city, solves a puzzle(random per person)
 
