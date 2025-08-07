@@ -34,7 +34,7 @@ import SharedReportView from './SharedReportView'; // #comment Import the new co
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
 
-const Game = ({ onBackToWorlds }) => {
+const Game = ({ onBackToWorlds, onGodTownClick }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity } = useGame();
     const { currentUser, userProfile } = useAuth();
     const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
@@ -302,6 +302,7 @@ const Game = ({ onBackToWorlds }) => {
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={renameCity}
                     centerOnCity={centerOnCity}
+                    onGodTownClick={onGodTownClick}
                 />
             )}
             

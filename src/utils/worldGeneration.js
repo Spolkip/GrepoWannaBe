@@ -247,3 +247,46 @@ export const generateRuins = (islands, worldWidth, worldHeight) => {
     }
     return ruins;
 };
+
+export const generateGodTowns = (islands, worldWidth, worldHeight) => {
+    const godTowns = {};
+    const townCount = 2; // Start with 2 God Towns for testing
+    const minDistanceFromLand = 5;
+
+    const isLand = (x, y) => {
+        for (const island of islands) {
+            const distSq = Math.pow(x - island.x, 2) + Math.pow(y - island.y, 2);
+            if (distSq <= Math.pow(island.radius + minDistanceFromLand, 2)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (let i = 0; i < townCount; i++) {
+        let x, y;
+        let attempts = 0;
+        do {
+            x = Math.floor(Math.random() * worldWidth);
+            y = Math.floor(Math.random() * worldHeight);
+            attempts++;
+        } while (isLand(x, y) && attempts < 100);
+
+        if (attempts < 100) {
+            const townId = `god-town-${i}`;
+            godTowns[townId] = {
+                id: townId,
+                x,
+                y,
+                name: "Strange Ruins",
+                stage: "ruins", // 'ruins', 'city', 'conquered'
+                health: 10000,
+                maxHealth: 10000,
+                puzzleId: `puzzle_${(i % 3) + 1}`,
+                troops: { /* Define troops for the city stage */ },
+                spawnTime: new Date(),
+            };
+        }
+    }
+    return godTowns;
+};

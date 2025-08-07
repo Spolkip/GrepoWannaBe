@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ruinImage from '../../images/ruin_new.png';
 import unitConfig from '../../gameData/units.json';
+import godTownImage from '../../images/god-town.png';
 
 // #comment Dynamically import all unit images so they can be used in the tooltip
 const images = {};
@@ -172,6 +173,34 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
                 onClick={(e) => onClick(e, ruinData)}
                 className={ruinClass}
                 style={{ backgroundImage: `url(${ruinImage})` }}
+            >
+                <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
+            </div>
+        </div>
+    );
+});
+
+export const GodTownTile = React.memo(({ townData, onClick, gameSettings = defaultSettings }) => {
+    let townClass = 'god-town-slot';
+    let tooltipText = `God Town: ${townData.name}`;
+    let image = townData.stage === 'ruins' ? ruinImage : godTownImage;
+
+    if (townData.stage === 'ruins') {
+        townClass += ' ruins';
+        tooltipText = `Strange Ruins`;
+    } else if (townData.stage === 'city') {
+        townClass += ' city';
+        tooltipText = `God Town: ${townData.name}<br>Health: ${townData.health}`;
+    }
+
+    const bgClass = 'bg-transparent';
+
+    return (
+        <div className={`w-full h-full ${bgClass} flex justify-center items-center`}>
+            <div
+                onClick={() => onClick(townData)}
+                className={townClass}
+                style={{ backgroundImage: `url(${image})` }}
             >
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>

@@ -85,6 +85,72 @@ export const useMovementProcessor = (worldId) => {
             const targetCityState = targetCitySnap?.exists() ? targetCitySnap.data() : null;
 
             switch (movement.type) {
+                case 'attack_god_town': {
+                    console.log(`Processing God Town attack: ${movement.id}`);
+                    const townRef = doc(db, 'worlds', worldId, 'godTowns', movement.targetTownId);
+                    const townSnap = await getDoc(townRef);
+                
+                    if (!townSnap.exists() || townSnap.data().stage !== 'city') {
+                        // Town doesn't exist or is not attackable, return troops
+                        const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
+                        const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
+                        batch.update(movementDoc.ref, {
+                            status: 'returning',
+                            arrivalTime: returnArrivalTime,
+                        });
+                        break;
+                    }
+                
+                    const townData = townSnap.data();
+                    const combatResult = resolveCombat(movement.units, townData.troops, {}, false);
+                
+                    const damageDealt = Object.values(combatResult.defenderLosses).reduce((sum, count) => sum + count, 0) * 5; // Example damage calculation
+                    const newHealth = Math.max(0, townData.health - damageDealt);
+                
+                    batch.update(townRef, { health: newHealth });
+                
+                    const warPoints = Math.floor(damageDealt / 10);
+                    const resourcesWon = {
+                        wood: warPoints * 10,
+                        stone: warPoints * 10,
+                        silver: warPoints * 5
+                    };
+                
+                    // Update player progress
+                    const playerProgressRef = doc(db, 'worlds', worldId, 'godTowns', movement.targetTownId, 'playerProgress', movement.originOwnerId);
+                    const playerProgressSnap = await getDoc(playerProgressRef);
+                    const currentDamage = playerProgressSnap.exists() ? playerProgressSnap.data().damageDealt : 0;
+                    batch.set(playerProgressRef, { damageDealt: currentDamage + damageDealt }, { merge: true });
+                
+                    // Create report for the attacker
+                    const attackerReport = {
+                        type: 'attack_god_town',
+                        title: `Attack on ${townData.name}`,
+                        timestamp: serverTimestamp(),
+                        outcome: combatResult,
+                        rewards: { warPoints, resources: resourcesWon },
+                        read: false,
+                    };
+                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
+                
+                    // Handle troop return
+                    const survivingAttackers = {};
+                    for (const unitId in movement.units) {
+                        const survivors = movement.units[unitId] - (combatResult.attackerLosses[unitId] || 0);
+                        if (survivors > 0) survivingAttackers[unitId] = survivors;
+                    }
+                
+                    const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
+                    const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
+                    batch.update(movementDoc.ref, {
+                        status: 'returning',
+                        units: survivingAttackers,
+                        resources: resourcesWon,
+                        arrivalTime: returnArrivalTime,
+                    });
+                
+                    break;
+                }
                 case 'attack_village': {
                     console.log(`Processing village attack: ${movement.id}`);
                     const villageRef = doc(db, 'worlds', worldId, 'villages', movement.targetVillageId);

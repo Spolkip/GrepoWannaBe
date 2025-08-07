@@ -105,3 +105,23 @@
 .ruin-slot:hover .map-object-tooltip {
     @apply visible opacity-100;
 }
+
+/* God Town Styles */
+.god-town-slot {
+    @apply w-8 h-8 m-1 cursor-pointer relative transition-transform duration-150;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.god-town-slot:hover {
+    @apply scale-125 ring-2 ring-yellow-300 z-20;
+}
+.god-town-slot:hover .map-object-tooltip {
+    @apply visible opacity-100;
+}
+.god-town-slot.ruins {
+    filter: hue-rotate(280deg) brightness(1.2);
+}
+.god-town-slot.city {
+    filter: drop-shadow(0 0 8px #fde047);
+}

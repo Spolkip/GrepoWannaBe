@@ -163,7 +163,6 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 await batch.commit();
             }
 
-
             setMessage('World created successfully!');
             onWorldSelected(worldId);
 

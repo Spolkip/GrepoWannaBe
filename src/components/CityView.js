@@ -167,6 +167,7 @@ const CityView = ({
                 handleBuildSpecialBuilding={actions.handleBuildSpecialBuilding}
                 handleDemolish={actions.handleDemolish}
                 handleDemolishSpecialBuilding={actions.handleDemolishSpecialBuilding}
+                handleSpawnGodTown={actions.handleSpawnGodTown}
             />
             {modalState.isDivinePowersOpen && (
                 <DivinePowers

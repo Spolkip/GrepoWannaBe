@@ -7,10 +7,13 @@ import Game from './components/Game';
 import WorldSelectionScreen from './components/WorldSelectionScreen';
 import CityFounding from './components/CityFounding'; // #comment Use CityFounding for new players
 import LoadingScreen from './components/shared/LoadingScreen';
+import GodTownModal from './components/map/GodTownModal';
 
 // #comment This component now correctly decides whether to show the game or the city founding screen.
 const GameController = ({ onBackToWorlds }) => {
     const { playerHasCities, worldState, loading: gameLoading } = useGame();
+    const [selectedGodTown, setSelectedGodTown] = useState(null);
+
 
     if (gameLoading) {
         return <LoadingScreen message="Loading World Data..." />;
@@ -26,7 +29,12 @@ const GameController = ({ onBackToWorlds }) => {
     }
 
     if (playerHasCities) {
-        return <Game onBackToWorlds={onBackToWorlds} />;
+        return (
+            <>
+                <Game onBackToWorlds={onBackToWorlds} onGodTownClick={setSelectedGodTown} />
+                {selectedGodTown && <GodTownModal townId={selectedGodTown} onClose={() => setSelectedGodTown(null)} />}
+            </>
+        );
     }
     
     // #comment If the player has no cities in this world, show the founding screen.

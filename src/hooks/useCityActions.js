@@ -1,10 +1,12 @@
 // src/hooks/useCityActions.js
-import { collection, doc, query, where, limit, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, doc, query, where, limit, getDocs, writeBatch, setDoc as firestoreSetDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import researchConfig from '../gameData/research.json';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
+import { useGame } from '../contexts/GameContext';
+import { generateGodTowns } from '../utils/worldGeneration';
 
 /**
  * #comment A custom hook to encapsulate all city-related actions and logic.
@@ -15,6 +17,31 @@ export const useCityActions = ({
     setMessage, openModal, closeModal, setModalState,
     setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
 }) => {
+    const { worldState } = useGame();
+
+    const handleSpawnGodTown = async () => {
+        if (!userProfile?.is_admin || !worldState) {
+            setMessage("You are not authorized or world data is not loaded.");
+            return;
+        }
+
+        setMessage("Spawning a God Town...");
+        try {
+            const newTowns = generateGodTowns(worldState.islands, worldState.width, worldState.height, 1);
+            if (Object.keys(newTowns).length === 0) {
+                throw new Error("Failed to find a suitable location in the sea. Try again.");
+            }
+            const [townId, townData] = Object.entries(newTowns)[0];
+
+            const townDocRef = doc(db, 'worlds', worldId, 'godTowns', townId);
+            await firestoreSetDoc(townDocRef, townData);
+
+            setMessage(`God Town spawned as "Strange Ruins" at (${townData.x}, ${townData.y})!`);
+        } catch (error) {
+            console.error("Error spawning God Town:", error);
+            setMessage(`Failed to spawn God Town: ${error.message}`);
+        }
+    };
 
     const handleAddWorker = async (buildingId) => {
         const newGameState = { ...cityGameState };
@@ -961,6 +988,6 @@ const handleTrainTroops = async (unitId, amount) => {
         handleStartResearch, handleCancelResearch, handleCancelTrain, handleTrainTroops,
         handleHealTroops, handleCancelHeal, handleFireTroops, handleWorshipGod,
         handleCheat, handlePlotClick, handleCastSpell, handleBuildSpecialBuilding, handleDemolishSpecialBuilding,
-        handleDemolish
+        handleDemolish, handleSpawnGodTown
     };
 };

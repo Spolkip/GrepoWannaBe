@@ -1,13 +1,13 @@
 // src/components/map/MapGrid.js
 import React, { useMemo } from 'react';
-import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile } from './Tiles';
+import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile, GodTownTile } from './Tiles';
 import MovementIndicator from './MovementIndicator';
 import { useGame } from '../../contexts/GameContext';
 
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
     const { playerCities } = useGame();
 
     // #comment Create a comprehensive lookup for all map locations by their various IDs for the MovementIndicator.
@@ -48,6 +48,9 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     break;
                 case 'ruin':
                     tileContent = <RuinTile ruinData={tile.data} onClick={onRuinClick} gameSettings={gameSettings} />;
+                    break;
+                case 'god_town':
+                    tileContent = <GodTownTile townData={tile.data} onClick={onGodTownClick} gameSettings={gameSettings} />;
                     break;
                 case 'land':
                     tileContent = <LandTile gameSettings={gameSettings} />;

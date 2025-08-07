@@ -48,7 +48,8 @@ const CityModals = ({
   getMarketCapacity, // #comment Receive market capacity function
   handleBuildSpecialBuilding,
   handleDemolish,
-  handleDemolishSpecialBuilding
+  handleDemolishSpecialBuilding,
+  handleSpawnGodTown
 }) => {
   const {
     selectedBuildingId,
@@ -196,6 +197,7 @@ const CityModals = ({
           onCheat={handleCheat}
           onClose={() => closeModal('isCheatMenuOpen')}
           isInstantBuildActive={isInstantBuild}
+          onSpawnGodTown={handleSpawnGodTown}
         />
       )}
     </>
