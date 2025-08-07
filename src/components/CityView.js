@@ -10,7 +10,7 @@ import { useGame } from '../contexts/GameContext';
 import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
-import TopBar from './map/TopBar'; // Import the TopBar
+import TopBar from './map/TopBar';
 import QuestsButton from './QuestsButton';
 import { useAlliance } from '../contexts/AllianceContext';
 
@@ -24,16 +24,16 @@ const CityView = ({
     incomingAttackCount,
     handleOpenAlliance,
     handleOpenProfile,
-    // #comment Props passed down from Game.js
     movements,
     onCancelTrain,
     onCancelMovement,
     combinedSlots,
     onRenameCity,
-    quests
+    quests,
+    handleOpenEvents
 }) => {
     const { currentUser, userProfile } = useAuth();
-    const { gameSettings, worldState } = useGame(); // Get worldState here
+    const { gameSettings, worldState } = useGame();
     const { playerAlliance } = useAlliance();
     const [isInstantBuild, setIsInstantBuild] = useState(false);
     const [isInstantResearch, setIsInstantResearch] = useState(false);
@@ -65,7 +65,6 @@ const CityView = ({
         return { availablePopulation, happiness: happinessValue };
     }, [cityGameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness]);
 
-    // Re-add productionRates calculation
     const productionRates = useMemo(() => {
         if (!cityGameState) return { wood: 0, stone: 0, silver: 0 };
         return getProductionRates(cityGameState.buildings);
@@ -98,9 +97,10 @@ const CityView = ({
                 unreadReportsCount={unreadReportsCount}
                 unreadMessagesCount={unreadMessagesCount}
                 isAdmin={userProfile?.is_admin}
-                onToggleDummyCityPlacement={() => {}} // Not applicable in city view
+                onToggleDummyCityPlacement={() => {}}
                 onOpenCheats={() => openCityModal('isCheatMenuOpen')}
                 isAllianceMember={!!playerAlliance}
+                handleOpenEvents={handleOpenEvents}
             />
 
             <div className="h-full w-full flex flex-col overflow-hidden">
@@ -111,7 +111,6 @@ const CityView = ({
                     happiness={happiness}
                     worldState={worldState}
                     productionRates={productionRates}
-                    // #comment Pass props for activity tracker
                     movements={movements}
                     onCancelTrain={onCancelTrain}
                     onCancelMovement={onCancelMovement}

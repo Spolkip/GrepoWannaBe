@@ -47,7 +47,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             return;
         }
 
-        const isCrossIsland = targetCity.isRuinTarget ? true : playerCity.islandId !== targetCity.islandId;
+        const isCrossIsland = targetCity.isRuinTarget || targetCity.isGodTownTarget ? true : playerCity.islandId !== targetCity.islandId;
 
         let hasLandUnits = false, hasNavalUnits = false, hasFlyingUnits = false, totalTransportCapacity = 0, totalLandUnitsToSend = 0;
         for (const unitId in units) {
@@ -74,9 +74,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
 
-        // --- NEW LOGIC: Find target city's document ID ---
         let targetCityDocId = null;
-        if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && targetCity.ownerId) {
+        if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && !targetCity.isGodTownTarget && targetCity.ownerId) {
             const citiesRef = collection(db, `users/${targetCity.ownerId}/games`, worldId, 'cities');
             const q = query(citiesRef, where('slotId', '==', targetCity.id), limit(1));
             try {
@@ -103,18 +102,37 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
         const slowestSpeed = unitsBeingSent.length > 0
             ? Math.min(...unitsBeingSent.map(([unitId]) => unitConfig[unitId].speed))
-            : 10; // Fallback speed
+            : 10;
 
         const travelSeconds = calculateTravelTime(distance, slowestSpeed, mode, worldState, unitTypes);
         const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
-        const cancellableUntil = new Date(Date.now() + 30 * 1000); // 30 seconds to cancel
+        const cancellableUntil = new Date(Date.now() + 30 * 1000);
 
         let movementData;
-        if (mode === 'attack' && targetCity.isVillageTarget) {
+        if (mode === 'attack' && targetCity.isGodTownTarget) {
+            movementData = {
+                type: 'attack_god_town',
+                targetTownId: targetCity.id,
+                targetTownName: targetCity.name,
+                originCityId: playerCity.id,
+                originOwnerId: currentUser.uid,
+                originCityName: playerCity.cityName,
+                originOwnerUsername: userProfile.username,
+                units,
+                departureTime: serverTimestamp(),
+                arrivalTime,
+                cancellableUntil,
+                status: 'moving',
+                attackFormation: attackFormation || {},
+                involvedParties: [currentUser.uid],
+                isGodTownTarget: true,
+                isCrossIsland: true,
+            };
+        } else if (mode === 'attack' && targetCity.isVillageTarget) {
             movementData = {
                 type: 'attack_village',
                 targetVillageId: targetCity.id,
-                targetVillageName: targetCity.name, // #comment Added village name
+                targetVillageName: targetCity.name,
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
@@ -134,7 +152,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             movementData = {
                 type: 'attack_ruin',
                 targetRuinId: targetCity.id,
-                targetRuinName: targetCity.name, // #comment Added ruin name
+                targetRuinName: targetCity.name,
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
@@ -155,8 +173,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 originCityId: playerCity.id,
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
-                targetCityId: targetCityDocId, // Use the actual document ID
-                targetSlotId: targetCity.id, // Keep the slot ID for indicators
+                targetCityId: targetCityDocId,
+                targetSlotId: targetCity.id,
                 targetOwnerId: targetCity.ownerId,
                 ownerUsername: targetCity.ownerUsername,
                 targetCityName: targetCity.cityName,

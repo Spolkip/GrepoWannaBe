@@ -5,8 +5,9 @@ import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import PuzzleRenderer from '../puzzles/PuzzleRenderer';
+import Countdown from './Countdown';
 
-const GodTownModal = ({ townId, onClose }) => {
+const GodTownModal = ({ townId, onClose, onAttack }) => {
     const { currentUser } = useAuth();
     const { worldId } = useGame();
     const [townData, setTownData] = useState(null);
@@ -21,7 +22,7 @@ const GodTownModal = ({ townId, onClose }) => {
                 const townRef = doc(db, 'worlds', worldId, 'godTowns', townId);
                 const townSnap = await getDoc(townRef);
                 if (townSnap.exists()) {
-                    setTownData(townSnap.data());
+                    setTownData({ id: townSnap.id, ...townSnap.data() });
                 }
 
                 const playerProgressRef = doc(db, 'worlds', worldId, 'godTowns', townId, 'playerProgress', currentUser.uid);
@@ -29,7 +30,6 @@ const GodTownModal = ({ townId, onClose }) => {
                 if (playerProgressSnap.exists()) {
                     setPlayerProgress(playerProgressSnap.data());
                 } else {
-                    // Initialize player progress if it doesn't exist
                     const newProgress = { puzzleSolved: false, damageDealt: 0 };
                     await setDoc(playerProgressRef, newProgress);
                     setPlayerProgress(newProgress);
@@ -74,7 +74,11 @@ const GodTownModal = ({ townId, onClose }) => {
                 <div>
                     <h3 className="font-title text-2xl">Strange Ruins</h3>
                     <p>These ancient ruins hum with a mysterious power. It seems they are slowly reforming into something grander.</p>
-                    <p>Time until transformation: {/* Countdown timer here */}</p>
+                    <p className="mt-4">Time until transformation: 
+                        <span className="font-bold text-yellow-400 ml-2">
+                            <Countdown arrivalTime={townData.transformationTime} />
+                        </span>
+                    </p>
                 </div>
             );
         }
@@ -94,8 +98,7 @@ const GodTownModal = ({ townId, onClose }) => {
                     <h3 className="font-title text-2xl">{townData.name}</h3>
                     <p>The city is vulnerable. Attack to earn war points and resources!</p>
                     <p>Health: {townData.health} / {townData.maxHealth}</p>
-                    {/* Attack button and logic would go here */}
-                    <button className="btn btn-danger mt-4">Attack</button>
+                    <button onClick={() => onAttack(townData)} className="btn btn-danger mt-4">Attack</button>
                 </div>
             );
         }

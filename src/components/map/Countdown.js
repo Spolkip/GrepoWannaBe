@@ -1,22 +1,29 @@
+// src/components/map/Countdown.js
 import React, { useState, useEffect } from 'react';
 
-// Countdown component displays a live countdown to an arrival time.
+// #comment Displays a live countdown to a specific time.
 const Countdown = ({ arrivalTime }) => {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
-        // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
+        // #comment Safely converts various timestamp formats into a JS Date object.
         const getSafeDate = (timestamp) => {
             if (!timestamp) return null;
+            // Handles live Firestore Timestamp objects
             if (typeof timestamp.toDate === 'function') {
                 return timestamp.toDate();
             }
+            // Handles serialized Firestore Timestamps (plain objects)
+            if (timestamp.seconds && typeof timestamp.seconds === 'number') {
+                return new Date(timestamp.seconds * 1000);
+            }
+            // Handles JS Dates or millisecond numbers
             return new Date(timestamp);
         };
 
         const arrival = getSafeDate(arrivalTime);
 
-        // #comment If the date is invalid, show 'Completed'
+        // #comment If the date is invalid or in the past, show 'Completed'.
         if (!arrival || isNaN(arrival.getTime())) {
             setTimeLeft('Completed');
             return;
@@ -27,24 +34,21 @@ const Countdown = ({ arrivalTime }) => {
             const difference = arrival - now;
 
             if (difference > 0) {
-                // #comment Use Math.ceil to ensure the timer doesn't show 00:00:00
                 const totalSeconds = Math.ceil(difference / 1000);
                 const hours = Math.floor(totalSeconds / 3600);
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
                 const seconds = totalSeconds % 60;
-                // Format time to HH:MM:SS
                 setTimeLeft(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
             } else {
-                setTimeLeft('Completed'); // Display 'Completed' when time is up
+                setTimeLeft('Completed');
             }
         };
 
-        calculateTimeLeft(); // Initial calculation
-        const interval = setInterval(calculateTimeLeft, 1000); // Update every second
+        calculateTimeLeft();
+        const interval = setInterval(calculateTimeLeft, 1000);
 
-        // Cleanup function to clear the interval when the component unmounts
         return () => clearInterval(interval);
-    }, [arrivalTime]); // Recalculate if arrivalTime changes
+    }, [arrivalTime]);
 
     return <span>{timeLeft}</span>;
 };

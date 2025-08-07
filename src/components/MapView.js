@@ -39,17 +39,19 @@ const MapView = ({
     panToCoords,
     setPanToCoords,
     handleGoToCityFromProfile,
-    // #comment Props from Game.js
     movements,
     villages,
     ruins,
+    godTowns,
     onCancelTrain,
     onCancelMovement,
     combinedSlots,
     isUnderAttack,
     incomingAttackCount,
     onRenameCity,
-    centerOnCity // #comment Receive centerOnCity function
+    centerOnCity,
+    onGodTownClick,
+    handleOpenEvents
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
@@ -115,7 +117,7 @@ const MapView = ({
     useEffect(() => {
         if (panToCoords) {
             goToCoordinates(panToCoords.x, panToCoords.y);
-            setPanToCoords(null); // Reset after panning
+            setPanToCoords(null);
         }
     }, [panToCoords, goToCoordinates, setPanToCoords]);
 
@@ -286,8 +288,15 @@ const MapView = ({
             const x = Math.round(ruin.x), y = Math.round(ruin.y);
             if (grid[y]?.[x]?.type === 'water') grid[y][x] = { type: 'ruin', data: ruin };
         });
+        Object.values(godTowns).forEach(town => {
+            const x = Math.round(town.x);
+            const y = Math.round(town.y);
+            if (grid[y]?.[x]) {
+                grid[y][x] = { type: 'god_town', data: town };
+            }
+        });
         return grid;
-    }, [worldState, combinedSlotsForGrid, villages, ruins]);
+    }, [worldState, combinedSlotsForGrid, villages, ruins, godTowns]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -330,6 +339,7 @@ const MapView = ({
                             isAdmin={userProfile?.is_admin} 
                             onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
                             isAllianceMember={!!playerAlliance}
+                            handleOpenEvents={handleOpenEvents}
                         />
                         <SideInfoPanel gameState={gameState} className="absolute top-[55%] right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
@@ -348,6 +358,7 @@ const MapView = ({
                                     onCitySlotClick={onCitySlotClick} 
                                     onVillageClick={onVillageClick} 
                                     onRuinClick={onRuinClick} 
+                                    onGodTownClick={onGodTownClick}
                                     isPlacingDummyCity={isPlacingDummyCity} 
                                     movements={movements} 
                                     combinedSlots={combinedSlotsForGrid} 

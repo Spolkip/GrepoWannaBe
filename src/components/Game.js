@@ -16,7 +16,7 @@ import { useMapState } from '../hooks/useMapState';
 import { useMapEvents } from '../hooks/useMapEvents';
 import { useQuestTracker } from '../hooks/useQuestTracker';
 import { useMapActions } from '../hooks/useMapActions';
-import { useKeyboardControls } from '../hooks/useKeyboardControls'; // #comment Import the new hook
+import { useKeyboardControls } from '../hooks/useKeyboardControls';
 
 // Import all the modals
 import ReportsView from './ReportsView';
@@ -30,23 +30,27 @@ import Leaderboard from './leaderboard/Leaderboard';
 import AllianceProfile from './profile/AllianceProfile';
 import QuestsModal from './quests/QuestsModal';
 import MovementsPanel from './map/MovementsPanel';
-import SharedReportView from './SharedReportView'; // #comment Import the new component
+import SharedReportView from './SharedReportView';
+import EventTrigger from './admin/EventTrigger';
+import GodTownModal from './map/GodTownModal';
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
-import unitConfig from '../gameData/units.json'; // Import unitConfig for cancel logic
+import unitConfig from '../gameData/units.json';
 
-const Game = ({ onBackToWorlds, onGodTownClick }) => {
+const Game = ({ onBackToWorlds }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity } = useGame();
     const { currentUser, userProfile } = useAuth();
     const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [panToCoords, setPanToCoords] = useState(null);
-    const [viewingReportId, setViewingReportId] = useState(null); // #comment State for shared report modal
+    const [viewingReportId, setViewingReportId] = useState(null);
+    const [selectedGodTownId, setSelectedGodTownId] = useState(null);
 
-    // #comment State for globally available map data
+    // State for globally available map data
     const [movements, setMovements] = useState([]);
     const [villages, setVillages] = useState({});
     const [ruins, setRuins] = useState({});
+    const [godTowns, setGodTowns] = useState({});
 
     useMovementProcessor(worldId);
 
@@ -55,11 +59,13 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
     
     const showMap = () => setView('map');
     
-    // #comment Memoize showCity to prevent unnecessary re-renders of child components
+    // #comment Moved showCity definition before its usage in useMapActions
     const showCity = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
-    }, [setActiveCityId]); // setView from useState is stable and doesn't need to be a dependency
+    }, [setActiveCityId]);
+
+    const { handleCancelMovement, handleActionClick } = useMapActions(openModal, closeModal, showCity, () => {});
 
     const toggleView = () => {
         setView(prevView => prevView === 'city' ? 'map' : 'city');
@@ -71,7 +77,6 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
         }
     }, [view, playerCity]);
 
-    // #comment This function now correctly pans on the map view without switching to city view.
     const cycleCity = (direction, currentView) => {
         const sortedCities = Object.values(playerCities).sort((a, b) => a.cityName.localeCompare(b.cityName));
         const cityIds = sortedCities.map(c => c.id);
@@ -97,7 +102,6 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
         }
     };
 
-    // #comment Setup keyboard controls
     useKeyboardControls({
         toggleView,
         openAlliance: () => playerAlliance ? openModal('alliance') : openModal('allianceCreation'),
@@ -112,12 +116,9 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
         cycleCityRight: () => cycleCity('right', view),
     });
 
-
-    // #comment Fetch data that needs to be available in both City and Map views
     useEffect(() => {
         if (!worldId || !currentUser) return;
 
-        // Movements listener
         const movementsRef = collection(db, 'worlds', worldId, 'movements');
         const q = query(movementsRef, where('involvedParties', 'array-contains', currentUser.uid));
         const unsubscribeMovements = onSnapshot(q, (snapshot) => {
@@ -125,7 +126,6 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
             setMovements(allMovements.sort((a, b) => a.arrivalTime.toMillis() - b.arrivalTime.toMillis()));
         });
 
-        // Villages listener
         const villagesColRef = collection(db, 'worlds', worldId, 'villages');
         const unsubscribeVillages = onSnapshot(villagesColRef, (snapshot) => {
             const villagesData = {};
@@ -135,7 +135,6 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
             setVillages(villagesData);
         });
 
-        // Ruins listener
         const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
         const unsubscribeRuins = onSnapshot(ruinsColRef, (snapshot) => {
             const ruinsData = {};
@@ -144,17 +143,24 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
             });
             setRuins(ruinsData);
         });
+        
+        const godTownsColRef = collection(db, 'worlds', worldId, 'godTowns');
+        const unsubscribeGodTowns = onSnapshot(godTownsColRef, (snapshot) => {
+            const townsData = {};
+            snapshot.docs.forEach(doc => {
+                townsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setGodTowns(townsData);
+        });
 
         return () => {
             unsubscribeMovements();
             unsubscribeVillages();
             unsubscribeRuins();
+            unsubscribeGodTowns();
         };
     }, [worldId, currentUser]);
-    
-    const { handleCancelMovement } = useMapActions(openModal, closeModal, showCity, () => {});
 
-    // #comment This function now handles cancelling a recruitment/healing item from any city's queue.
     const handleCancelTrain = useCallback(async (cityId, itemIndex, isHealing) => {
         const cityState = playerCities[cityId];
         const queueName = isHealing ? 'healQueue' : 'unitQueue';
@@ -251,6 +257,24 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
         closeModal('profile');
     }, [closeModal]);
 
+    const handleGodTownClick = (townId) => {
+        setSelectedGodTownId(townId);
+    };
+
+    const handleAttackGodTown = (townData) => {
+        const targetData = {
+            id: townData.id,
+            name: townData.name,
+            cityName: townData.name,
+            x: townData.x,
+            y: townData.y,
+            isGodTownTarget: true,
+            ...townData
+        };
+        handleActionClick('attack', targetData);
+        setSelectedGodTownId(null);
+    };
+
     if (loading) {
         return <LoadingScreen message="Loading Game..." />;
     }
@@ -268,13 +292,13 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
                     incomingAttackCount={incomingAttackCount}
                     handleOpenAlliance={handleOpenAlliance}
                     handleOpenProfile={handleOpenProfile}
-                    // Pass global data down to CityView
                     movements={movements}
                     onCancelTrain={handleCancelTrain}
                     onCancelMovement={handleCancelMovement}
                     combinedSlots={combinedSlots}
                     onRenameCity={renameCity}
                     quests={quests}
+                    handleOpenEvents={() => openModal('eventTrigger')}
                 />
             )}
             {view === 'map' && (
@@ -291,10 +315,10 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
                     panToCoords={panToCoords}
                     setPanToCoords={setPanToCoords}
                     handleGoToCityFromProfile={handleGoToCityFromProfile}
-                    // #comment Pass global data down to MapView
                     movements={movements}
                     villages={villages}
                     ruins={ruins}
+                    godTowns={godTowns}
                     onCancelTrain={handleCancelTrain}
                     onCancelMovement={handleCancelMovement}
                     combinedSlots={combinedSlots}
@@ -302,7 +326,8 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={renameCity}
                     centerOnCity={centerOnCity}
-                    onGodTownClick={onGodTownClick}
+                    onGodTownClick={handleGodTownClick}
+                    handleOpenEvents={() => openModal('eventTrigger')}
                 />
             )}
             
@@ -317,15 +342,23 @@ const Game = ({ onBackToWorlds, onGodTownClick }) => {
             {modalState.isLeaderboardOpen && <Leaderboard onClose={() => closeModal('leaderboard')} onOpenProfile={handleOpenProfile} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}
+            {modalState.isEventTriggerOpen && userProfile?.is_admin && <EventTrigger onClose={() => closeModal('eventTrigger')} />}
             
             {viewingReportId && <SharedReportView reportId={viewingReportId} onClose={() => setViewingReportId(null)} />}
 
-            {/* #comment Render MovementsPanel globally so it works in both views */}
+            {selectedGodTownId && (
+                <GodTownModal 
+                    townId={selectedGodTownId} 
+                    onClose={() => setSelectedGodTownId(null)} 
+                    onAttack={handleAttackGodTown}
+                />
+            )}
+
             {modalState.isMovementsPanelOpen && <MovementsPanel
                 movements={movements}
                 onClose={() => closeModal('movements')}
                 combinedSlots={combinedSlots}
-                villages={villages} // Keep for now, might be redundant
+                villages={villages}
                 onCancel={handleCancelMovement}
                 onRush={handleRushMovement}
                 isAdmin={userProfile?.is_admin}

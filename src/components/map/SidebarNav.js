@@ -1,8 +1,8 @@
+// src/components/map/SidebarNav.js
 import React from 'react';
 
-const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, onOpenCheats, isAllianceMember }) => {
+const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenMessages, onOpenSettings, onOpenProfile, unreadReportsCount, unreadMessagesCount, isAdmin, onToggleDummyCityPlacement, onOpenForum, onOpenLeaderboard, onOpenQuests, onOpenCheats, isAllianceMember, handleOpenEvents }) => {
     
-    // #comment Helper component for the new button style
     const NavButton = ({ icon, text, onClick, notificationCount, glowing, disabled, title }) => (
         <button 
             onClick={onClick} 
@@ -37,14 +37,17 @@ const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenM
             <NavButton icon="🏆" text="Leaderboard" onClick={onOpenLeaderboard} />
             <NavButton icon="👤" text="Profile" onClick={() => onOpenProfile()} />
             <NavButton icon="⚙️" text="Settings" onClick={onOpenSettings} />
-            {isAdmin && view === 'city' && (
-                 <NavButton icon="🔧" text="Admin Cheats" onClick={onOpenCheats} />
-            )}
-            {isAdmin && view === 'map' && (
-                <button onClick={onToggleDummyCityPlacement} className="sidebar-button bg-yellow-700 hover:bg-yellow-600">
-                     <div className="icon-container">👑</div>
-                     <span className="button-text">Place Dummy</span>
-                </button>
+            {isAdmin && (
+                <>
+                    {view === 'city' && <NavButton icon="🔧" text="Admin Cheats" onClick={onOpenCheats} />}
+                    <NavButton icon="✨" text="Events" onClick={handleOpenEvents} />
+                    {view === 'map' && (
+                        <button onClick={onToggleDummyCityPlacement} className="sidebar-button bg-yellow-700 hover:bg-yellow-600">
+                             <div className="icon-container">👑</div>
+                             <span className="button-text">Place Dummy</span>
+                        </button>
+                    )}
+                </>
             )}
         </div>
     );

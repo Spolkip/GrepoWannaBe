@@ -1,3 +1,4 @@
+// src/utils/worldGeneration.js
 export const generateIslands = (width, height, count) => {
     const islands = [];
     const minMargin = 4;
@@ -248,10 +249,10 @@ export const generateRuins = (islands, worldWidth, worldHeight) => {
     return ruins;
 };
 
-export const generateGodTowns = (islands, worldWidth, worldHeight) => {
+export const generateGodTowns = (islands, worldWidth, worldHeight, count = 1) => {
     const godTowns = {};
-    const townCount = 2; // Start with 2 God Towns for testing
     const minDistanceFromLand = 5;
+    const transformationDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     const isLand = (x, y) => {
         for (const island of islands) {
@@ -263,7 +264,7 @@ export const generateGodTowns = (islands, worldWidth, worldHeight) => {
         return false;
     };
 
-    for (let i = 0; i < townCount; i++) {
+    for (let i = 0; i < count; i++) {
         let x, y;
         let attempts = 0;
         do {
@@ -273,18 +274,20 @@ export const generateGodTowns = (islands, worldWidth, worldHeight) => {
         } while (isLand(x, y) && attempts < 100);
 
         if (attempts < 100) {
-            const townId = `god-town-${i}`;
+            const townId = `god-town-${Date.now()}-${i}`;
+            const spawnTime = new Date();
             godTowns[townId] = {
                 id: townId,
                 x,
                 y,
                 name: "Strange Ruins",
-                stage: "ruins", // 'ruins', 'city', 'conquered'
+                stage: "ruins",
                 health: 10000,
                 maxHealth: 10000,
                 puzzleId: `puzzle_${(i % 3) + 1}`,
                 troops: { /* Define troops for the city stage */ },
-                spawnTime: new Date(),
+                spawnTime: spawnTime,
+                transformationTime: new Date(spawnTime.getTime() + transformationDuration),
             };
         }
     }

@@ -1,4 +1,68 @@
 {
+   "swordsman": {
+    "name": "Swordsman",
+    "description": "A basic melee unit, effective in close combat.",
+    "cost": {
+      "wood": 50,
+      "stone": 30,
+      "silver": 20,
+      "population": 1,
+      "time": 30
+    },
+    "heal_cost": { "wood": 15, "stone": 10, "silver": 6 },
+"heal_time": 10,
+    "attack": 10,
+    "defense": 15,
+    "speed": 5,
+    "type": "land",
+    "counters": ["archer"],
+    "image": "swordman.png"
+  },
+  "archer": {
+    "name": "Archer",
+    "description": "A ranged unit that can attack from a distance.",
+    "cost": {"wood": 30,"stone": 40,"silver": 35,"population": 1,"time": 45},
+    "heal_cost": { "wood": 9, "stone": 12, "silver": 10 },"heal_time": 15,
+    "attack": 12,"defense": 8,"speed": 6,"type": "land", "counters": ["swordsman"],"image": "archers.png"
+  },
+  "hoplite": {
+    "name": "Hoplite",
+    "description": "Heavily armored infantry, strong defensive unit.",
+    "cost": {
+      "wood": 70,
+      "stone": 60,
+      "silver": 40,
+      "population": 2,
+      "time": 60
+    },
+    "heal_cost": { "wood": 21, "stone": 18, "silver": 12 },
+    "heal_time": 20,
+    "attack": 15,
+    "defense": 25,
+    "speed": 4,
+    "type": "land",
+    "counters": ["cavalry"],
+    "image": "hospite.png"
+  },
+  "cavalry": {
+    "name": "Cavalry",
+    "description": "Fast and powerful mounted units, good for flanking.",
+    "cost": {
+      "wood": 80,
+      "stone": 50,
+      "silver": 70,
+      "population": 3,
+      "time": 90
+    },
+    "heal_cost": { "wood": 24, "stone": 15, "silver": 21 },
+    "heal_time": 30,
+    "attack": 20,
+    "defense": 18,
+    "speed": 10,
+    "type": "land",
+    "counters": ["archer", "slinger"],
+    "image": "cavalry.png"
+  },
   "swordsman_athenian": {
     "name": "Athenian Swordsman",
     "description": "A versatile melee unit from Athens, balanced in attack and defense.",

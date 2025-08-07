@@ -22,6 +22,7 @@ export const useModalState = () => {
         isRecruitmentPanelOpen: false,
         isTradesPanelOpen: false,
         isOwnInactiveCityModalOpen: false,
+        isEventTriggerOpen: false,
         viewingProfileId: null,
         viewingAllianceId: null,
     });
@@ -47,6 +48,7 @@ export const useModalState = () => {
                 case 'settings': return { ...prevState, isSettingsModalOpen: true };
                 case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: true };
                 case 'trades': return { ...prevState, isTradesPanelOpen: true };
+                case 'eventTrigger': return { ...prevState, isEventTriggerOpen: true };
                 default: return prevState;
             }
         });
@@ -73,6 +75,7 @@ export const useModalState = () => {
                 case 'settings': return { ...prevState, isSettingsModalOpen: false };
                 case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: false };
                 case 'trades': return { ...prevState, isTradesPanelOpen: false };
+                case 'eventTrigger': return { ...prevState, isEventTriggerOpen: false };
                 default: return prevState;
             }
         });
