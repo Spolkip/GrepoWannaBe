@@ -14,7 +14,8 @@ export const useAlliance = () => useContext(AllianceContext);
 const calculateMaxMembers = (alliance) => {
     const baseMax = 20; // Base maximum members
     const researchLevel = alliance.research?.expanded_charter?.level || 0;
-    const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
+    const researchInfo = allianceResearch.expanded_charter;
+    const researchBonus = researchInfo?.effect?.value * researchLevel || 0;
     return baseMax + researchBonus;
 };
 
@@ -22,7 +23,8 @@ const calculateMaxMembers = (alliance) => {
 const calculateBankCapacity = (alliance) => {
     const baseCapacity = 100000; // Base capacity for each resource
     const researchLevel = alliance.research?.reinforced_vaults?.level || 0;
-    const researchBonus = allianceResearch.reinforced_vaults.effect.value * researchLevel;
+    const researchInfo = allianceResearch.reinforced_vaults;
+    const researchBonus = researchInfo?.effect?.value * researchLevel || 0;
     return baseCapacity + researchBonus;
 };
 

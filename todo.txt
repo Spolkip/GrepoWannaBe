@@ -1,15 +1,13 @@
-- add icons to back to world selection and logout
-- add animation on open tooltip for spells when press on the god
-- center cities number
-
 - add to select all units when you press on the icons
 - on trade to show the from and to
 - remake academy layout with icons for researches instead of name and on hover to say details
-- make the city list with the new theme
-- put special buildings on cityscape
 - add a cooldown and also limit per daily, add a bank cap (can get more with alliance research)
-- timer for the tooltip to lock until you click somewhere else
 
+- put special buildings on cityscape
+- timer for the tooltip to lock until you click somewhere else
+- add icons to back to world selection and logout
+- add animation on open tooltip for spells when press on the god
+- center cities number
 - add more research and make them to actually work
 - fix treaties
 - make settings better
