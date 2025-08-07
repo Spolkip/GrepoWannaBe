@@ -19,11 +19,8 @@ imageContexts.forEach(context => {
 
 const TroopDisplay = ({ units, title }) => {
     const [hoveredUnit, setHoveredUnit] = useState(null);
-    // Filter land units to exclude mythical ones for Barracks display
     const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land' && !unitConfig[id]?.mythical);
-    // Filter naval units to exclude mythical ones (though naval units are not mythical in current config, it's good practice)
     const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval' && !unitConfig[id]?.mythical);
-    // Filter for only mythical units
     const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
 
 

@@ -1,10 +1,10 @@
 /* src/styles/panels.css */
 
 .troop-display-container {
-    @apply w-48 p-2 flex flex-col gap-2 rounded-lg;
+    @apply w-40 p-1.5 flex flex-col gap-1.5 rounded-lg; /* Reduced width and padding */
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3;
-    border: 4px solid #8B4513;
+    border: 3px solid #8B4513; /* Reduced border */
     box-shadow: 0 0 15px rgba(0,0,0,0.5);
     color: #4a2c2a;
 }
@@ -12,10 +12,10 @@
     @apply bg-black/5 rounded p-1;
 }
 .troop-section-header {
-    @apply font-bold text-sm text-center pb-1 mb-1 border-b border-[#8B4513];
+    @apply font-bold text-xs text-center pb-1 mb-1 border-b border-[#8B4513]; /* Reduced font size */
 }
 .troop-grid {
-    @apply grid grid-cols-3 gap-1.5;
+    @apply grid grid-cols-3 gap-1; /* Reduced gap */
 }
 .troop-item {
     @apply relative w-full aspect-square bg-black/10 rounded-md overflow-hidden border border-transparent hover:border-yellow-600 transition-all;
@@ -24,28 +24,36 @@
     @apply w-full h-full object-cover;
 }
 .troop-count {
-    @apply absolute bottom-0 right-1 font-bold text-base;
+    @apply absolute bottom-0 right-0.5 font-bold text-sm; /* Reduced font size */
     color: white;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 1);
 }
 
 .worship-display-container {
-    @apply w-44 p-2 rounded-lg;
+    @apply w-40 p-1.5 rounded-lg; /* Reduced width and padding */
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3;
-    border: 4px solid #8B4513;
+    border: 3px solid #8B4513; /* Reduced border */
     box-shadow: 0 0 15px rgba(0,0,0,0.5);
     color: #4a2c2a;
 }
 
 .worship-display-header {
-    @apply font-title text-xl text-center mb-1;
+    @apply font-title text-lg text-center mb-1; /* Reduced font size */
+}
+
+.worship-display-container img {
+    @apply w-16 h-16; /* Reduced image size */
 }
 
 .spells-button {
-    @apply rounded-full w-10 h-10 mt-2 mx-auto overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 flex justify-center items-center;
+    @apply rounded-full w-8 h-8 mt-1 mx-auto overflow-hidden transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-yellow-400 flex justify-center items-center; /* Reduced size */
     background-color: rgba(0,0,0,0.1);
     border: 2px solid #8B4513;
+}
+
+.spells-button img {
+    @apply w-6 h-6 object-contain; /* Reduced icon size */
 }
 
 .alliance-text-light {

@@ -1,8 +1,9 @@
 // src/components/city/BarracksMenu.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import unitConfig from '../../gameData/units.json';
 import UnitQueue from './UnitQueue';
 import Modal from '../shared/Modal';
+import { getTrainableUnits } from '../../utils/nationality';
 
 // Dynamically import all unit images
 const unitImages = {};
@@ -23,16 +24,9 @@ const UnitStats = ({ unit }) => (
 );
 
 const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose, cityGameState, unitQueue, onCancelTrain }) => {
-
     const [activeTab, setActiveTab] = useState('train');
-    // Filter out mythical units from the barracks training list and units that belong to other gods
-    const landUnits = Object.keys(unitConfig).filter(id => {
-        const unit = unitConfig[id];
-        if (unit.type !== 'land') return false;
-        // Exclude all mythical units from barracks
-        if (unit.mythical) return false;
-        return true;
-    });
+    
+    const landUnits = useMemo(() => getTrainableUnits(cityGameState.playerInfo.nation), [cityGameState.playerInfo.nation]);
 
     const [selectedUnitId, setSelectedUnitId] = useState(landUnits[0] || null);
     const [trainAmount, setTrainAmount] = useState(1);
@@ -42,10 +36,8 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
         setTrainAmount(1);
     }, [selectedUnitId]);
 
-    // Check if there are any land units available to train
     const hasTrainableUnits = landUnits.length > 0;
     
-    // Check if there are any land units in the city to dismiss
     const cityUnits = cityGameState?.units || {};
     const hasDismissableUnits = Object.keys(cityUnits).some(id => unitConfig[id]?.type === 'land');
     
@@ -55,7 +47,6 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
         );
     }
     if (!hasDismissableUnits && activeTab === 'fire') {
-        // Fallback to train tab if no units to fire
         if (hasTrainableUnits) {
              setActiveTab('train');
         } else {
@@ -214,7 +205,6 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                     </div>
                 )}
 
-                {/* Always show the queue regardless of the active tab, but filter it to only show land units */}
                 <UnitQueue unitQueue={barracksUnitQueue} onCancel={(item) => onCancelTrain(item, 'barracks')} title="Land Unit Queue" />
             </div>
         </div>

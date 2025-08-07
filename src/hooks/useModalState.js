@@ -1,7 +1,6 @@
 // src/hooks/useModalState.js
 import { useState } from 'react';
 
-// #comment Add alliance profile modal state
 export const useModalState = () => {
     const [modalState, setModalState] = useState({
         selectedCity: null,
@@ -19,9 +18,10 @@ export const useModalState = () => {
         isLeaderboardOpen: false,
         isAllianceProfileOpen: false,
         isQuestsModalOpen: false,
-        isSettingsModalOpen: false, // #comment Add state for settings modal
-        isRecruitmentPanelOpen: false, // Re-add this
-        isTradesPanelOpen: false, // Re-add this
+        isSettingsModalOpen: false,
+        isRecruitmentPanelOpen: false,
+        isTradesPanelOpen: false,
+        isOwnInactiveCityModalOpen: false,
         viewingProfileId: null,
         viewingAllianceId: null,
     });
@@ -30,6 +30,7 @@ export const useModalState = () => {
         setModalState(prevState => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: data };
+                case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: true, selectedCity: data };
                 case 'village': return { ...prevState, selectedVillage: data };
                 case 'action': return { ...prevState, actionDetails: data };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: true };
@@ -43,9 +44,9 @@ export const useModalState = () => {
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: true };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: true, viewingAllianceId: data?.allianceId || null };
                 case 'quests': return { ...prevState, isQuestsModalOpen: true };
-                case 'settings': return { ...prevState, isSettingsModalOpen: true }; // #comment Handle opening settings modal
-                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: true }; // Re-add this
-                case 'trades': return { ...prevState, isTradesPanelOpen: true }; // Re-add this
+                case 'settings': return { ...prevState, isSettingsModalOpen: true };
+                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: true };
+                case 'trades': return { ...prevState, isTradesPanelOpen: true };
                 default: return prevState;
             }
         });
@@ -55,6 +56,7 @@ export const useModalState = () => {
         setModalState(prevState => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: null };
+                case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: false, selectedCity: null };
                 case 'village': return { ...prevState, selectedVillage: null };
                 case 'action': return { ...prevState, actionDetails: null };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: false };
@@ -68,9 +70,9 @@ export const useModalState = () => {
                 case 'leaderboard': return { ...prevState, isLeaderboardOpen: false };
                 case 'allianceProfile': return { ...prevState, isAllianceProfileOpen: false, viewingAllianceId: null };
                 case 'quests': return { ...prevState, isQuestsModalOpen: false };
-                case 'settings': return { ...prevState, isSettingsModalOpen: false }; // #comment Handle closing settings modal
-                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: false }; // Re-add this
-                case 'trades': return { ...prevState, isTradesPanelOpen: false }; // Re-add this
+                case 'settings': return { ...prevState, isSettingsModalOpen: false };
+                case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: false };
+                case 'trades': return { ...prevState, isTradesPanelOpen: false };
                 default: return prevState;
             }
         });

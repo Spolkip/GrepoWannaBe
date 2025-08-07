@@ -52,7 +52,7 @@ const MapView = ({
     centerOnCity // #comment Receive centerOnCity function
 }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
     const { playerAlliance } = useAlliance();
 
     const viewportRef = useRef(null);
@@ -66,7 +66,6 @@ const MapView = ({
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
     
-    // #comment Fetch points for all cities on the map when the component mounts.
     const fetchAllCityPoints = useCallback(async () => {
         if (!worldId) return;
     
@@ -88,19 +87,16 @@ const MapView = ({
         setCityPoints(points);
     }, [worldId, calculateTotalPoints]);
 
-    // #comment Fetch latest successful scout reports for all cities.
     const fetchScoutedData = useCallback(async () => {
         if (!currentUser || !worldId) return;
 
         const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
-        // #comment This query is simplified to avoid needing a composite index. Filtering for success is now done on the client-side.
         const q = query(reportsRef, orderBy('timestamp', 'desc'));
         
         const snapshot = await getDocs(q);
         const latestScouts = {};
         snapshot.forEach(doc => {
             const report = doc.data();
-            // #comment Client-side filtering for successful scout reports.
             if (report.type === 'scout' && report.scoutSucceeded) {
                 const targetId = report.targetSlotId; 
                 if (targetId && !latestScouts[targetId]) {
@@ -126,13 +122,13 @@ const MapView = ({
     const { onCitySlotClick, onVillageClick, onRuinClick } = useMapClickHandler({
         playerCity, currentUser, isPlacingDummyCity, handleCreateDummyCity, showCity,
         setTravelTimeInfo, openModal, closeModal, setMessage, conqueredVillages,
-        conqueredRuins, playerAlliance
+        conqueredRuins, playerAlliance, activeCityId
     });
 
     const { availablePopulation, happiness, marketCapacity } = useMemo(() => {
         if (!gameState?.buildings) return { availablePopulation: 0, happiness: 0, marketCapacity: 0 };
         const maxPop = getFarmCapacity(gameState.buildings.farm?.level);
-        const usedPop = calculateUsedPopulation(gameState.buildings, gameState.units);
+        const usedPop = calculateUsedPopulation(gameState.buildings, gameState.units, gameState.specialBuilding);
         const availablePop = maxPop - usedPop;
         const happinessValue = calculateHappiness(gameState.buildings);
         const marketCap = getMarketCapacity(gameState.buildings.market?.level);
@@ -256,6 +252,12 @@ const MapView = ({
         }
     };
 
+    const handleEnterCity = (cityId) => {
+        setActiveCityId(cityId);
+        showCity(cityId);
+        closeModal('ownInactiveCity');
+    };
+
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -335,7 +337,6 @@ const MapView = ({
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>
                         <div className="map-border right" style={{ opacity: borderOpacity.right }}></div>
                         
-                        {/* Wrapper to control stacking context of the map grid */}
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
                                 <MapGrid 
@@ -363,7 +364,7 @@ const MapView = ({
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
         </div>
     );

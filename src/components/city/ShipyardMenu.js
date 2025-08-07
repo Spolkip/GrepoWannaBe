@@ -1,8 +1,9 @@
 // src/components/city/ShipyardMenu.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import unitConfig from '../../gameData/units.json';
 import UnitQueue from './UnitQueue';
 import Modal from '../shared/Modal';
+import { getTrainableNavalUnits } from '../../utils/nationality';
 
 // Dynamically import all unit images
 const unitImages = {};
@@ -23,7 +24,7 @@ const UnitStats = ({ unit }) => (
 );
 
 const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGameState, unitQueue, onCancelTrain }) => {
-    const navalUnits = Object.keys(unitConfig).filter(id => unitConfig[id].type === 'naval');
+    const navalUnits = useMemo(() => getTrainableNavalUnits(cityGameState.playerInfo.nation), [cityGameState.playerInfo.nation]);
     const [selectedUnitId, setSelectedUnitId] = useState(navalUnits[0] || null);
     const [trainAmount, setTrainAmount] = useState(1);
     
