@@ -21,10 +21,14 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
         return new Date(timestamp); // It's a JS Date or milliseconds
     };
     
-    const allQueues = Object.values(playerCities).flatMap(city => 
-        (city.unitQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, index }))
-        .concat((city.healQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: true, index })))
-    )
+    // #comment Combine all relevant queues (barracks, shipyard, divine, heal) from all cities
+    const allQueues = Object.values(playerCities).flatMap(city => {
+        const barracks = (city.barracksQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'barracks', index }));
+        const shipyard = (city.shipyardQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'shipyard', index }));
+        const divine = (city.divineTempleQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'divineTemple', index }));
+        const healing = (city.healQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: true, queueType: 'heal', index }));
+        return [...barracks, ...shipyard, ...divine, ...healing];
+    })
     .filter(item => {
         const endDate = getSafeDate(item.endTime);
         return endDate && endDate > new Date(); // Filter out completed items
@@ -34,6 +38,7 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
         const dateB = getSafeDate(b.endTime) || new Date(0);
         return dateA - dateB;
     });
+
 
     if (allQueues.length === 0) {
         return (
@@ -45,10 +50,10 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
 
     return (
         <div className="activity-tooltip">
-            {allQueues.map((item, globalIndex) => {
+            {allQueues.map((item) => {
                 const unit = unitConfig[item.unitId];
                 return (
-                    <div key={`${item.cityId}-${item.index}-${item.isHealing}`} className="tooltip-item">
+                    <div key={`${item.cityId}-${item.queueType}-${item.index}`} className="tooltip-item">
                         <img src={images[unit.image]} alt={unit.name} className="tooltip-item-image" />
                         <div className="tooltip-item-details">
                             <p className="font-bold">{item.amount}x {unit.name} <span className="text-xs text-gray-400">({item.cityName})</span></p>
@@ -56,7 +61,7 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
                                 <Countdown arrivalTime={item.endTime} />
                             </div>
                         </div>
-                        <button onClick={() => onCancelTrain(item.cityId, item.index, item.isHealing)} className="tooltip-cancel-btn">&times;</button>
+                        <button onClick={() => onCancelTrain(item, item.queueType)} className="tooltip-cancel-btn">&times;</button>
                     </div>
                 );
             })}

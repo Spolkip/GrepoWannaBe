@@ -7,7 +7,7 @@ Later:
 Maybe: 
 - add cities inside the island
 - fix population and resource max
-
+- add presets for the workers
 Bugs:
 - fix recruitment tooltip
 

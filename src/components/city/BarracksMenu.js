@@ -35,25 +35,14 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
     useEffect(() => {
         setTrainAmount(1);
     }, [selectedUnitId]);
-
-    const hasTrainableUnits = landUnits.length > 0;
     
     const cityUnits = cityGameState?.units || {};
-    const hasDismissableUnits = Object.keys(cityUnits).some(id => unitConfig[id]?.type === 'land');
     
-    if (!hasTrainableUnits && activeTab === 'train') {
+    // #comment If there are no trainable land units for this nation, show a message.
+    if (landUnits.length === 0) {
         return (
-            <Modal message="No land units available to train in your city." onClose={onClose} />
+            <Modal message="Your nation has no specific land units that can be trained in the Barracks." onClose={onClose} />
         );
-    }
-    if (!hasDismissableUnits && activeTab === 'fire') {
-        if (hasTrainableUnits) {
-             setActiveTab('train');
-        } else {
-            return (
-                <Modal message="No land units in the city to dismiss." onClose={onClose} />
-            );
-        }
     }
     
     const selectedUnit = selectedUnitId ? unitConfig[selectedUnitId] : null;

@@ -128,6 +128,16 @@
     "rewards": {
       "resources": { "wood": 500, "stone": 500, "silver": 250 }
     }
+  },
+    "build_quarry_5": {
+    "title": "Expand the quarry",
+    "description": "A grander Senate allows for better management of your growing city.",
+    "type": "building",
+    "targetId": "quarry",
+    "targetLevel": 5,
+    "rewards": {
+      "resources": { "wood": 500, "stone": 500, "silver": 250 }
+    }
   }
   
 }
