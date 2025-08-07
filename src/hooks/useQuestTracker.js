@@ -5,6 +5,7 @@ import { doc, setDoc, runTransaction, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext'; // Import useGame
 import allQuests from '../gameData/quests.json';
+import { getNationalUnitReward } from '../utils/nationality';
 
 export const useQuestTracker = (cityState) => {
     const { currentUser } = useAuth();
@@ -100,6 +101,7 @@ export const useQuestTracker = (cityState) => {
                 // Apply rewards
                 const newResources = { ...cityData.resources };
                 const newUnits = { ...cityData.units };
+                const playerNation = cityData.playerInfo?.nation;
 
                 if (quest.rewards.resources) {
                     for (const resource in quest.rewards.resources) {
@@ -108,7 +110,17 @@ export const useQuestTracker = (cityState) => {
                 }
                 if (quest.rewards.units) {
                     for (const unit in quest.rewards.units) {
-                        newUnits[unit] = (newUnits[unit] || 0) + quest.rewards.units[unit];
+                        // #comment Check for a generic unit reward
+                        if (unit.startsWith('generic_')) {
+                            if (!playerNation) {
+                                console.error("Player nation not found for generic unit reward.");
+                                continue;
+                            }
+                            const nationalUnitId = getNationalUnitReward(playerNation, unit);
+                            newUnits[nationalUnitId] = (newUnits[nationalUnitId] || 0) + quest.rewards.units[unit];
+                        } else {
+                            newUnits[unit] = (newUnits[unit] || 0) + quest.rewards.units[unit];
+                        }
                     }
                 }
 

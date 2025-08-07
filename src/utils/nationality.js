@@ -50,6 +50,21 @@ export const getNationalUnitId = (nation, genericUnitType) => {
     return nationUnitMap[nation]?.[genericUnitType] || null;
 };
 
+// #comment Gets the specific unit ID for a reward based on a player's nation
+export const getNationalUnitReward = (nation, genericUnitType) => {
+    // Map Roman nations to a single unit set
+    let effectiveNation = nation;
+    if (['Julian', 'Cornelian', 'Fabian'].includes(nation)) {
+        effectiveNation = 'Julian';
+    }
+    
+    // Convert generic unit type (e.g., 'generic_archer') to base type ('archer')
+    const baseType = genericUnitType.replace('generic_', '');
+    
+    // Look up the specific unit ID in the map
+    return nationUnitMap[effectiveNation]?.[baseType] || baseType;
+};
+
 export const getTrainableUnits = (nation) => {
     const nationalUnits = Object.keys(unitConfig).filter(id => {
         const unit = unitConfig[id];
@@ -62,9 +77,14 @@ export const getTrainableUnits = (nation) => {
         }
         return false;
     });
+
+    const genericUnits = Object.keys(unitConfig).filter(id => {
+        const unit = unitConfig[id];
+        // #comment A unit is generic if it has no nation, is not mythical, and is a LAND unit
+        return !unit.nation && !unit.mythical && unit.type === 'land';
+    });
     
-    // #comment Generic units have been removed from this function to prevent them from being trainable.
-    return [...new Set([...nationalUnits])];
+    return [...new Set([...nationalUnits, ...genericUnits])];
 };
 
 export const getTrainableNavalUnits = (nation) => {

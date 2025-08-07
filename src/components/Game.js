@@ -274,6 +274,11 @@ const Game = ({ onBackToWorlds }) => {
         handleActionClick('attack', targetData);
         setSelectedGodTownId(null);
     };
+    
+    // #comment Handler for opening the admin event trigger modal
+    const handleOpenEvents = () => {
+        openModal('eventTrigger');
+    };
 
     if (loading) {
         return <LoadingScreen message="Loading Game..." />;
@@ -298,7 +303,7 @@ const Game = ({ onBackToWorlds }) => {
                     combinedSlots={combinedSlots}
                     onRenameCity={renameCity}
                     quests={quests}
-                    handleOpenEvents={() => openModal('eventTrigger')}
+                    handleOpenEvents={handleOpenEvents}
                 />
             )}
             {view === 'map' && (
@@ -327,7 +332,7 @@ const Game = ({ onBackToWorlds }) => {
                     onRenameCity={renameCity}
                     centerOnCity={centerOnCity}
                     onGodTownClick={handleGodTownClick}
-                    handleOpenEvents={() => openModal('eventTrigger')}
+                    handleOpenEvents={handleOpenEvents}
                 />
             )}
             
@@ -337,7 +342,7 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
             {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} onActionClick={handleMessageAction} />}
-            {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} />}
+            {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} cityState={gameState} />}
             {modalState.isProfileModalOpen && <ProfileView onClose={() => closeModal('profile')} viewUserId={modalState.viewingProfileId} onGoToCity={handleGoToCityFromProfile} onInviteToAlliance={sendAllianceInvitation} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isLeaderboardOpen && <Leaderboard onClose={() => closeModal('leaderboard')} onOpenProfile={handleOpenProfile} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}

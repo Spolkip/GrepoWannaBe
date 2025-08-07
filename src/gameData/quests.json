@@ -106,7 +106,7 @@
     "targetId": "swordsman",
     "targetCount": 10,
     "rewards": {
-      "units": { "archer": 5 }
+      "units": { "generic_archer": 5 }
     }
   },
   "train_swordsmen_20": {
@@ -116,7 +116,7 @@
     "targetId": "swordsman",
     "targetCount": 20,
     "rewards": {
-      "units": { "archer": 10 }
+      "units": { "generic_archer": 10 }
     }
   },
   "build_senate_3": {

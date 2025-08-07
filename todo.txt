@@ -1,16 +1,2 @@
-Later:
-- if the city has the the whole island to be able to contruct a building that give buffs to the guild
-- add heroes that can do skills on battle and also give buffs
-- make it so you can conquer other cities
-- be able to surrender if you have one city and you are about to lose it 
-
-Maybe: 
-- add cities inside the island
-- fix population and resource max
-
-Bugs:
-
-
-Models:
-- add a battle simulation
-- add troops into the city
+- add icons to back to world selection and logout
+- add animation on open tooltip for spells when press on the god

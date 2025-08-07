@@ -1,9 +1,39 @@
 // src/components/quests/QuestsModal.js
 import React from 'react';
 import './Quests.css';
+import { getNationalUnitReward } from '../../utils/nationality';
+import unitConfig from '../../gameData/units.json';
 
-const QuestsModal = ({ quests, claimReward, onClose }) => {
+const QuestsModal = ({ quests, claimReward, onClose, cityState }) => {
     const activeQuests = quests.filter(q => !q.isClaimed);
+    const playerNation = cityState?.playerInfo?.nation;
+
+    // #comment A helper function to render rewards with dynamic unit names
+    const renderRewards = (rewards) => {
+        const rewardStrings = [];
+
+        if (rewards.resources) {
+            for (const res in rewards.resources) {
+                rewardStrings.push(`${rewards.resources[res]} ${res}`);
+            }
+        }
+        
+        if (rewards.units && playerNation) {
+            for (const unitId in rewards.units) {
+                const count = rewards.units[unitId];
+                let unitName;
+                if (unitId.startsWith('generic_')) {
+                    const nationalUnitId = getNationalUnitReward(playerNation, unitId);
+                    unitName = unitConfig[nationalUnitId]?.name || nationalUnitId;
+                } else {
+                    unitName = unitConfig[unitId]?.name || unitId;
+                }
+                rewardStrings.push(`${count} ${unitName}`);
+            }
+        }
+
+        return rewardStrings.join(', ');
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -19,9 +49,7 @@ const QuestsModal = ({ quests, claimReward, onClose }) => {
                                 <h3 className="quest-title">{quest.title}</h3>
                                 <p className="quest-description">{quest.description}</p>
                                 <div className="quest-rewards">
-                                    Reward: 
-                                    {quest.rewards.resources && Object.entries(quest.rewards.resources).map(([res, amount]) => ` ${amount} ${res}`).join(', ')}
-                                    {quest.rewards.units && Object.entries(quest.rewards.units).map(([unit, amount]) => ` ${amount} ${unit}`).join(', ')}
+                                    Reward: {renderRewards(quest.rewards)}
                                 </div>
                             </div>
                             <button
