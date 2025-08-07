@@ -18,6 +18,14 @@ const calculateMaxMembers = (alliance) => {
     return baseMax + researchBonus;
 };
 
+// #comment Helper function to calculate bank capacity
+const calculateBankCapacity = (alliance) => {
+    const baseCapacity = 100000; // Base capacity for each resource
+    const researchLevel = alliance.research?.reinforced_vaults?.level || 0;
+    const researchBonus = allianceResearch.reinforced_vaults.effect.value * researchLevel;
+    return baseCapacity + researchBonus;
+};
+
 export const AllianceProvider = ({ children }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId, gameState, playerGameData, activeCityId } = useGame();
@@ -82,7 +90,7 @@ export const AllianceProvider = ({ children }) => {
                     leader: { uid: currentUser.uid, username: userProfile.username },
                     members: [{ uid: currentUser.uid, username: userProfile.username, rank: 'Leader' }],
                     research: {},
-                    bank: { wood: 0, stone: 0, silver: 0 },
+                    bank: { wood: 0, stone: 0, silver: 0, capacity: 100000 },
                     diplomacy: { allies: [], enemies: [], requests: [] },
                     settings: {
                         status: 'open',
@@ -745,25 +753,49 @@ export const AllianceProvider = ({ children }) => {
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const logRef = doc(collection(allianceDocRef, 'bank_logs'));
         const eventRef = doc(collection(allianceDocRef, 'events'));
-    
+        const userBankActivityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'bankActivity', 'activity');
+
         await runTransaction(db, async (transaction) => {
             const cityDoc = await transaction.get(cityDocRef);
             const allianceDoc = await transaction.get(allianceDocRef);
+            const userActivityDoc = await transaction.get(userBankActivityRef);
+
             if (!cityDoc.exists() || !allianceDoc.exists()) throw new Error("City or Alliance data not found.");
     
             const cityData = cityDoc.data();
             const allianceData = allianceDoc.data();
+            const bankCapacity = calculateBankCapacity(allianceData);
+            
+            // #comment Check cooldown
+            const userActivityData = userActivityDoc.exists() ? userActivityDoc.data() : { lastDonation: 0, dailyDonationTotal: 0 };
+            const now = Date.now();
+            if (now - userActivityData.lastDonation < 5 * 60 * 1000) { // 5 minute cooldown
+                throw new Error("You must wait 5 minutes between donations.");
+            }
+            
+            // #comment Check daily limit
+            const totalDonation = Object.values(donation).reduce((a, b) => a + b, 0);
+            if (userActivityData.dailyDonationTotal + totalDonation > 50000) { // 50k daily limit
+                throw new Error("You have reached your daily donation limit.");
+            }
+
             const newCityResources = { ...cityData.resources };
             const newBank = { ...(allianceData.bank || { wood: 0, stone: 0, silver: 0 }) };
     
             for (const resource in donation) {
                 if ((newCityResources[resource] || 0) < donation[resource]) throw new Error(`Not enough ${resource}.`);
+                if ((newBank[resource] || 0) + donation[resource] > bankCapacity) throw new Error(`Bank is full for ${resource}.`);
                 newCityResources[resource] -= donation[resource];
                 newBank[resource] = (newBank[resource] || 0) + donation[resource];
             }
     
             transaction.update(cityDocRef, { resources: newCityResources });
             transaction.update(allianceDocRef, { bank: newBank });
+            transaction.set(userBankActivityRef, { 
+                lastDonation: now, 
+                dailyDonationTotal: userActivityData.dailyDonationTotal + totalDonation 
+            }, { merge: true });
+
             transaction.set(logRef, {
                 type: 'donation',
                 user: userProfile.username,

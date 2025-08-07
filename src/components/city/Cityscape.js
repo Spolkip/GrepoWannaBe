@@ -4,6 +4,7 @@ import BuildingSpot from './BuildingSpot';
 import SpecialBuildingPlot from './specialBuildingPlotpls';
 import buildingLayout from '../../gameData/BuildingLayout.json';
 import buildingConfig from '../../gameData/buildings.json'; // Import building config
+import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 
 const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, onOpenSpecialBuildingMenu }) => {
   return (
@@ -30,16 +31,20 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, 
       
       {buildingLayout.map((building) => {
         if (building.id === 'special_building_plot') {
-            // #comment Add a check to ensure cityGameState is defined before rendering the special plot.
-            // #comment This prevents a crash if the game state is temporarily unavailable during a render cycle.
             if (!cityGameState) return null; 
             
+            const specialBuildingId = cityGameState.specialBuilding;
+            const config = specialBuildingId ? specialBuildingsConfig[specialBuildingId] : buildingConfig.special_building_plot;
+            const image = config?.image ? buildingImages[config.image] : null;
+
             return (
                 <SpecialBuildingPlot
                     key={building.id}
-                    cityGameState={cityGameState}
-                    onOpenMenu={onOpenSpecialBuildingMenu}
-                    buildingImages={buildingImages}
+                    building={building}
+                    onClick={onOpenSpecialBuildingMenu}
+                    image={image}
+                    name={config.name}
+                    isConstructed={!!specialBuildingId}
                 />
             );
         }

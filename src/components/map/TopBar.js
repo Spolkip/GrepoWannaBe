@@ -33,13 +33,13 @@ const CityListDropdown = ({ cities, onSelect, onClose, activeCityId }) => {
     }, [onClose]);
 
     return (
-        <div ref={dropdownRef} className="absolute top-full mt-2 w-64 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-50">
+        <div ref={dropdownRef} className="city-list-dropdown absolute top-full mt-2 w-64 rounded-lg shadow-lg z-50">
             <ul>
                 {Object.values(cities).map(city => (
                     <li key={city.id}>
                         <button
                             onClick={() => onSelect(city.id)}
-                            className={`w-full text-left px-4 py-2 hover:bg-gray-700 ${city.id === activeCityId ? 'bg-blue-600' : ''}`}
+                            className={`city-list-item ${city.id === activeCityId ? 'active' : ''}`}
                         >
                             {city.cityName}
                         </button>
@@ -145,10 +145,27 @@ const TopBar = ({
     const { playerCities, setActiveCityId, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
     const [activeTooltip, setActiveTooltip] = useState(null);
+    const [isTooltipLocked, setIsTooltipLocked] = useState(false);
     const [hoveredResource, setHoveredResource] = useState(null);
     const tooltipTimeoutRef = useRef(null);
+    const activityTrackerRef = useRef(null);
     const [isEditingCityName, setIsEditingCityName] = useState(false);
     const [newCityName, setNewCityName] = useState('');
+
+    // #comment This hook handles clicks outside the activity tracker to close a locked tooltip.
+    // #comment It's placed before any early returns to comply with the Rules of Hooks.
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isTooltipLocked && activityTrackerRef.current && !activityTrackerRef.current.contains(event.target)) {
+                setIsTooltipLocked(false);
+                setActiveTooltip(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isTooltipLocked]);
 
     // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
     const getSafeDate = (timestamp) => {
@@ -161,6 +178,7 @@ const TopBar = ({
 
     // #comment Helper to identify if a movement is trade-related
     const isTradeMovement = (m) => {
+        if (!m) return false;
         if (m.type === 'trade') return true;
         // It's also a trade if it's a returning trip carrying only resources
         if (m.status === 'returning' && m.resources && Object.values(m.resources).some(r => r > 0)) {
@@ -175,7 +193,7 @@ const TopBar = ({
     const recruitmentCount = useMemo(() => {
         if (!playerCities) return 0;
         return Object.values(playerCities).reduce((acc, city) => {
-            const activeUnitQueue = (city.unitQueue || []).filter(item => {
+            const activeUnitQueue = (city.barracksQueue || []).concat(city.shipyardQueue || []).concat(city.divineTempleQueue || []).filter(item => {
                 const endDate = getSafeDate(item.endTime);
                 return endDate && endDate > new Date();
             });
@@ -230,14 +248,27 @@ const TopBar = ({
 
     // #comment Handlers to show/hide tooltips with a small delay
     const handleMouseEnter = (tooltip) => {
+        if (isTooltipLocked) return;
         clearTimeout(tooltipTimeoutRef.current);
         setActiveTooltip(tooltip);
     };
 
     const handleMouseLeave = () => {
+        if (isTooltipLocked) return;
         tooltipTimeoutRef.current = setTimeout(() => {
             setActiveTooltip(null);
         }, 300);
+    };
+    
+    const handleTooltipClick = (e, tooltip) => {
+        e.stopPropagation();
+        if (isTooltipLocked && activeTooltip === tooltip) {
+            setIsTooltipLocked(false);
+            setActiveTooltip(null);
+        } else {
+            setIsTooltipLocked(true);
+            setActiveTooltip(tooltip);
+        }
     };
 
     // #comment Handlers for city name editing
@@ -289,21 +320,22 @@ const TopBar = ({
             {/* Center Section */}
             <div className="flex-none flex justify-center items-center space-x-8">
                 <div
+                    ref={activityTrackerRef}
                     className="activity-tracker-container"
                     onMouseLeave={handleMouseLeave}
                 >
-                    <div className="relative" onMouseEnter={() => handleMouseEnter('recruitment')}>
+                    <div className="relative" onMouseEnter={() => handleMouseEnter('recruitment')} onClick={(e) => handleTooltipClick(e, 'recruitment')}>
                         <button className="activity-icon-image-container">
                             <img src={recruitmenticon} alt="Recruitment" className="activity-icon-image" />
                         </button>
                         {recruitmentCount > 0 && <span className="activity-badge">{recruitmentCount}</span>}
                     </div>
-                    <div className="relative" onMouseEnter={() => handleMouseEnter('trades')}>
+                    <div className="relative" onMouseEnter={() => handleMouseEnter('trades')} onClick={(e) => handleTooltipClick(e, 'trades')}>
                         <img src={tradeicon} alt="Trade" className="activity-icon-image" />
                         {tradeCount > 0 && <span className="activity-badge">{tradeCount}</span>}
                     </div>
-                     <div className="relative" onMouseEnter={() => handleMouseEnter('movements')}>
-                        <button onClick={onOpenMovements} className={`activity-icon ${isUnderAttack ? 'glowing-attack-icon' : ''}`}>
+                     <div className="relative" onMouseEnter={() => handleMouseEnter('movements')} onClick={(e) => handleTooltipClick(e, 'movements')}>
+                        <button onClick={(e) => { e.stopPropagation(); onOpenMovements(); }} className={`activity-icon ${isUnderAttack ? 'glowing-attack-icon' : ''}`}>
                             <img src={movementicon} alt="Movement" className="activity-icon-image" />
                         </button>
                         {movementCount > 0 && <span className="activity-badge">{movementCount}</span>}

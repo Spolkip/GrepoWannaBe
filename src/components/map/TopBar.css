@@ -22,6 +22,22 @@
     background-color: rgba(0,0,0,0.2);
 }
 
+/* #comment New styles for the city list dropdown */
+.city-list-dropdown {
+    background-image: linear-gradient(rgba(245, 222, 179, 0.98), rgba(245, 222, 179, 0.98)), url('https://www.transparenttextures.com/patterns/cracks.png');
+    background-color: #F5DEB3;
+    border: 2px solid #8B4513;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    color: #4a2c2a;
+}
+.city-list-item {
+    @apply w-full text-left px-4 py-2 hover:bg-amber-300/50;
+}
+.city-list-item.active {
+    @apply bg-amber-400/60 font-bold;
+}
+
+
 .weather-display {
     background: rgba(0,0,0,0.1);
     border: 1px solid #8B4513;

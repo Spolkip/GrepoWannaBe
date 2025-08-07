@@ -1,11 +1,8 @@
 - add icons to back to world selection and logout
 - add animation on open tooltip for spells when press on the god
 - center cities number
-- add a way to set private alliance description
 
 - add to select all units when you press on the icons
-- make the invite a player name text white
-- add on the reports the losses to show with red
 - on trade to show the from and to
 - remake academy layout with icons for researches instead of name and on hover to say details
 - make the city list with the new theme

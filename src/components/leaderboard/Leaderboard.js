@@ -22,16 +22,34 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
         const playersData = new Map();
 
         for (const userDoc of usersSnapshot.docs) {
-            const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
-            const gameSnap = await getDoc(gameDocRef);
+            const citiesColRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
+            const citiesSnapshot = await getDocs(citiesColRef);
 
-            if (gameSnap.exists()) {
-                const gameData = gameSnap.data();
-                const totalPoints = calculateTotalPoints(gameData);
+            if (!citiesSnapshot.empty) {
+                let totalPoints = 0;
+                let allianceInfo = null;
+                for (const cityDoc of citiesSnapshot.docs) {
+                    const cityData = cityDoc.data();
+                    totalPoints += calculateTotalPoints(cityData);
+                    // Assuming alliance info is consistent across cities for a player in a world
+                    if (!allianceInfo && cityData.alliance) {
+                         allianceInfo = cityData.alliance;
+                    }
+                }
+                
+                // #comment Get alliance from game doc as fallback
+                if (!allianceInfo) {
+                    const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
+                    const gameSnap = await getDoc(gameDocRef);
+                    if (gameSnap.exists()) {
+                        allianceInfo = gameSnap.data().alliance;
+                    }
+                }
+
                 playersData.set(userDoc.id, {
                     id: userDoc.id,
                     username: userDoc.data().username,
-                    alliance: gameData.alliance || 'No Alliance',
+                    alliance: allianceInfo || 'No Alliance',
                     points: totalPoints,
                 });
             }

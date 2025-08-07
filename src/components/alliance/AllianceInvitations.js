@@ -135,7 +135,7 @@ const AllianceInvitations = ({ isLeader }) => {
                             value={invitedPlayerName}
                             onChange={handleInviteInputChange}
                             placeholder="Player Username"
-                            className="w-full bg-gray-900 p-2 rounded"
+                            className="w-full bg-gray-900 p-2 rounded text-white"
                             autoComplete="off"
                         />
                         <button onClick={handleInvite} className="btn btn-confirm flex-shrink-0">Invite</button>

@@ -1,17 +1,17 @@
 // src/components/city/AcademyMenu.js
 import React from 'react';
 import researchConfig from '../../gameData/research.json';
-import ResearchQueue from './ResearchQueue'; // Import the new ResearchQueue
+import ResearchQueue from './ResearchQueue';
+import './AcademyMenu.css'; // Import new CSS for styling
 
-const formatTime = (seconds) => {
-    if (seconds < 0) seconds = 0;
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-};
+const researchImages = {};
+const imageContext = require.context('../../images/research', false, /\.(png|jpe?g|svg)$/);
+imageContext.keys().forEach((item) => {
+    const key = item.replace('./', '').replace('.png', '');
+    researchImages[key] = imageContext(item);
+});
 
-const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCancelResearch }) => { // Add researchQueue and onCancelResearch to props
+const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCancelResearch }) => {
     const { buildings, resources, research = {}, researchPoints = 0 } = cityGameState;
     const academyLevel = buildings.academy?.level || 0;
 
@@ -29,64 +29,64 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
         return true;
     };
 
-    // Determine if a research is already in the queue
     const isResearchInQueue = (researchId) => {
         return (researchQueue || []).some(item => item.researchId === researchId);
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
-            <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-3xl border-2 border-gray-600 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-title text-3xl text-white">Academy (Level {academyLevel})</h3>
-                    <p className="text-white">Research Points: {researchPoints}</p>
-                    <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
+            <div className="academy-container" onClick={e => e.stopPropagation()}>
+                <div className="academy-header">
+                    <h3>Academy (Level {academyLevel})</h3>
+                    <p>Research Points: {researchPoints}</p>
+                    <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
                 
-                {/* Render the ResearchQueue here */}
-                <ResearchQueue researchQueue={researchQueue} onCancel={onCancelResearch} />
-
-                <div className="overflow-y-auto space-y-4 pr-2">
+                <div className="academy-grid">
                     {Object.entries(researchConfig).map(([id, config]) => {
                         const isResearched = research[id];
                         const requirementsMet = meetsRequirements(config.requirements);
                         const affordable = canAfford(config.cost);
-                        const inQueue = isResearchInQueue(id); // Check if in queue
+                        const inQueue = isResearchInQueue(id);
 
                         let button;
-                        if (isResearched) {
-                            button = <button disabled className="btn btn-disabled w-full py-2 mt-2">Completed</button>;
-                        } else if (inQueue) { // New condition for in queue
-                            button = <button disabled className="btn btn-disabled w-full py-2 mt-2">In Queue</button>;
-                        } else if (!requirementsMet) {
-                            let reqText = `Requires Academy Lvl ${config.requirements.academy || 0}`;
+                        let reqText = '';
+                        if (!requirementsMet) {
+                            reqText = `Requires: Academy Lvl ${config.requirements.academy || 0}`;
                             if (config.requirements.research) {
                                 reqText += ` & ${researchConfig[config.requirements.research].name}`;
                             }
-                            button = <button disabled className="btn btn-disabled w-full py-2 mt-2">{reqText}</button>;
+                        }
+
+                        if (isResearched) {
+                            button = <button disabled className="btn research-btn completed">Completed</button>;
+                        } else if (inQueue) {
+                            button = <button disabled className="btn research-btn in-queue">In Queue</button>;
                         } else {
-                            button = <button onClick={() => onResearch(id)} disabled={!affordable || researchQueue.length >= 5} className={`btn ${affordable && researchQueue.length < 5 ? 'btn-upgrade' : 'btn-disabled'} w-full py-2 mt-2`}>
+                            button = <button onClick={() => onResearch(id)} disabled={!affordable || !requirementsMet || researchQueue.length >= 5} className="btn research-btn">
                                 {researchQueue.length >= 5 ? 'Queue Full' : 'Research'}
                             </button>;
                         }
 
                         return (
-                            <div key={id} className={`p-4 rounded-lg flex justify-between items-center ${isResearched ? 'bg-green-900/50' : 'bg-gray-700'} ${inQueue ? 'opacity-80' : ''}`}>
-                                <div>
-                                    <h4 className="text-xl font-bold text-yellow-300">{config.name}</h4>
-                                    <p className="text-sm text-gray-400">{config.description}</p>
-                                    <div className="text-xs text-gray-300 mt-2">
-                                        <span>Cost: {config.cost.wood}W, {config.cost.stone}S, {config.cost.silver}Ag, {config.cost.points || 0} RP</span>
-                                        <span className="ml-4">Time: {formatTime(config.cost.time)}</span>
+                            <div key={id} className={`research-card ${isResearched ? 'researched' : ''} ${!requirementsMet ? 'locked' : ''}`}>
+                                <div className="research-icon" style={{backgroundImage: `url(${researchImages[id]})`}}>
+                                    <div className="research-tooltip">
+                                        <h5 className="tooltip-title">{config.name}</h5>
+                                        <p className="tooltip-desc">{config.description}</p>
+                                        <div className="tooltip-cost">
+                                            Cost: {config.cost.wood}W, {config.cost.stone}S, {config.cost.silver}Ag, {config.cost.points || 0}RP
+                                        </div>
+                                        {reqText && <p className="tooltip-req">{reqText}</p>}
                                     </div>
                                 </div>
-                                <div className="w-1/4 ml-4">
-                                    {button}
-                                </div>
+                                {button}
                             </div>
                         );
                     })}
                 </div>
+
+                <ResearchQueue researchQueue={researchQueue} onCancel={onCancelResearch} />
             </div>
         </div>
     );

@@ -1,32 +1,43 @@
 import React from 'react';
-import specialBuildings from '../../gameData/specialBuildings.json';
 
-const SpecialBuildingPlot = ({ cityGameState, onOpenMenu, buildingImages }) => {
-    // #comment Add a guard clause to prevent a crash if the cityGameState is not yet available during rendering.
-    if (!cityGameState) {
+const SpecialBuildingPlot = ({ building, onClick, image, name, isConstructed }) => {
+    const { position } = building;
+    const spotStyle = {
+        top: `${position.y}px`,
+        left: `${position.x}px`,
+        width: '200px',
+        height: '150px',
+        backgroundImage: image ? `url(${image})` : 'none',
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+    };
+
+    if (!isConstructed) {
         return (
-            <div className="building-spot empty">
-                <p>Loading...</p>
-            </div>
-        );
-    }
-
-    const specialBuildingId = cityGameState.specialBuilding;
-
-    if (specialBuildingId) {
-        const building = specialBuildings[specialBuildingId];
-        const imageSrc = buildingImages && building.image ? buildingImages[building.image] : '';
-        return (
-            <div className="building-spot" onClick={onOpenMenu}>
-                <img src={imageSrc} alt={building.name} />
-                <p>{building.name}</p>
+             <div
+                className="building-spot absolute flex items-center justify-center p-2 rounded-lg cursor-pointer hover:bg-black/20"
+                style={spotStyle}
+                onClick={onClick}
+                title={`Build ${name}`}
+            >
+                <span className="text-gray-400 text-sm">
+                    Empty Plot
+                </span>
             </div>
         );
     }
 
     return (
-        <div className="building-spot empty" onClick={onOpenMenu}>
-            <p>Special Building Plot</p>
+        <div
+            className="building-spot absolute flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 cursor-pointer"
+            style={{
+                ...spotStyle,
+                backgroundColor: image ? 'transparent' : 'rgba(139, 69, 19, 0.7)',
+            }}
+            onClick={onClick}
+            title={name}
+        >
         </div>
     );
 };

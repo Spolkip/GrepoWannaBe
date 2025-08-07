@@ -49,7 +49,7 @@
 
 /* --- Layout Components --- */
 .sidebar {
-    @apply w-48 flex flex-col p-2 rounded-lg; /* Reduced width from w-64 */
+    @apply w-auto flex flex-col p-2 rounded-lg;
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3; /* wheat */
     border: 8px solid;
@@ -71,7 +71,7 @@
 
 
 .sidebar-button {
-    @apply w-full relative flex items-center p-0 rounded-md transition-colors duration-200 font-semibold my-1 text-sm; /* Reduced font size */
+    @apply w-full relative flex items-center justify-start p-2 rounded-md transition-colors duration-200 font-semibold my-1 text-sm gap-3;
     color: #4a2c2a;
     border: 2px solid #8B4513;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
@@ -86,15 +86,6 @@
 .sidebar-button:disabled {
     @apply opacity-50 cursor-not-allowed;
     background: #d2b48c;
-}
-
-.sidebar-button .icon-container {
-    @apply w-8 h-8 flex-shrink-0 flex items-center justify-center text-lg; /* Reduced size and icon font size */
-    border-right: 2px solid #8B4513;
-}
-
-.sidebar-button .button-text {
-    @apply pl-2; /* Reduced padding */
 }
 
 .sidebar-button .notification-badge {

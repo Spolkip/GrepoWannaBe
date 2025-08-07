@@ -129,11 +129,12 @@ const ReportsView = ({ onClose }) => {
         return title;
     };
 
-    const renderUnitList = (units) => {
+    const renderUnitList = (units, isLosses = false) => {
         if (!units || Object.keys(units).length === 0) return 'None';
-        return Object.entries(units)
+        const content = Object.entries(units)
             .map(([id, count]) => `${count} ${unitConfig[id]?.name || id}`)
             .join(', ');
+        return isLosses ? <span className="text-red-600 font-semibold">{content}</span> : content;
     };
 
     const getImageUrl = (imageName) => {
@@ -229,7 +230,7 @@ const ReportsView = ({ onClose }) => {
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
                                 {renderTroopDisplay(attacker.units)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
                                 {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
                                     <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
                                 )}
@@ -237,7 +238,7 @@ const ReportsView = ({ onClose }) => {
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender Units</h4>
                                 {renderTroopDisplay(defender.units || defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                             </div>
                         </div>
                         {outcome.attackerWon && outcome.plunder && (
@@ -274,7 +275,7 @@ const ReportsView = ({ onClose }) => {
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
                                 {renderTroopDisplay(attacker.units)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses)}</p>
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
                                 {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
                                     <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
                                 )}
@@ -282,7 +283,7 @@ const ReportsView = ({ onClose }) => {
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Guardian Units</h4>
                                 {renderTroopDisplay(defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                             </div>
                         </div>
                         {report.reward && (
