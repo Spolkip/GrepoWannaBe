@@ -5,7 +5,6 @@ import ruinImage from '../../images/ruin_new.png';
 import unitConfig from '../../gameData/units.json';
 import godTownImage from '../../images/god-town.png';
 
-// #comment Dynamically import all unit images so they can be used in the tooltip
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
@@ -15,26 +14,23 @@ imageContext.keys().forEach((item) => {
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
-export const WaterTile = React.memo(({ gameSettings = defaultSettings }) => {
-    // #comment This tile is now completely transparent and borderless.
-    // #comment The background is handled by the parent .map-surface container.
+function WaterTileFunc({ gameSettings = defaultSettings }) {
     return <div className="w-full h-full bg-transparent" />;
-});
+}
 
-export const LandTile = React.memo(({ gameSettings = defaultSettings }) => {
+function LandTileFunc({ gameSettings = defaultSettings }) {
     const bgClass = gameSettings.showVisuals ? 'bg-green-600' : 'bg-gray-800';
     const borderClass = gameSettings.showGrid
         ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
         : 'border-r border-b border-transparent';
     return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
-});
+}
 
-export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+function CitySlotTileFunc({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings, cityPoints, scoutedCities }) {
     const { currentUser } = useAuth();
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
 
-    // #comment Helper to format the list of units for the tooltip with images.
     const formatUnitsForTooltip = (units) => {
         if (!units || Object.keys(units).length === 0) return '';
         const unitEntries = Object.entries(units)
@@ -61,7 +57,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
         const points = cityPoints[slotData.id] ? cityPoints[slotData.id].toLocaleString() : '...';
 
         let troopsHTML = '';
-        // #comment Check for troops in own city or in scouted reports for other cities
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             troopsHTML = formatUnitsForTooltip(slotData.units);
@@ -69,7 +64,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
             troopsHTML = formatUnitsForTooltip(scoutedCities[slotData.id]);
         }
 
-        // #comment Construct the base info part of the tooltip
         const baseInfo = `
             <div class="tooltip-info-section">
                 <b>${slotData.cityName}</b><br>
@@ -79,10 +73,8 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
             </div>
         `;
 
-        // #comment Combine base info with troops if available
         tooltipText = `${baseInfo}${troopsHTML}`;
         
-        // #comment Determine the city color based on diplomatic status if it's not the player's city
         if (slotData.ownerId !== currentUser.uid) {
             if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
                 const allies = playerAlliance.diplomacy?.allies || [];
@@ -109,7 +101,6 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
         tooltipText = 'Click to place dummy city';
     }
 
-
     const backgroundClass = gameSettings.showVisuals ? 'bg-green-400' : 'bg-gray-800';
     const borderClass = gameSettings.showGrid
         ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
@@ -122,9 +113,9 @@ export const CitySlotTile = React.memo(({ slotData, onClick, isPlacingDummyCity,
             </div>
         </div>
     );
-});
+}
 
-export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredVillages, gameSettings = defaultSettings }) => {
+function FarmingVillageTileFunc({ villageData, onClick, conqueredVillages, gameSettings = defaultSettings }) {
     let villageClass = 'neutral-village';
     let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
 
@@ -148,9 +139,9 @@ export const FarmingVillageTile = React.memo(({ villageData, onClick, conqueredV
             </div>
         </div>
     );
-});
+}
 
-export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultSettings }) => {
+function RuinTileFunc({ ruinData, onClick, gameSettings = defaultSettings }) {
     const { currentUser } = useAuth();
     let ruinClass = 'ruin-slot';
     let tooltipText = `Ruin: ${ruinData.name}`;
@@ -165,7 +156,7 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
         }
     }
 
-    const bgClass = 'bg-transparent'; // Use the parent's water texture
+    const bgClass = 'bg-transparent';
 
     return (
         <div className={`w-full h-full ${bgClass} flex justify-center items-center`}>
@@ -178,9 +169,9 @@ export const RuinTile = React.memo(({ ruinData, onClick, gameSettings = defaultS
             </div>
         </div>
     );
-});
+}
 
-export const GodTownTile = React.memo(({ townData, onClick, gameSettings = defaultSettings }) => {
+function GodTownTileFunc({ townData, onClick, gameSettings = defaultSettings }) {
     let townClass = 'god-town-slot';
     let tooltipText = `God Town: ${townData.name}`;
     let image = townData.stage === 'ruins' ? ruinImage : godTownImage;
@@ -206,4 +197,11 @@ export const GodTownTile = React.memo(({ townData, onClick, gameSettings = defau
             </div>
         </div>
     );
-});
+}
+
+export const WaterTile = React.memo(WaterTileFunc);
+export const LandTile = React.memo(LandTileFunc);
+export const CitySlotTile = React.memo(CitySlotTileFunc);
+export const FarmingVillageTile = React.memo(FarmingVillageTileFunc);
+export const RuinTile = React.memo(RuinTileFunc);
+export const GodTownTile = React.memo(GodTownTileFunc);
