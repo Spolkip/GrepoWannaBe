@@ -64,6 +64,14 @@
 .dummy-placement-plot {
     @apply bg-gray-500 border-2 border-dashed border-yellow-400 cursor-crosshair animate-pulse;
 }
+.ghost-city {
+    @apply bg-gray-600 border-2 border-gray-800;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9c.83 0 1.5-.67 1.5-1.5S7.83 8 7 8s-1.5.67-1.5 1.5S6.17 11 7 11zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 8 17 8s-1.5.67-1.5 1.5S16.17 11 17 11zm-5 4c-1.66 0-3-1.34-3-3h6c0 1.66-1.34 3-3 3z"/></svg>');
+    background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
 
 /* Farming Village Styles */
 .village-slot {

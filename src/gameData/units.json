@@ -254,7 +254,7 @@
     "description": "A terrifying creature with the body of a lion, a human head, and a tail of venomous spines.",
     "cost": { "wood": 450, "stone": 150, "silver": 350, "population": 12, "time": 750, "favor": 65 },
     "heal_cost": { "wood": 135, "stone": 45, "silver": 105 }, "heal_time": 250,
-    "attack": 60, "defense": 30, "speed": 7, "type": "fly", "mythical": true,"flying": true, "god": "Zeus",
+    "attack": 60, "defense": 30, "speed": 7, "type": "land", "flying": true,"mythical": true, "god": "Zeus",
     "image": "manticore.png"
   },
   "harpy": {

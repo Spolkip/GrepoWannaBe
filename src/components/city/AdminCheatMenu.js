@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import unitConfig from '../../gameData/units.json';
 import researchConfig from '../../gameData/research.json'; // Import research config
 
-const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive, onSpawnGodTown }) => {
+const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
     const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0, population: 0 });
     const [troop, setTroop] = useState({ unit: 'swordsman', amount: 0 });
     const [warehouseLevels, setWarehouseLevels] = useState(0);
@@ -22,11 +22,6 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive, onSpawnGodTown
     // #comment Handler for the new "Found Second City" button
     const handleFoundCity = () => {
         onCheat({}, {}, 0, false, '', false, false, 0, true); // #comment Pass true only for foundSecondCity
-        onClose();
-    };
-
-    const handleSpawn = () => {
-        onSpawnGodTown();
         onClose();
     };
 
@@ -135,9 +130,6 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive, onSpawnGodTown
                         />
                     </div>
                 </div>
-                <button onClick={handleSpawn} className="btn btn-primary w-full py-2 mt-4 bg-purple-600 hover:bg-purple-500">
-                    Spawn God Town Event
-                </button>
                 <button onClick={handleFoundCity} className="btn btn-primary w-full py-2 mt-4 bg-yellow-600 hover:bg-yellow-500">
                     Found Second City
                 </button>

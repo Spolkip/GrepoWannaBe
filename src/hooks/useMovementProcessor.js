@@ -29,7 +29,7 @@ export const useMovementProcessor = (worldId) => {
         ]);
         
         if (!originCitySnap.exists()) {
-            console.log(`Origin city ${movement.originCityId} for owner ${movement.originOwnerId} not found. Deleting movement.`);
+            console.log(`Origin city ${movement.originOwnerId} for owner ${movement.originOwnerId} not found. Deleting movement.`);
             batch.delete(movementDoc.ref);
             await batch.commit();
             return;
@@ -91,7 +91,6 @@ export const useMovementProcessor = (worldId) => {
                     const townSnap = await getDoc(townRef);
                 
                     if (!townSnap.exists() || townSnap.data().stage !== 'city') {
-                        // Town doesn't exist or is not attackable, return troops
                         const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
                         const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
                         batch.update(movementDoc.ref, {
@@ -104,17 +103,9 @@ export const useMovementProcessor = (worldId) => {
                     const townData = townSnap.data();
                     const combatResult = resolveCombat(movement.units, townData.troops, {}, false);
                 
-                    const damageDealt = Object.values(combatResult.defenderLosses).reduce((sum, count) => sum + count, 0) * 5; // Example damage calculation
-                    const newHealth = Math.max(0, townData.health - damageDealt);
+                    const damageDealt = Object.values(combatResult.defenderLosses).reduce((sum, count) => sum + count, 0) * 5;
+                    const newHealth = Math.max(0, (townData.health || 10000) - damageDealt);
                     
-                    // #comment Calculate remaining troops in the god town
-                    const newTownTroops = { ...townData.troops };
-                    for (const unitId in combatResult.defenderLosses) {
-                        newTownTroops[unitId] = Math.max(0, (newTownTroops[unitId] || 0) - combatResult.defenderLosses[unitId]);
-                    }
-                
-                    batch.update(townRef, { health: newHealth, troops: newTownTroops });
-                
                     const warPoints = Math.floor(damageDealt / 10);
                     const resourcesWon = {
                         wood: warPoints * 10,
@@ -122,13 +113,11 @@ export const useMovementProcessor = (worldId) => {
                         silver: warPoints * 5
                     };
                 
-                    // Update player progress
                     const playerProgressRef = doc(db, 'worlds', worldId, 'godTowns', movement.targetTownId, 'playerProgress', movement.originOwnerId);
                     const playerProgressSnap = await getDoc(playerProgressRef);
                     const currentDamage = playerProgressSnap.exists() ? playerProgressSnap.data().damageDealt : 0;
                     batch.set(playerProgressRef, { damageDealt: currentDamage + damageDealt }, { merge: true });
                 
-                    // Create report for the attacker
                     const attackerReport = {
                         type: 'attack_god_town',
                         title: `Attack on ${townData.name}`,
@@ -137,9 +126,20 @@ export const useMovementProcessor = (worldId) => {
                         rewards: { warPoints, resources: resourcesWon },
                         read: false,
                     };
+
+                    if (newHealth === 0) {
+                        batch.delete(townRef);
+                        attackerReport.rewards.message = "You have vanquished the City of the Gods! It has vanished from the world.";
+                    } else {
+                        const newTroops = { ...townData.troops };
+                        for (const unitId in combatResult.defenderLosses) {
+                            newTroops[unitId] = Math.max(0, (newTroops[unitId] || 0) - combatResult.defenderLosses[unitId]);
+                        }
+                        batch.update(townRef, { health: newHealth, troops: newTroops });
+                    }
+                    
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
                 
-                    // Handle troop return
                     const survivingAttackers = {};
                     for (const unitId in movement.units) {
                         const survivors = movement.units[unitId] - (combatResult.attackerLosses[unitId] || 0);
@@ -345,8 +345,6 @@ export const useMovementProcessor = (worldId) => {
                         newDefenderResources.silver = Math.max(0, newDefenderResources.silver - result.plunder.silver);
                     }
 
-                    batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });
-
                     const attackerReport = {
                         type: 'attack',
                         title: `Attack on ${targetCityState.cityName}`,
@@ -363,8 +361,13 @@ export const useMovementProcessor = (worldId) => {
                         outcome: { ...result, attackerWon: !result.attackerWon } 
                     };
 
+                    batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });
+
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
-                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), defenderReport);
+                    if (movement.targetOwnerId) {
+                        batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), defenderReport);
+                    }
+
 
                     const survivingAttackers = {};
                     let anySurvivors = false;

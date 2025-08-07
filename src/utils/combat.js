@@ -218,6 +218,8 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
     let attackerWon = false;
     let plunder = { wood: 0, stone: 0, silver: 0 };
     let wounded = {};
+    
+    const safeDefendingResources = defendingResources || {};
 
     if (isNavalAttack) {
         const navalBattle = resolveBattle(attackingUnits, defendingUnits, 'naval', null, null, null, null); // No phalanx/support for naval
@@ -241,9 +243,9 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
             attackerWon = landBattle.attackerWon;
 
             if (landBattle.attackerWon) {
-                plunder.wood = Math.floor(defendingResources.wood * 0.25);
-                plunder.stone = Math.floor(defendingResources.stone * 0.25);
-                plunder.silver = Math.floor(defendingResources.silver * 0.25);
+                plunder.wood = Math.floor((safeDefendingResources.wood || 0) * 0.25);
+                plunder.stone = Math.floor((safeDefendingResources.stone || 0) * 0.25);
+                plunder.silver = Math.floor((safeDefendingResources.silver || 0) * 0.25);
             }
         } else {
             // If naval battle is lost, all land units on transport ships are lost
@@ -259,9 +261,9 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         totalDefenderLosses = landBattle.defenderLosses;
         attackerWon = landBattle.attackerWon;
         if (landBattle.attackerWon) {
-            plunder.wood = Math.floor(defendingResources.wood * 0.25);
-            plunder.stone = Math.floor(defendingResources.stone * 0.25);
-            plunder.silver = Math.floor(defendingResources.silver * 0.25);
+            plunder.wood = Math.floor((safeDefendingResources.wood || 0) * 0.25);
+            plunder.stone = Math.floor((safeDefendingResources.stone || 0) * 0.25);
+            plunder.silver = Math.floor((safeDefendingResources.silver || 0) * 0.25);
         }
     }
 

@@ -63,6 +63,9 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             troopsHTML = formatUnitsForTooltip(slotData.units);
+        } else if (slotData.ownerId === 'ghost') {
+            slotClass = 'ghost-city';
+            troopsHTML = formatUnitsForTooltip(slotData.units);
         } else if (scoutedCities && scoutedCities[slotData.id]) {
             troopsHTML = formatUnitsForTooltip(scoutedCities[slotData.id]);
         }
@@ -81,7 +84,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
         tooltipText = `${baseInfo}${troopsHTML}`;
         
         // #comment Determine the city color based on diplomatic status if it's not the player's city
-        if (slotData.ownerId !== currentUser.uid) {
+        if (slotData.ownerId !== currentUser.uid && slotData.ownerId !== 'ghost') {
             if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
                 const allies = playerAlliance.diplomacy?.allies || [];
                 const enemies = playerAlliance.diplomacy?.enemies || [];
