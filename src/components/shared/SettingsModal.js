@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/config';
-import { doc, writeBatch, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, writeBatch, deleteDoc, setDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
@@ -83,12 +83,24 @@ const SettingsModal = ({ onClose }) => {
             allianceName: null
         });
 
-        // 3. Delete all player cities in this world
-        const citiesCollectionRef = doc(db, `users/${currentUser.uid}/games`, worldId);
-        await deleteDoc(citiesCollectionRef);
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        // 3. Delete all documents in subcollections
+        const deleteSubcollection = async (subcollectionPath) => {
+            const collectionRef = collection(gameDocRef, subcollectionPath);
+            const q = query(collectionRef);
+            const snapshot = await getDocs(q);
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+        };
+
+        await deleteSubcollection('cities');
+        await deleteSubcollection('conqueredVillages');
+        await deleteSubcollection('conqueredRuins');
+        await deleteSubcollection('quests');
         
         // 4. Delete the top-level game document
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         batch.delete(gameDocRef);
 
         // 5. Commit all changes
@@ -128,6 +140,8 @@ const SettingsModal = ({ onClose }) => {
                 
                 <div className="settings-tabs mb-4 flex border-b border-gray-600">
                     <button onClick={() => setActiveTab('gameplay')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'gameplay' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Gameplay</button>
+                    <button onClick={() => setActiveTab('display')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'display' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Display</button>
+                    <button onClick={() => setActiveTab('notifications')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'notifications' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Notifications</button>
                     <button onClick={() => setActiveTab('account')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'account' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Account</button>
                 </div>
 
@@ -165,6 +179,76 @@ const SettingsModal = ({ onClose }) => {
                                     id="animations"
                                     name="animations"
                                     checked={gameSettings.animations}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'display' && (
+                        <>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="theme" className="text-lg font-semibold">Theme</label>
+                                <select
+                                    id="theme"
+                                    name="theme"
+                                    value={gameSettings.theme}
+                                    onChange={handleChange}
+                                    className="bg-gray-600 text-white p-2 rounded"
+                                >
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="mapZoomSensitivity" className="text-lg font-semibold">Map Zoom Sensitivity</label>
+                                <input
+                                    type="range"
+                                    id="mapZoomSensitivity"
+                                    name="mapZoomSensitivity"
+                                    min="0.1"
+                                    max="1"
+                                    step="0.1"
+                                    value={gameSettings.mapZoomSensitivity}
+                                    onChange={handleChange}
+                                    className="w-1/2"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'notifications' && (
+                        <>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="attackNotifications" className="text-lg font-semibold">Incoming Attack Alerts</label>
+                                <input
+                                    type="checkbox"
+                                    id="attackNotifications"
+                                    name="attackNotifications"
+                                    checked={gameSettings.attackNotifications}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="tradeNotifications" className="text-lg font-semibold">Trade Completed Alerts</label>
+                                <input
+                                    type="checkbox"
+                                    id="tradeNotifications"
+                                    name="tradeNotifications"
+                                    checked={gameSettings.tradeNotifications}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="unitCompleteNotifications" className="text-lg font-semibold">Recruitment Complete</label>
+                                <input
+                                    type="checkbox"
+                                    id="unitCompleteNotifications"
+                                    name="unitCompleteNotifications"
+                                    checked={gameSettings.unitCompleteNotifications}
                                     onChange={handleChange}
                                     className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
                                 />
