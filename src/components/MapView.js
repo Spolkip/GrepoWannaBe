@@ -45,7 +45,6 @@ const MapView = ({
     godTowns,
     onCancelTrain,
     onCancelMovement,
-    combinedSlots,
     isUnderAttack,
     incomingAttackCount,
     onRenameCity,
@@ -138,6 +137,8 @@ const MapView = ({
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
 
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
+
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
 
     const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };
@@ -364,6 +365,7 @@ const MapView = ({
                                     combinedSlots={combinedSlotsForGrid} 
                                     villages={villages} 
                                     ruins={ruins} 
+                                    godTowns={godTowns}
                                     playerAlliance={playerAlliance} 
                                     conqueredVillages={conqueredVillages} 
                                     gameSettings={gameSettings}

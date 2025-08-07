@@ -1,3 +1,4 @@
+// src/components/map/MovementItem.js
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import unitConfig from '../../gameData/units.json';
@@ -15,14 +16,15 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
 
     const originCity = citySlots[movement.originCityId];
     
-    // #comment Determine the correct target ID from the movement object, prioritizing the city document ID
-    const targetId = movement.targetCityId || movement.targetSlotId || movement.targetVillageId || movement.targetRuinId;
+    // #comment Determine the correct target ID from the movement object, with fallbacks
+    const targetId = movement.targetCityId || movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId;
     const targetLocation = citySlots[targetId];
 
     const movementTypes = {
         attack: { icon: '⚔️' },
         attack_village: { icon: '⚔️' },
         attack_ruin: { icon: '⚔️' },
+        attack_god_town: { icon: '⚔️' },
         reinforce: { icon: '🛡️' },
         scout: { icon: '👁️' },
         trade: { icon: '💰' },
@@ -48,8 +50,8 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
     
     // #comment Determine the destination name based on movement status, with fallbacks
     const destination = movement.status === 'returning' ? originCity : targetLocation;
-    const destinationName = destination?.cityName || destination?.name || movement.targetCityName || movement.targetVillageName || movement.targetRuinName || 'Unknown';
-    const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace('_', ' ');
+    const destinationName = destination?.cityName || destination?.name || movement.targetCityName || movement.targetVillageName || movement.targetRuinName || movement.targetTownName || 'Unknown';
+    const actionText = movement.status === 'returning' ? 'Returning' : movement.type.replace(/_/g, ' ');
 
     const cancellableDate = movement.cancellableUntil?.toDate();
     const arrivalDate = movement.arrivalTime?.toDate();

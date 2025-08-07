@@ -282,10 +282,15 @@ export const generateGodTowns = (islands, worldWidth, worldHeight, count = 1) =>
                 y,
                 name: "Strange Ruins",
                 stage: "ruins",
-                health: 10000,
-                maxHealth: 10000,
                 puzzleId: `puzzle_${(i % 3) + 1}`,
-                troops: { /* Define troops for the city stage */ },
+                troops: { 
+                    'manticore': 500,
+                    'medusa': 500,
+                    'pegasus': 500,
+                    'sphinx': 500,
+                    'phoenix': 500,
+                    'serpopard': 500
+                },
                 spawnTime: spawnTime,
                 transformationTime: new Date(spawnTime.getTime() + transformationDuration),
             };

@@ -9,8 +9,9 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
 
     const isReturning = movement.status === 'returning';
     // #comment Use targetSlotId for non-return trips to get coordinates from map data.
-    const originId = isReturning ? (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId) : movement.originCityId;
-    const targetId = isReturning ? movement.originCityId : (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId);
+    const originId = isReturning ? (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId) : movement.originCityId;
+    const targetId = isReturning ? movement.originCityId : (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId);
+
 
     const originCity = citySlots[originId];
     const targetCity = citySlots[targetId];
@@ -46,6 +47,7 @@ const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }
         attack: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         attack_village: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         attack_ruin: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
+        attack_god_town: { color: '#ef4444', icon: '⚔️', lineColor: '#ef4444' },
         reinforce: { color: '#3b82f6', icon: '🛡️', lineColor: '#3b82f6' },
         scout: { color: '#10b981', icon: '👁️', lineColor: '#10b981' },
         trade: { color: '#f59e0b', icon: '💰', lineColor: '#f59e0b' },

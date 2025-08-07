@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import PuzzleRenderer from '../puzzles/PuzzleRenderer';
 import Countdown from './Countdown';
+import TroopDisplay from '../TroopDisplay'; // Import TroopDisplay
 
 const GodTownModal = ({ townId, onClose, onAttack }) => {
     const { currentUser } = useAuth();
@@ -15,32 +16,51 @@ const GodTownModal = ({ townId, onClose, onAttack }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchTownData = async () => {
-            if (!worldId || !townId || !currentUser) return;
-            setLoading(true);
-            try {
-                const townRef = doc(db, 'worlds', worldId, 'godTowns', townId);
-                const townSnap = await getDoc(townRef);
-                if (townSnap.exists()) {
-                    setTownData({ id: townSnap.id, ...townSnap.data() });
-                }
+        if (!worldId || !townId || !currentUser) {
+            setLoading(false);
+            return;
+        }
 
-                const playerProgressRef = doc(db, 'worlds', worldId, 'godTowns', townId, 'playerProgress', currentUser.uid);
-                const playerProgressSnap = await getDoc(playerProgressRef);
-                if (playerProgressSnap.exists()) {
-                    setPlayerProgress(playerProgressSnap.data());
-                } else {
-                    const newProgress = { puzzleSolved: false, damageDealt: 0 };
+        // #comment Use onSnapshot for real-time updates for town data
+        const townRef = doc(db, 'worlds', worldId, 'godTowns', townId);
+        const unsubscribeTown = onSnapshot(townRef, (townSnap) => {
+            if (townSnap.exists()) {
+                setTownData({ id: townSnap.id, ...townSnap.data() });
+            } else {
+                onClose(); // Close if the town disappears
+            }
+        });
+
+        // #comment Use onSnapshot for real-time updates for player progress
+        const playerProgressRef = doc(db, 'worlds', worldId, 'godTowns', townId, 'playerProgress', currentUser.uid);
+        const unsubscribeProgress = onSnapshot(playerProgressRef, async (progressSnap) => {
+            if (progressSnap.exists()) {
+                setPlayerProgress(progressSnap.data());
+            } else {
+                // If progress doc doesn't exist, create it.
+                const newProgress = { puzzleSolved: false, damageDealt: 0 };
+                try {
                     await setDoc(playerProgressRef, newProgress);
                     setPlayerProgress(newProgress);
+                } catch (error) {
+                    console.error("Failed to create player progress doc:", error);
                 }
-            } catch (error) {
-                console.error("Error fetching God Town data:", error);
             }
-            setLoading(false);
+        });
+
+        return () => {
+            unsubscribeTown();
+            unsubscribeProgress();
         };
-        fetchTownData();
-    }, [worldId, townId, currentUser]);
+    }, [worldId, townId, currentUser, onClose]);
+
+    // #comment Determine loading state based on whether data has arrived.
+    useEffect(() => {
+        if (townData !== null && playerProgress !== null) {
+            setLoading(false);
+        }
+    }, [townData, playerProgress]);
+
 
     const handlePuzzleSuccess = async () => {
         if (!worldId || !townId || !currentUser) return;
@@ -97,7 +117,9 @@ const GodTownModal = ({ townId, onClose, onAttack }) => {
                 <div>
                     <h3 className="font-title text-2xl">{townData.name}</h3>
                     <p>The city is vulnerable. Attack to earn war points and resources!</p>
-                    <p>Health: {townData.health} / {townData.maxHealth}</p>
+                    <div className="my-4">
+                        <TroopDisplay units={townData.troops || {}} title="Garrison" />
+                    </div>
                     <button onClick={() => onAttack(townData)} className="btn btn-danger mt-4">Attack</button>
                 </div>
             );

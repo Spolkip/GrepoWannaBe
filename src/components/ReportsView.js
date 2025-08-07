@@ -37,7 +37,7 @@ const ReportsView = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState('Combat');
     const [message, setMessage] = useState('');
     const tabs = {
-        'Combat': ['attack', 'attack_village', 'attack_ruin'],
+        'Combat': ['attack', 'attack_village', 'attack_ruin', 'attack_god_town'],
         'Reinforce': ['reinforce'],
         'Trade': ['trade'],
         'Scout': ['scout', 'spy_caught'],
@@ -100,6 +100,7 @@ const ReportsView = ({ onClose }) => {
             case 'attack':
             case 'attack_village':
             case 'attack_ruin':
+            case 'attack_god_town':
                 return report.outcome?.attackerWon ? 'text-green-600' : 'text-red-600';
             case 'scout':
                 return report.scoutSucceeded ? 'text-green-600' : 'text-red-600';
@@ -122,7 +123,7 @@ const ReportsView = ({ onClose }) => {
 
     const getReportTitle = (report) => {
         let title = report.title || 'Untitled Report';
-        if (report.type === 'attack' || report.type === 'attack_village' || report.type === 'attack_ruin') {
+        if (report.type === 'attack' || report.type === 'attack_village' || report.type === 'attack_ruin' || report.type === 'attack_god_town') {
             title += report.outcome?.attackerWon ? ' (Victory)' : ' (Defeat)';
         }
         return title;
@@ -203,6 +204,7 @@ const ReportsView = ({ onClose }) => {
         const attacker = report.attacker || {};
         const defender = report.defender || {};
         switch (report.type) {
+            case 'attack_god_town':
             case 'attack':
             case 'attack_village':
                 return (

@@ -133,6 +133,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
         const attacker = report.attacker || {};
         const defender = report.defender || {};
         switch (report.type) {
+            case 'attack_god_town':
             case 'attack':
             case 'attack_village':
                 return (

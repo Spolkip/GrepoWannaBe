@@ -7,14 +7,14 @@ import { useGame } from '../../contexts/GameContext';
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, godTowns, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
     const { playerCities } = useGame();
 
     // #comment Create a comprehensive lookup for all map locations by their various IDs for the MovementIndicator.
     const locationLookup = useMemo(() => {
         const lookup = {};
-        // Add all visible slots, villages, ruins, keyed by their primary ID (slotId or docId)
-        Object.values({...combinedSlots, ...villages, ...ruins}).forEach(loc => {
+        // Add all visible slots, villages, ruins, and god towns keyed by their primary ID (slotId or docId)
+        Object.values({...combinedSlots, ...villages, ...ruins, ...godTowns}).forEach(loc => {
             if (loc && loc.id) lookup[loc.id] = loc;
         });
         // Also add all of the current player's cities, keyed by their document ID.
@@ -23,7 +23,7 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
             if (city && city.id) lookup[city.id] = city;
         });
         return lookup;
-    }, [combinedSlots, villages, ruins, playerCities]);
+    }, [combinedSlots, villages, ruins, godTowns, playerCities]);
 
     if (!mapGrid || !worldState?.islands || viewportSize.width === 0) return null;
 
