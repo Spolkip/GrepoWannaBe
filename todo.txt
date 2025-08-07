@@ -1,2 +1,5 @@
 - add icons to back to world selection and logout
 - add animation on open tooltip for spells when press on the god
+- fix quests to demand and reward troops from same nation
+- make settings better
+- 

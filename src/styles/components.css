@@ -182,3 +182,13 @@
     border: 1px solid #4a2c2a;
     cursor: pointer;
 }
+
+/* --- Settings Modal Tabs --- */
+.settings-tabs button.active {
+    border-bottom: 2px solid #f0e68c;
+    color: #f0e68c;
+}
+
+.settings-tabs button {
+    @apply transition-colors duration-200;
+}

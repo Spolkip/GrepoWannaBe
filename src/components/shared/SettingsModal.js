@@ -1,9 +1,35 @@
 // src/components/shared/SettingsModal.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { db } from '../../firebase/config';
+import { doc, writeBatch, deleteDoc, setDoc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+
+const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
+    return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70">
+            <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center border border-gray-600 text-white">
+                <p className="mb-6 text-lg">{message}</p>
+                <div className="flex justify-center space-x-4">
+                    <button onClick={onCancel} className="btn btn-primary px-6 py-2">
+                        {cancelText}
+                    </button>
+                    <button onClick={onConfirm} className="btn btn-danger px-6 py-2">
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const SettingsModal = ({ onClose }) => {
-    const { gameSettings, setGameSettings } = useGame();
+    const { gameSettings, setGameSettings, worldId, playerCity, activeCityId } = useGame();
+    const { currentUser } = useAuth();
+    const [activeTab, setActiveTab] = useState('gameplay');
+    const [confirmAction, setConfirmAction] = useState(null);
 
     const handleChange = (e) => {
         const { name, type, checked, value } = e.target;
@@ -18,62 +44,151 @@ const SettingsModal = ({ onClose }) => {
         onClose();
     };
 
+    const handleResetGame = async () => {
+        if (!worldId || !currentUser || !playerCity || !activeCityId) {
+            console.error("Missing world, user, or city data for reset.");
+            setConfirmAction(null);
+            return;
+        }
+
+        const batch = writeBatch(db);
+
+        // 1. Create a ruin where the city used to be
+        const ruinId = uuidv4();
+        const ruinDocRef = doc(db, 'worlds', worldId, 'ruins', ruinId);
+        const newRuinData = {
+            id: ruinId,
+            x: playerCity.x,
+            y: playerCity.y,
+            name: `Abandoned City of ${playerCity.cityName}`,
+            ownerId: 'ruins',
+            ownerUsername: 'Ancient Guardians',
+            troops: {
+                hoplite: 50,
+                swordsman: 50,
+                archer: 30
+            },
+            researchReward: `qol_research_${Math.floor(Math.random() * 3)}`
+        };
+        batch.set(ruinDocRef, newRuinData);
+
+        // 2. Clear the city slot owner
+        const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', playerCity.slotId);
+        batch.update(citySlotRef, {
+            ownerId: null,
+            ownerUsername: null,
+            cityName: 'Unclaimed',
+            ownerFaction: null,
+            alliance: null,
+            allianceName: null
+        });
+
+        // 3. Delete all player cities in this world
+        const citiesCollectionRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        await deleteDoc(citiesCollectionRef);
+        
+        // 4. Delete the top-level game document
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        batch.delete(gameDocRef);
+
+        // 5. Commit all changes
+        try {
+            await batch.commit();
+            setConfirmAction(null);
+            onClose();
+        } catch (error) {
+            console.error("Error resetting game:", error);
+            setConfirmAction({
+                message: `Failed to reset game: ${error.message}`,
+                onConfirm: () => setConfirmAction(null), // Just close on OK
+                onCancel: () => setConfirmAction(null),
+                confirmText: 'OK',
+                cancelText: null
+            });
+        }
+    };
+
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
+            {confirmAction && (
+                <ConfirmationModal 
+                    message={confirmAction.message}
+                    onConfirm={confirmAction.onConfirm}
+                    onCancel={confirmAction.onCancel}
+                    confirmText={confirmAction.confirmText}
+                    cancelText={confirmAction.cancelText}
+                />
+            )}
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md border-2 border-gray-600 text-white" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-center text-yellow-400">Game Settings</h2>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
                 
+                <div className="settings-tabs mb-4 flex border-b border-gray-600">
+                    <button onClick={() => setActiveTab('gameplay')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'gameplay' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Gameplay</button>
+                    <button onClick={() => setActiveTab('account')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'account' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Account</button>
+                </div>
+
                 <div className="space-y-4">
-                    <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <label htmlFor="showVisuals" className="text-lg font-semibold">Enable Visuals</label>
-                        <input
-                            type="checkbox"
-                            id="showVisuals"
-                            name="showVisuals"
-                            checked={gameSettings.showVisuals}
-                            onChange={handleChange}
-                            className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
-                        />
-                    </div>
+                    {activeTab === 'gameplay' && (
+                        <>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="showVisuals" className="text-lg font-semibold">Enable Visuals</label>
+                                <input
+                                    type="checkbox"
+                                    id="showVisuals"
+                                    name="showVisuals"
+                                    checked={gameSettings.showVisuals}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
 
-                    <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <label htmlFor="showGrid" className="text-lg font-semibold">Enable Grid</label>
-                        <input
-                            type="checkbox"
-                            id="showGrid"
-                            name="showGrid"
-                            checked={gameSettings.showGrid}
-                            onChange={handleChange}
-                            className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
-                        />
-                    </div>
-                    
-                    <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <label htmlFor="animations" className="text-lg font-semibold">Enable Animations</label>
-                        <input
-                            type="checkbox"
-                            id="animations"
-                            name="animations"
-                            checked={gameSettings.animations}
-                            onChange={handleChange}
-                            className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
-                        />
-                    </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="showGrid" className="text-lg font-semibold">Enable Grid</label>
+                                <input
+                                    type="checkbox"
+                                    id="showGrid"
+                                    name="showGrid"
+                                    checked={gameSettings.showGrid}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                            
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="animations" className="text-lg font-semibold">Enable Animations</label>
+                                <input
+                                    type="checkbox"
+                                    id="animations"
+                                    name="animations"
+                                    checked={gameSettings.animations}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                        </>
+                    )}
 
-                    <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-                        <label htmlFor="confirmActions" className="text-lg font-semibold">Confirm Destructive Actions</label>
-                        <input
-                            type="checkbox"
-                            id="confirmActions"
-                            name="confirmActions"
-                            checked={gameSettings.confirmActions}
-                            onChange={handleChange}
-                            className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
-                        />
-                    </div>
+                    {activeTab === 'account' && (
+                        <>
+                            <p className="text-sm text-gray-400">Warning: This action is irreversible!</p>
+                            <button
+                                onClick={() => setConfirmAction({
+                                    message: "Are you absolutely sure you want to reset your game? This will destroy all your cities and cannot be undone.",
+                                    onConfirm: handleResetGame,
+                                    onCancel: () => setConfirmAction(null),
+                                    confirmText: 'Reset Forever',
+                                    cancelText: 'Cancel'
+                                })}
+                                className="btn btn-danger w-full py-2"
+                            >
+                                Reset Game
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div className="mt-6 flex justify-center space-x-4">

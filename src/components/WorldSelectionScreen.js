@@ -97,7 +97,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
 
             const worldWidth = 50;
             const worldHeight = 50;
-            const islandCount = Math.floor((worldWidth * worldHeight) / 250);
+            const islandCount = Math.floor((worldWidth * worldHeight) / 100); // Increased island count
 
             // Generate all world data
             const islands = generateIslands(worldWidth, worldHeight, islandCount);
