@@ -5,6 +5,7 @@ import { useGame } from '../../contexts/GameContext';
 import { useCityState } from '../../hooks/useCityState';
 import { db } from '../../firebase/config';
 import { collection, getDocs } from 'firebase/firestore';
+import allianceResearch from '../../gameData/allianceResearch.json';
 
 const AllianceMembers = () => {
     const { playerAlliance } = useAlliance();
@@ -14,6 +15,15 @@ const AllianceMembers = () => {
     const [detailedMembers, setDetailedMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'username', direction: 'ascending' });
+
+    // #comment Calculate max members based on research
+    const maxMembers = useMemo(() => {
+        if (!playerAlliance) return 0;
+        const baseMax = 20;
+        const researchLevel = playerAlliance.research?.expanded_charter?.level || 0;
+        const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
+        return baseMax + researchBonus;
+    }, [playerAlliance]);
 
     useEffect(() => {
         const fetchMemberDetails = async () => {
@@ -94,7 +104,7 @@ const AllianceMembers = () => {
 
     return (
         <div>
-            <h3 className="text-xl font-bold mb-2">Members ({playerAlliance.members.length})</h3>
+            <h3 className="text-xl font-bold mb-2">Members ({playerAlliance.members.length} / {maxMembers})</h3>
             <table className="w-full text-left">
                 <thead>
                     <tr className="bg-gray-300 text-gray-900">

@@ -65,6 +65,19 @@ export const getNationalUnitReward = (nation, genericUnitType) => {
     return nationUnitMap[effectiveNation]?.[baseType] || baseType;
 };
 
+// #comment Helper to find the generic type of a national unit
+export const getGenericUnitType = (nationalUnitId) => {
+    for (const nation in nationUnitMap) {
+        for (const genericType in nationUnitMap[nation]) {
+            if (nationUnitMap[nation][genericType] === nationalUnitId) {
+                return genericType;
+            }
+        }
+    }
+    return null; 
+};
+
+
 export const getTrainableUnits = (nation) => {
     const nationalUnits = Object.keys(unitConfig).filter(id => {
         const unit = unitConfig[id];

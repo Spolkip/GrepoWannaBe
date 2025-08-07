@@ -5,6 +5,7 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
     const { updateAllianceSettings } = useAlliance();
     const [name, setName] = useState(alliance.name);
     const [description, setDescription] = useState(alliance.settings.description);
+    const [privateDescription, setPrivateDescription] = useState(alliance.settings.privateDescription || '');
     const [status, setStatus] = useState(alliance.settings.status);
     const [message, setMessage] = useState('');
     const handleSave = () => {
@@ -17,6 +18,7 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
         updateAllianceSettings({
             name,
             description,
+            privateDescription,
             status,
         });
         setMessage('Settings saved successfully!');
@@ -47,10 +49,19 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
                 </div>
                 
                 <div className="form-group">
-                    <label>Alliance Description</label>
+                    <label>Alliance Description (Public)</label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        className="settings-input settings-textarea"
+                        disabled={!isLeader}
+                    />
+                </div>
+                 <div className="form-group">
+                    <label>Alliance Description (Private)</label>
+                    <textarea
+                        value={privateDescription}
+                        onChange={(e) => setPrivateDescription(e.target.value)}
                         className="settings-input settings-textarea"
                         disabled={!isLeader}
                     />

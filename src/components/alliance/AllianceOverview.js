@@ -24,10 +24,10 @@ const AllianceOverview = () => {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="alliance-bg-light alliance-text-light p-4 rounded-lg">
-                    <h3 className="text-xl font-bold mb-2">Alliance Description</h3>
-                    <p>{playerAlliance.description || 'No description provided.'}</p>
+            <div className="space-y-6">
+                 <div className="alliance-bg-light alliance-text-light p-4 rounded-lg">
+                    <h3 className="text-xl font-bold mb-2">Internal Bulletin (Private)</h3>
+                    <p className="whitespace-pre-wrap">{playerAlliance.settings.privateDescription || 'No private description provided.'}</p>
                 </div>
             </div>
             <div>

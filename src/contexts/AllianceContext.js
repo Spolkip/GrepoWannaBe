@@ -10,6 +10,14 @@ const AllianceContext = createContext();
 
 export const useAlliance = () => useContext(AllianceContext);
 
+// #comment Helper function to calculate max members based on research
+const calculateMaxMembers = (alliance) => {
+    const baseMax = 20; // Base maximum members
+    const researchLevel = alliance.research?.expanded_charter?.level || 0;
+    const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
+    return baseMax + researchBonus;
+};
+
 export const AllianceProvider = ({ children }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId, gameState, playerGameData, activeCityId } = useGame();
@@ -79,6 +87,7 @@ export const AllianceProvider = ({ children }) => {
                     settings: {
                         status: 'open',
                         description: `A new alliance, '${name}', has been formed!`,
+                        privateDescription: '', // #comment Add private description field
                     },
                     ranks: [
                         { id: 'Leader', name: 'Leader', permissions: {
@@ -329,6 +338,12 @@ export const AllianceProvider = ({ children }) => {
                 const oldAllianceId = gameData.alliance;
     
                 if (oldAllianceId === allianceId) throw new Error("You are already in this alliance.");
+                
+                // #comment Check if the alliance is full
+                const maxMembers = calculateMaxMembers(newAllianceData);
+                if (newAllianceData.members.length >= maxMembers) {
+                    throw new Error("This alliance is full.");
+                }
     
                 if (oldAllianceId) {
                     const oldAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', oldAllianceId);
@@ -658,6 +673,12 @@ export const AllianceProvider = ({ children }) => {
 
             const allianceData = allianceDoc.data();
             if (allianceData.settings.status !== 'open') throw new Error("This alliance is not open for joining.");
+            
+            // #comment Check if the alliance is full
+            const maxMembers = calculateMaxMembers(allianceData);
+            if (allianceData.members.length >= maxMembers) {
+                throw new Error("This alliance is full.");
+            }
 
             transaction.update(allianceRef, {
                 members: arrayUnion({ uid: currentUser.uid, username: userProfile.username, rank: 'Member' })
@@ -696,6 +717,12 @@ export const AllianceProvider = ({ children }) => {
             }
 
             if (action === 'accept') {
+                // #comment Check if the alliance is full before accepting
+                const maxMembers = calculateMaxMembers(allianceData);
+                if (allianceData.members.length >= maxMembers) {
+                    throw new Error("This alliance is full and cannot accept new members.");
+                }
+                
                 transaction.update(allianceRef, {
                     members: arrayUnion({ uid: application.userId, username: application.username, rank: 'Member' })
                 });

@@ -5,7 +5,7 @@ import { doc, setDoc, runTransaction, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext'; // Import useGame
 import allQuests from '../gameData/quests.json';
-import { getNationalUnitReward } from '../utils/nationality';
+import { getNationalUnitReward, getGenericUnitType } from '../utils/nationality';
 
 export const useQuestTracker = (cityState) => {
     const { currentUser } = useAuth();
@@ -52,8 +52,16 @@ export const useQuestTracker = (cityState) => {
                         }
                         break;
                     case 'units':
-                        const unitCount = cityState.units[questData.targetId] || 0;
-                        if (unitCount >= questData.targetCount) {
+                        // #comment Sum up all units of the target generic type by checking their national equivalent
+                        const totalCount = Object.entries(cityState.units || {})
+                            .reduce((sum, [unitId, count]) => {
+                                if (getGenericUnitType(unitId) === questData.targetId || unitId === questData.targetId) {
+                                    return sum + count;
+                                }
+                                return sum;
+                            }, 0);
+
+                        if (totalCount >= questData.targetCount) {
                             isComplete = true;
                         }
                         break;

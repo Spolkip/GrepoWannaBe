@@ -161,54 +161,58 @@ const Game = ({ onBackToWorlds }) => {
         };
     }, [worldId, currentUser]);
 
-    const handleCancelTrain = useCallback(async (cityId, itemIndex, isHealing) => {
+    const handleCancelTrain = useCallback(async (item, queueType) => {
+        const cityId = item.cityId;
         const cityState = playerCities[cityId];
-        const queueName = isHealing ? 'healQueue' : 'unitQueue';
-        const costField = isHealing ? 'heal_cost' : 'cost';
-        const refundField = isHealing ? 'wounded' : 'units';
-
-        if (!cityState || !cityState[queueName] || itemIndex < 0 || itemIndex >= cityState[queueName].length) {
+        const queueName = queueType === 'heal' ? 'healQueue' : `${queueType}Queue`;
+        const costField = queueType === 'heal' ? 'heal_cost' : 'cost';
+        const refundField = queueType === 'heal' ? 'wounded' : 'units';
+    
+        if (!cityState || !cityState[queueName]) {
             return;
         }
-
+    
         const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityId);
-
+    
         try {
             await runTransaction(db, async (transaction) => {
                 const cityDoc = await transaction.get(cityDocRef);
                 if (!cityDoc.exists()) throw new Error("City data not found.");
                 
                 const currentState = cityDoc.data();
+                const itemIndex = currentState[queueName].findIndex(i => i.id === item.id);
+                if (itemIndex === -1) throw new Error("Item not found in queue.");
+
                 const newQueue = [...currentState[queueName]];
                 const canceledTask = newQueue.splice(itemIndex, 1)[0];
                 const unit = unitConfig[canceledTask.unitId];
-
+    
                 const newResources = { ...currentState.resources };
                 newResources.wood += (unit[costField].wood || 0) * canceledTask.amount;
                 newResources.stone += (unit[costField].stone || 0) * canceledTask.amount;
                 newResources.silver += (unit[costField].silver || 0) * canceledTask.amount;
-
+    
                 const newRefundUnits = { ...currentState[refundField] };
-                if (isHealing) {
+                if (queueType === 'heal') {
                     newRefundUnits[canceledTask.unitId] = (newRefundUnits[canceledTask.unitId] || 0) + canceledTask.amount;
                 }
-
+    
                 for (let i = itemIndex; i < newQueue.length; i++) {
                     const prevEndTime = (i === 0) ? Date.now() : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
                     const task = newQueue[i];
                     const taskUnit = unitConfig[task.unitId];
-                    const taskTime = (isHealing ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
+                    const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
                     newQueue[i].endTime = new Date(prevEndTime + taskTime * 1000);
                 }
-
+    
                 const updates = {
                     resources: newResources,
                     [queueName]: newQueue,
                 };
-                if (isHealing) {
+                if (queueType === 'heal') {
                     updates.wounded = newRefundUnits;
                 }
-
+    
                 transaction.update(cityDocRef, updates);
             });
         } catch (error) {
@@ -378,8 +382,8 @@ const Game = ({ onBackToWorlds }) => {
             </div>
 
             <div className="absolute bottom-4 left-4 z-30 flex flex-col space-y-2">
-                {view === 'map' && <button onClick={onBackToWorlds} className="text-sm text-blue-400 hover:text-blue-300 bg-gray-800 px-3 py-1 rounded shadow-lg">Back to World Selection</button>}
-                <button onClick={() => signOut(auth)} className="text-sm text-red-400 hover:text-red-300 bg-gray-800 px-3 py-1 rounded shadow-lg">Logout</button>
+                {view === 'map' && <button onClick={onBackToWorlds} className="text-sm text-blue-400 hover:text-blue-300 bg-gray-800 px-3 py-1 rounded shadow-lg flex items-center gap-2"><span>🌍</span> Back to Worlds</button>}
+                <button onClick={() => signOut(auth)} className="text-sm text-red-400 hover:text-red-300 bg-gray-800 px-3 py-1 rounded shadow-lg flex items-center gap-2"><span>🚪</span> Logout</button>
             </div>
         </div>
     );

@@ -1,40 +1,41 @@
 - add icons to back to world selection and logout
 - add animation on open tooltip for spells when press on the god
-- fix quests to demand and reward troops from same nation
-- make settings better
 - center cities number
 - add a way to set private alliance description
-- add more research and make them to actually work
-- add alliance max members
-- fix treaties
-- add autocomplete on distribute resources on bank
+
 - add to select all units when you press on the icons
-- add more things on properties
 - make the invite a player name text white
 - add on the reports the losses to show with red
+- on trade to show the from and to
+- remake academy layout with icons for researches instead of name and on hover to say details
+- make the city list with the new theme
+- put special buildings on cityscape
+- add a cooldown and also limit per daily, add a bank cap (can get more with alliance research)
+- timer for the tooltip to lock until you click somewhere else
+
+- add more research and make them to actually work
+- fix treaties
+- make settings better
+- add autocomplete on distribute resources on bank
+- add more things on properties
 - add battle points
 - add bbcodes on reports to be able to press on city name, player and alliance
 - when you press on city name it opens the othercitymodal, when you press on alliance or player it opens their profiles
-- on trade to show the from and to
 - same bb codes for the scouts
 - add an option for returning troops to not show on reports
+- add an option for when all quests are done to not show image
 - add notification icons to show when something is completed
 - on player name on forum thread to show it with bbcode
 - add a system message to send as different sender to add all the invite, apply, diplomat stuff
 - add a placeholder on profile's image, add actual points and defense and attack points and also battle points also make the Alliance reference better adding there the name of the player as well with bbcodes
 - add everywhere to have the text editor
-- fix academy layout with icons for researches instead of name and on hover to say details
-- fix barracks to not show default troops
 - add counters and more stats to troops
-- make the city list with the new theme
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
 - fix the returning to ome of the troops 
 - fix the coords not to put you back after a bit
 - fix the click area of tooltips
-- put special buildings on cityscape
 - on alliance members add when the lastly log on
-- add a cooldown and also limit per daily, add a bank cap (can get more with alliance research)
 
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player

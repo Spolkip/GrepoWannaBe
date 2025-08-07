@@ -3,6 +3,7 @@ import { db } from '../../firebase/config';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useCityState } from '../../hooks/useCityState';
+import allianceResearch from '../../gameData/allianceResearch.json';
 import './Leaderboard.css';
 
 const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
@@ -62,12 +63,20 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                             totalPoints += allPlayerData.get(member.uid).points;
                         }
                     });
+
+                    // #comment Calculate max members
+                    const baseMax = 20;
+                    const researchLevel = alliance.research?.expanded_charter?.level || 0;
+                    const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
+                    const maxMembers = baseMax + researchBonus;
+
                     alliancesData.push({
                         id: allianceDoc.id,
                         name: alliance.name,
                         tag: alliance.tag,
                         points: totalPoints,
                         memberCount: alliance.members.length,
+                        maxMembers: maxMembers,
                     });
                 }
                 alliancesData.sort((a, b) => b.points - a.points);
@@ -84,10 +93,10 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
         <table className="leaderboard-table">
             <thead>
                 <tr>
-                    <th>Rank</th>
+                    <th className="text-center">Rank</th>
                     <th>Player</th>
                     <th>Alliance</th>
-                    <th>Points</th>
+                    <th className="text-right">Points</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,11 +120,11 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
         <table className="leaderboard-table">
             <thead>
                 <tr>
-                    <th>Rank</th>
+                    <th className="text-center">Rank</th>
                     <th>Alliance</th>
                     <th>Tag</th>
-                    <th>Members</th>
-                    <th>Points</th>
+                    <th className="text-center">Members</th>
+                    <th className="text-right">Points</th>
                 </tr>
             </thead>
             <tbody>
@@ -128,7 +137,7 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                             </button>
                         </td>
                         <td>{alliance.tag}</td>
-                        <td className="text-center">{alliance.memberCount}</td>
+                        <td className="text-center">{alliance.memberCount}/{alliance.maxMembers}</td>
                         <td className="text-right">{alliance.points.toLocaleString()}</td>
                     </tr>
                 ))}

@@ -119,6 +119,16 @@
       "units": { "generic_archer": 10 }
     }
   },
+  "train_swordsmen_50": {
+    "title": "Raise an Army",
+    "description": "Your city needs defenders. Train 50 Swordsmen.",
+    "type": "units",
+    "targetId": "swordsman",
+    "targetCount": 50,
+    "rewards": {
+      "units": { "generic_archer": 20 }
+    }
+  },
   "build_senate_3": {
     "title": "Expand the Senate",
     "description": "A grander Senate allows for better management of your growing city.",
