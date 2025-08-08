@@ -79,7 +79,7 @@
 
 /* New styles for Activity Tracker */
 .activity-tracker-container {
-    position: relative; /* #comment Added for tooltip positioning */
+    /* #comment This container should not create a positioning context */
     display: flex;
     align-items: center;
     gap: 0.5rem; /* Reduced gap */

@@ -103,7 +103,7 @@ const CityView = ({
                 handleOpenEvents={handleOpenEvents}
             />
 
-            <div className="h-full w-full flex flex-col overflow-hidden">
+            <div className="h-full w-full flex flex-col">
                 <TopBar
                     view="city"
                     gameState={cityGameState}

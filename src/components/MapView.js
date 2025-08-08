@@ -306,43 +306,44 @@ const MapView = ({
                 onOpenQuests={() => openModal('quests')}
                 quests={quests}
             />
-            <div className="flex-grow flex flex-row overflow-hidden">
+            <div className="flex-grow flex flex-row overflow-visible">
                 <div className="main-content flex-grow relative map-surface">
+                    <TopBar 
+                        view="map" 
+                        gameState={gameState} 
+                        availablePopulation={availablePopulation} 
+                        happiness={happiness} 
+                        worldState={worldState} 
+                        movements={movements}
+                        onCancelTrain={onCancelTrain}
+                        onCancelMovement={onCancelMovement}
+                        combinedSlots={combinedSlots}
+                        onOpenMovements={() => openModal('movements')}
+                        isUnderAttack={isUnderAttack}
+                        incomingAttackCount={incomingAttackCount}
+                        onRenameCity={onRenameCity}
+                    />
+                    <SidebarNav 
+                        onToggleView={handleGoToActiveCity} 
+                        view="map"
+                        onOpenReports={() => openModal('reports')} 
+                        onOpenAlliance={handleOpenAlliance} 
+                        onOpenForum={() => openModal('allianceForum')} 
+                        onOpenMessages={() => openModal('messages')} 
+                        onOpenSettings={() => openModal('settings')} 
+                        onOpenProfile={() => openModal('profile')} 
+                        onOpenLeaderboard={() => openModal('leaderboard')} 
+                        onOpenQuests={() => openModal('quests')} 
+                        unreadReportsCount={unreadReportsCount} 
+                        unreadMessagesCount={unreadMessagesCount} 
+                        isAdmin={userProfile?.is_admin} 
+                        onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
+                        isAllianceMember={!!playerAlliance}
+                        handleOpenEvents={handleOpenEvents}
+                    />
+                    <SideInfoPanel gameState={gameState} className="absolute top-[55%] right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
+                    
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
-                        <TopBar 
-                            view="map" 
-                            gameState={gameState} 
-                            availablePopulation={availablePopulation} 
-                            happiness={happiness} 
-                            worldState={worldState} 
-                            movements={movements}
-                            onCancelTrain={onCancelTrain}
-                            onCancelMovement={onCancelMovement}
-                            combinedSlots={combinedSlots}
-                            onOpenMovements={() => openModal('movements')}
-                            isUnderAttack={isUnderAttack}
-                            incomingAttackCount={incomingAttackCount}
-                            onRenameCity={onRenameCity}
-                        />
-                        <SidebarNav 
-                            onToggleView={handleGoToActiveCity} 
-                            view="map"
-                            onOpenReports={() => openModal('reports')} 
-                            onOpenAlliance={handleOpenAlliance} 
-                            onOpenForum={() => openModal('allianceForum')} 
-                            onOpenMessages={() => openModal('messages')} 
-                            onOpenSettings={() => openModal('settings')} 
-                            onOpenProfile={() => openModal('profile')} 
-                            onOpenLeaderboard={() => openModal('leaderboard')} 
-                            onOpenQuests={() => openModal('quests')} 
-                            unreadReportsCount={unreadReportsCount} 
-                            unreadMessagesCount={unreadMessagesCount} 
-                            isAdmin={userProfile?.is_admin} 
-                            onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
-                            isAllianceMember={!!playerAlliance}
-                            handleOpenEvents={handleOpenEvents}
-                        />
-                        <SideInfoPanel gameState={gameState} className="absolute top-[55%] right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>

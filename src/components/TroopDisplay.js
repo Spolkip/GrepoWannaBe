@@ -1,5 +1,5 @@
 // src/components/TroopDisplay.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import unitConfig from '../gameData/units.json';
 
 // Dynamically import all images from the images and images/buildings folder
@@ -19,6 +19,80 @@ imageContexts.forEach(context => {
 
 const TroopDisplay = ({ units, title }) => {
     const [hoveredUnit, setHoveredUnit] = useState(null);
+    const [isTooltipLocked, setIsTooltipLocked] = useState(false);
+    const [lockCountdown, setLockCountdown] = useState(5);
+    const tooltipTimeoutRef = useRef(null);
+    const lockTooltipTimeoutRef = useRef(null);
+    const countdownIntervalRef = useRef(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isTooltipLocked && containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsTooltipLocked(false);
+                setHoveredUnit(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isTooltipLocked]);
+
+    useEffect(() => {
+        clearTimeout(lockTooltipTimeoutRef.current);
+        clearInterval(countdownIntervalRef.current);
+        setLockCountdown(5);
+
+        if (hoveredUnit && !isTooltipLocked) {
+            countdownIntervalRef.current = setInterval(() => {
+                setLockCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownIntervalRef.current);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
+            lockTooltipTimeoutRef.current = setTimeout(() => {
+                setIsTooltipLocked(true);
+                clearInterval(countdownIntervalRef.current);
+            }, 5000);
+        }
+
+        return () => {
+            clearTimeout(lockTooltipTimeoutRef.current);
+            clearInterval(countdownIntervalRef.current);
+        };
+    }, [hoveredUnit, isTooltipLocked]);
+    
+    const handleMouseEnter = (unitId) => {
+        if (isTooltipLocked && hoveredUnit !== unitId) {
+            setIsTooltipLocked(false);
+        }
+        clearTimeout(tooltipTimeoutRef.current);
+        setHoveredUnit(unitId);
+    };
+
+    const handleMouseLeave = () => {
+        if (isTooltipLocked) return;
+        tooltipTimeoutRef.current = setTimeout(() => {
+            setHoveredUnit(null);
+        }, 300);
+    };
+
+    const handleTooltipClick = (e, unitId) => {
+        e.stopPropagation();
+        if (isTooltipLocked && hoveredUnit === unitId) {
+            setIsTooltipLocked(false);
+            setHoveredUnit(null);
+        } else {
+            setIsTooltipLocked(true);
+            setHoveredUnit(unitId);
+        }
+    };
+
     const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land' && !unitConfig[id]?.mythical);
     const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval' && !unitConfig[id]?.mythical);
     const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
@@ -35,8 +109,8 @@ const TroopDisplay = ({ units, title }) => {
             <div 
                 key={unitId} 
                 className="troop-item" 
-                onMouseEnter={() => setHoveredUnit(unitId)} 
-                onMouseLeave={() => setHoveredUnit(null)}
+                onMouseEnter={() => handleMouseEnter(unitId)} 
+                onClick={(e) => handleTooltipClick(e, unitId)}
             >
                 <img src={imageUrl} alt={unit.name} className="troop-image" />
                 <span className="troop-count">{count}</span>
@@ -49,8 +123,10 @@ const TroopDisplay = ({ units, title }) => {
         const unit = unitConfig[hoveredUnit];
         if (!unit) return null;
 
+        const counters = unit.counters?.map(counterId => unitConfig[counterId]?.name).join(', ');
+
         return (
-            <div className="unit-tooltip">
+            <div className="unit-tooltip" onMouseEnter={() => clearTimeout(tooltipTimeoutRef.current)} onMouseLeave={handleMouseLeave}>
                 <div className="tooltip-header">
                     <h3 className="tooltip-title">{unit.name}</h3>
                 </div>
@@ -61,14 +137,22 @@ const TroopDisplay = ({ units, title }) => {
                         <div className="stat-row"><span>🛡️ Defense</span><span>{unit.defense}</span></div>
                         <div className="stat-row"><span>🏃 Speed</span><span>{unit.speed}</span></div>
                     </div>
+                    {counters && (
+                        <div className="tooltip-counters">
+                            <strong>Counters:</strong> {counters}
+                        </div>
+                    )}
                     <p className="tooltip-description">{unit.description}</p>
+                </div>
+                <div className="tooltip-lock-timer">
+                    {isTooltipLocked ? '🔒' : lockCountdown}
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="troop-display-container">
+        <div className="troop-display-container" ref={containerRef} onMouseLeave={handleMouseLeave}>
             {renderTooltip()}
             {landUnits.length > 0 && (
                 <div className="troop-section">

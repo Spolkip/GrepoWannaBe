@@ -1,50 +1,75 @@
-// src/components/city/RecruitmentPanel.js
+// src/components/city/RecruitmentToolTip.js
 import React from 'react';
-import UnitQueue from './UnitQueue';
-import './RecruitmentPanel.css';
+import Countdown from '../map/Countdown';
+import unitConfig from '../../gameData/units.json';
+import './RecruitmentToolTip.css';
 
-const RecruitmentPanel = ({ playerCities, onCancelTrain, onClose }) => {
-    const allQueues = Object.values(playerCities).map(city => ({
-        cityName: city.cityName,
-        unitQueue: city.unitQueue || [],
-        healQueue: city.healQueue || [],
-        cityId: city.id,
-    })).filter(city => city.unitQueue.length > 0 || city.healQueue.length > 0);
+const images = {};
+const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+imageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    images[key] = imageContext(item);
+});
+
+const RecruitmentTooltip = ({ playerCities, onCancelTrain, isLocked, countdown }) => {
+    // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
+    const getSafeDate = (timestamp) => {
+        if (!timestamp) return null;
+        if (typeof timestamp.toDate === 'function') {
+            return timestamp.toDate(); // It's a Firestore Timestamp
+        }
+        return new Date(timestamp); // It's a JS Date or milliseconds
+    };
+    
+    // #comment Combine all relevant queues (barracks, shipyard, divine, heal) from all cities
+    const allQueues = Object.values(playerCities).flatMap(city => {
+        const barracks = (city.barracksQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'barracks', index }));
+        const shipyard = (city.shipyardQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'shipyard', index }));
+        const divine = (city.divineTempleQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: false, queueType: 'divineTemple', index }));
+        const healing = (city.healQueue || []).map((item, index) => ({ ...item, cityId: city.id, cityName: city.cityName, isHealing: true, queueType: 'heal', index }));
+        return [...barracks, ...shipyard, ...divine, ...healing];
+    })
+    .filter(item => {
+        const endDate = getSafeDate(item.endTime);
+        return endDate && endDate > new Date(); // Filter out completed items
+    })
+    .sort((a, b) => {
+        const dateA = getSafeDate(a.endTime) || new Date(0);
+        const dateB = getSafeDate(b.endTime) || new Date(0);
+        return dateA - dateB;
+    });
+
+
+    if (allQueues.length === 0) {
+        return (
+            <div className="activity-tooltip">
+                <p className="p-4 text-center text-sm">No active recruitments.</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
-            <div className="recruitment-panel-bg w-full max-w-2xl rounded-lg" onClick={e => e.stopPropagation()}>
-                <div className="recruitment-header rounded-t-sm">
-                    <h3>Recruitment & Healing Overview</h3>
-                </div>
-                <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
-                    {allQueues.length > 0 ? (
-                        allQueues.map(city => (
-                            <div key={city.cityId}>
-                                <h4 className="font-bold text-xl mb-2">{city.cityName}</h4>
-                                {city.unitQueue.length > 0 && (
-                                    <UnitQueue
-                                        unitQueue={city.unitQueue}
-                                        onCancel={(index) => onCancelTrain(city.cityId, index, false)}
-                                        title="Training"
-                                    />
-                                )}
-                                {city.healQueue.length > 0 && (
-                                     <UnitQueue
-                                        unitQueue={city.healQueue}
-                                        onCancel={(index) => onCancelTrain(city.cityId, index, true)}
-                                        title="Healing"
-                                    />
-                                )}
+        <div className="activity-tooltip">
+            {allQueues.map((item) => {
+                const unit = unitConfig[item.unitId];
+                return (
+                    <div key={`${item.cityId}-${item.queueType}-${item.index}`} className="tooltip-item">
+                        <img src={images[unit.image]} alt={unit.name} className="tooltip-item-image" />
+                        <div className="tooltip-item-details">
+                            <p className="font-bold">{item.amount}x {unit.name} <span className="text-xs text-gray-400">({item.cityName})</span></p>
+                            <div className="tooltip-timer">
+                                <Countdown arrivalTime={item.endTime} />
                             </div>
-                        ))
-                    ) : (
-                        <p className="p-8 text-center text-gray-700 italic">No active recruitment or healing queues.</p>
-                    )}
-                </div>
+                        </div>
+                        <button onClick={() => onCancelTrain(item, item.queueType)} className="tooltip-cancel-btn">&times;</button>
+                    </div>
+                );
+            })}
+            <div className="tooltip-lock-timer">
+                {isLocked ? '🔒' : countdown}
             </div>
         </div>
     );
 };
 
-export default RecruitmentPanel;
+export default RecruitmentTooltip;

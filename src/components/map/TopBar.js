@@ -61,35 +61,6 @@ const WeatherDisplay = ({ season, weather }) => {
         Stormy: '⛈️',
     };
 
-    // Determine the wind range and a representative speed for the tooltip
-    const { windRange, representativeSpeed } = useMemo(() => {
-        let range = '';
-        let speed = 0;
-        switch (weather) {
-            case 'Clear':
-                range = '0-3 knots';
-                speed = 1.5; // Midpoint
-                break;
-            case 'Windy':
-                range = '3-6 knots';
-                speed = 4.5; // Midpoint
-                break;
-            case 'Rainy':
-                range = '6-9 knots';
-                speed = 7.5; // Midpoint
-                break;
-            case 'Stormy':
-                range = '9-10 knots';
-                speed = 9.5; // Midpoint
-                break;
-            default:
-                range = 'N/A';
-                speed = 0;
-                break;
-        }
-        return { windRange: range, representativeSpeed: speed };
-    }, [weather]);
-
     const seasonColors = {
         Spring: 'text-pink-600',
         Summer: 'text-yellow-600',
@@ -98,7 +69,7 @@ const WeatherDisplay = ({ season, weather }) => {
     };
 
     return (
-        <div className="weather-display" title={`${season}, ${weather} | Wind: ${representativeSpeed.toFixed(1)} knots (${windRange})`}>
+        <div className="weather-display">
             <span className="text-xl mr-2">{weatherIcons[weather] || '❓'}</span>
             <span className={`font-bold ${seasonColors[season] || 'text-inherit'}`}>{season}</span>
             <span className="mx-2">|</span>
@@ -108,13 +79,16 @@ const WeatherDisplay = ({ season, weather }) => {
 };
 
 // Component to display resource details on hover
-const ResourceTooltip = ({ resource, production, capacity }) => {
+const ResourceTooltip = ({ resource, production, capacity, isLocked, countdown }) => {
     if (!resource) return null;
     return (
         <div className="resource-tooltip">
             <h4 className="font-bold capitalize text-lg">{resource}</h4>
             <p className="text-sm">Production: <span className="font-semibold">+{production}/hr</span></p>
             <p className="text-sm">Capacity: <span className="font-semibold">{capacity.toLocaleString()}</span></p>
+            <div className="tooltip-lock-timer">
+                {isLocked ? '🔒' : countdown}
+            </div>
         </div>
     );
 };
@@ -147,7 +121,6 @@ const TopBar = ({
     const [isCityListOpen, setIsCityListOpen] = useState(false);
     const [activeTooltip, setActiveTooltip] = useState(null);
     const [isTooltipLocked, setIsTooltipLocked] = useState(false);
-    const [hoveredResource, setHoveredResource] = useState(null);
     const tooltipTimeoutRef = useRef(null);
     const lockTooltipTimeoutRef = useRef(null); // #comment Ref for the auto-lock timer
     const activityTrackerRef = useRef(null);
@@ -336,21 +309,30 @@ const TopBar = ({
             setIsEditingCityName(false);
         }
     };
-    
-    // #comment Handlers for resource hover
-    const handleResourceMouseEnter = (resourceName) => {
-        setHoveredResource(resourceName);
-    };
-
-    const handleResourceMouseLeave = () => {
-        setHoveredResource(null);
-    };
 
     return (
-        <div className={`p-2 flex items-center justify-between top-bar-container relative z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'flex-shrink-0'}`}>
+        <div className={`p-2 flex items-center justify-between top-bar-container z-30 ${view === 'map' ? 'absolute top-0 left-0 right-0' : 'relative flex-shrink-0'}`}>
             {/* Left Section */}
             <div className="flex-1 flex justify-start items-center space-x-4">
-                {worldState && <WeatherDisplay season={worldState.season} weather={worldState.weather} />}
+                {worldState && (
+                    <div 
+                        className="relative" 
+                        onMouseEnter={() => handleMouseEnter('weather')} 
+                        onMouseLeave={handleMouseLeave}
+                        onClick={(e) => handleTooltipClick(e, 'weather')}
+                    >
+                        <WeatherDisplay season={worldState.season} weather={worldState.weather} />
+                        {activeTooltip === 'weather' && (
+                            <div className="resource-tooltip">
+                                <h4 className="font-bold capitalize text-lg">Weather</h4>
+                                <p className="text-sm">Current conditions affect travel times.</p>
+                                <div className="tooltip-lock-timer">
+                                    {isTooltipLocked ? '🔒' : lockCountdown}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Center Section */}
@@ -437,52 +419,58 @@ const TopBar = ({
             </div>
 
             {/* Right Section */}
-            <div className="flex-1 flex justify-end items-center space-x-2">
+            <div className="flex-1 flex justify-end items-center space-x-2" onMouseLeave={handleMouseLeave}>
                 <div 
                     className="resource-display relative"
-                    onMouseEnter={() => handleResourceMouseEnter('wood')}
-                    onMouseLeave={handleResourceMouseLeave}
+                    onMouseEnter={() => handleMouseEnter('wood')}
+                    onClick={(e) => handleTooltipClick(e, 'wood')}
                 >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-800 font-bold">{Math.floor(resources.wood)}</span>
                     {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
-                    {hoveredResource === 'wood' && productionRates && (
+                    {activeTooltip === 'wood' && productionRates && (
                         <ResourceTooltip
                             resource="wood"
                             production={productionRates.wood}
                             capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                            isLocked={isTooltipLocked}
+                            countdown={lockCountdown}
                         />
                     )}
                 </div>
                 <div 
                     className="resource-display relative"
-                    onMouseEnter={() => handleResourceMouseEnter('stone')}
-                    onMouseLeave={handleResourceMouseLeave}
+                    onMouseEnter={() => handleMouseEnter('stone')}
+                    onClick={(e) => handleTooltipClick(e, 'stone')}
                 >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-600 font-bold">{Math.floor(resources.stone)}</span>
                      {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
-                     {hoveredResource === 'stone' && productionRates && (
+                     {activeTooltip === 'stone' && productionRates && (
                         <ResourceTooltip
                             resource="stone"
                             production={productionRates.stone}
                             capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                            isLocked={isTooltipLocked}
+                            countdown={lockCountdown}
                         />
                     )}
                 </div>
                 <div 
                     className="resource-display relative"
-                    onMouseEnter={() => handleResourceMouseEnter('silver')}
-                    onMouseLeave={handleResourceMouseLeave}
+                    onMouseEnter={() => handleMouseEnter('silver')}
+                    onClick={(e) => handleTooltipClick(e, 'silver')}
                 >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-800 font-bold">{Math.floor(resources.silver)}</span>
                      {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
-                     {hoveredResource === 'silver' && productionRates && (
+                     {activeTooltip === 'silver' && productionRates && (
                         <ResourceTooltip
                             resource="silver"
                             production={productionRates.silver}
                             capacity={getWarehouseCapacity(gameState.buildings.warehouse.level)}
+                            isLocked={isTooltipLocked}
+                            countdown={lockCountdown}
                         />
                     )}
                 </div>
@@ -490,9 +478,21 @@ const TopBar = ({
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
                     <span className="font-bold text-red-800">{Math.floor(availablePopulation)}</span>
                 </div>
-                <div className="resource-display" title={happinessTooltip}>
+                <div 
+                    className="resource-display relative" 
+                    onMouseEnter={() => handleMouseEnter('happiness')}
+                    onClick={(e) => handleTooltipClick(e, 'happiness')}
+                >
                     <span className="text-xl mr-2">{happinessIcon}</span>
                     <span className="font-bold text-green-800">{happiness}%</span>
+                    {activeTooltip === 'happiness' && (
+                        <div className="resource-tooltip">
+                            <pre>{happinessTooltip}</pre>
+                            <div className="tooltip-lock-timer">
+                                {isTooltipLocked ? '🔒' : lockCountdown}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
