@@ -8,6 +8,7 @@ import './MovementModal.css';
 // Import new panels
 import TradePanel from './TradePanel';
 import ScoutPanel from './ScoutPanel';
+import { getTrainableNavalUnits, getTrainableUnits } from '../../utils/nationality';
 
 // Dynamically import all images from the images folder (this is for unit images)
 const images = {};
@@ -257,27 +258,27 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
     };
     
     const renderContent = () => {
-        const landUnitsList = Object.keys(unitConfig)
-            .filter(unitId => {
-                const unit = unitConfig[unitId];
-                if (unit.type !== 'land') return false;
-                if (!unit.mythical) return true; // Always include non-mythical land units
-                // Include mythical units only if they belong to the worshipped god
-                return unit.mythical && unit.god === gameState.god;
-            })
-            .map(unitId => ({
-                id: unitId,
-                ...unitConfig[unitId],
-                currentCount: currentUnits[unitId] || 0
-            }));
-
-        const navalUnitsList = Object.keys(unitConfig)
-            .filter(unitId => unitConfig[unitId].type === 'naval')
-            .map(unitId => ({
-                id: unitId,
-                ...unitConfig[unitId],
-                currentCount: currentUnits[unitId] || 0
-            }));
+        const playerNation = gameState?.playerInfo?.nation;
+    
+        const trainableLandUnitIds = playerNation ? getTrainableUnits(playerNation) : [];
+        const mythicUnitIds = Object.keys(unitConfig).filter(unitId => {
+            const unit = unitConfig[unitId];
+            return unit.mythical && unit.god === gameState.god;
+        });
+        const allTrainableLandIds = [...new Set([...trainableLandUnitIds, ...mythicUnitIds])];
+        
+        const landUnitsList = allTrainableLandIds.map(unitId => ({
+            id: unitId,
+            ...unitConfig[unitId],
+            currentCount: currentUnits[unitId] || 0
+        }));
+    
+        const trainableNavalUnitIds = playerNation ? getTrainableNavalUnits(playerNation) : [];
+        const navalUnitsList = trainableNavalUnitIds.map(unitId => ({
+            id: unitId,
+            ...unitConfig[unitId],
+            currentCount: currentUnits[unitId] || 0
+        }));
 
         const selectedLandUnitsForFormation = Object.keys(selectedUnits).filter(unitId => 
             selectedUnits[unitId] > 0 && unitConfig[unitId]?.type === 'land'

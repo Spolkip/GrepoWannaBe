@@ -5,7 +5,6 @@
 - make settings better
 - make it so whe you switch cities it doesnt necessarly puts you inside the city
 - add autocomplete on distribute resources on bank
-- add more things on properties
 - add battle points
 - add bbcodes on reports to be able to press on city name, player and alliance
 - when you press on city name it opens the othercitymodal, when you press on alliance or player it opens their profiles
@@ -21,9 +20,6 @@
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
 - fix the click area of tooltips
-- add seas
-- add minimap
-- add coords
 - add buildings to build when the island is full of an alliance
 - add a warning when you cancel a building
 - add to demolish per level and also add it on queue with time
