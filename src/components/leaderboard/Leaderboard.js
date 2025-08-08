@@ -112,8 +112,8 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
             <thead>
                 <tr>
                     <th className="text-center">Rank</th>
-                    <th>Player</th>
-                    <th>Alliance</th>
+                    <th className="text-left">Player</th>
+                    <th className="text-left">Alliance</th>
                     <th className="text-right">Points</th>
                 </tr>
             </thead>
@@ -121,12 +121,12 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                 {playerLeaderboard.map((player, index) => (
                     <tr key={player.id}>
                         <td className="text-center">{index + 1}</td>
-                        <td>
+                        <td className="text-left">
                             <button onClick={() => onOpenProfile(player.id)} className="player-name-btn">
                                 {player.username}
                             </button>
                         </td>
-                        <td>{player.alliance}</td>
+                        <td className="text-left">{player.alliance}</td>
                         <td className="text-right">{player.points.toLocaleString()}</td>
                     </tr>
                 ))}
@@ -139,8 +139,8 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
             <thead>
                 <tr>
                     <th className="text-center">Rank</th>
-                    <th>Alliance</th>
-                    <th>Tag</th>
+                    <th className="text-left">Alliance</th>
+                    <th className="text-left">Tag</th>
                     <th className="text-center">Members</th>
                     <th className="text-right">Points</th>
                 </tr>
@@ -149,12 +149,12 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                 {allianceLeaderboard.map((alliance, index) => (
                     <tr key={alliance.id}>
                         <td className="text-center">{index + 1}</td>
-                        <td>
+                        <td className="text-left">
                             <button onClick={() => onOpenAllianceProfile(alliance.id)} className="player-name-btn">
                                 {alliance.name}
                             </button>
                         </td>
-                        <td>{alliance.tag}</td>
+                        <td className="text-left">{alliance.tag}</td>
                         <td className="text-center">{alliance.memberCount}/{alliance.maxMembers}</td>
                         <td className="text-right">{alliance.points.toLocaleString()}</td>
                     </tr>

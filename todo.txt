@@ -1,5 +1,4 @@
 - put special buildings on cityscape
-- timer for the tooltip to lock until you click somewhere else
 - add icons to back to world selection and logout
 - add animation on open tooltip for spells when press on the god
 - center cities number
