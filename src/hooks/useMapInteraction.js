@@ -63,10 +63,17 @@ export const useMapInteraction = (viewportRef, mapContainerRef, worldState, play
             setZoom(prevZoom => Math.max(newMinZoom, prevZoom));
         };
         handleResize();
-        centerOnCity();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [worldState, centerOnCity, viewportRef]);
+    }, [worldState, viewportRef]);
+
+    // #comment This effect now only runs when the active city changes, preventing the map from resetting during panning.
+    useEffect(() => {
+        if (playerCity) {
+            centerOnCity();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [playerCity?.id]);
 
 
     useEffect(() => {

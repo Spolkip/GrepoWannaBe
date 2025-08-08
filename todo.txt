@@ -8,6 +8,7 @@
 - add more research and make them to actually work
 - fix treaties
 - make settings better
+- make it so whe nyou switch cities it doesnt necessarly puts you inside the city
 - add autocomplete on distribute resources on bank
 - add more things on properties
 - add battle points
@@ -25,9 +26,11 @@
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
 - fix the returning to ome of the troops 
-- fix the coords not to put you back after a bit
 - fix the click area of tooltips
 - on alliance members add when the lastly log on
+- add seas
+- add minimap
+- add coords
 
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
