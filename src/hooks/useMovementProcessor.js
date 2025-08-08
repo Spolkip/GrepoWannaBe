@@ -474,10 +474,26 @@ export const useMovementProcessor = (worldId) => {
                     }
                     batch.update(targetCityRef, { resources: newTargetResources });
 
-                    const tradeReport = { type: 'trade', title: `Trade to ${targetCityState.cityName}`, timestamp: serverTimestamp(), resources: movement.resources, read: false };
+                    const tradeReport = { 
+                        type: 'trade', 
+                        title: `Trade to ${targetCityState.cityName}`, 
+                        timestamp: serverTimestamp(), 
+                        resources: movement.resources, 
+                        read: false,
+                        originCityName: originCityState.cityName,
+                        targetCityName: targetCityState.cityName
+                    };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), tradeReport);
 
-                    const arrivalReport = { type: 'trade', title: `Trade from ${originCityState.cityName}`, timestamp: serverTimestamp(), resources: movement.resources, read: false };
+                    const arrivalReport = { 
+                        type: 'trade', 
+                        title: `Trade from ${originCityState.cityName}`, 
+                        timestamp: serverTimestamp(), 
+                        resources: movement.resources, 
+                        read: false,
+                        originCityName: originCityState.cityName,
+                        targetCityName: targetCityState.cityName
+                    };
                     batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
 
                     batch.delete(movementDoc.ref);
