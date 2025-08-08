@@ -42,14 +42,14 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain, isLocked, countdown }
 
     if (allQueues.length === 0) {
         return (
-            <div className="activity-tooltip">
+            <div className="recruitment-tooltip">
                 <p className="p-4 text-center text-sm">No active recruitments.</p>
             </div>
         );
     }
 
     return (
-        <div className="activity-tooltip">
+        <div className="recruitment-tooltip">
             {allQueues.map((item) => {
                 const unit = unitConfig[item.unitId];
                 return (
