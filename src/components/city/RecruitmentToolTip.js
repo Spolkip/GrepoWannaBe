@@ -39,33 +39,30 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain, isLocked, countdown }
         return dateA - dateB;
     });
 
-
-    if (allQueues.length === 0) {
-        return (
-            <div className="activity-tooltip">
-                <p className="p-4 text-center text-sm">No active recruitments.</p>
-            </div>
-        );
-    }
+    const content = allQueues.length > 0 ? (
+        allQueues.map((item) => {
+            const unit = unitConfig[item.unitId];
+            return (
+                <div key={`${item.cityId}-${item.queueType}-${item.index}`} className="recruitment-tooltip-item">
+                    <img src={images[unit.image]} alt={unit.name} className="recruitment-tooltip-item-image" />
+                    <div className="recruitment-tooltip-item-details">
+                        <p className="font-bold">{item.amount}x {unit.name} <span className="text-xs text-gray-400">({item.cityName})</span></p>
+                        <div className="recruitment-tooltip-timer">
+                            <Countdown arrivalTime={item.endTime} />
+                        </div>
+                    </div>
+                    <button onClick={() => onCancelTrain(item, item.queueType)} className="recruitment-tooltip-cancel-btn">&times;</button>
+                </div>
+            );
+        })
+    ) : (
+        <p className="p-4 text-center text-sm">No active recruitments.</p>
+    );
 
     return (
-        <div className="activity-tooltip">
-            {allQueues.map((item) => {
-                const unit = unitConfig[item.unitId];
-                return (
-                    <div key={`${item.cityId}-${item.queueType}-${item.index}`} className="tooltip-item">
-                        <img src={images[unit.image]} alt={unit.name} className="tooltip-item-image" />
-                        <div className="tooltip-item-details">
-                            <p className="font-bold">{item.amount}x {unit.name} <span className="text-xs text-gray-400">({item.cityName})</span></p>
-                            <div className="tooltip-timer">
-                                <Countdown arrivalTime={item.endTime} />
-                            </div>
-                        </div>
-                        <button onClick={() => onCancelTrain(item, item.queueType)} className="tooltip-cancel-btn">&times;</button>
-                    </div>
-                );
-            })}
-            <div className="tooltip-lock-timer">
+        <div className="recruitment-tooltip">
+            {content}
+            <div className="recruitment-tooltip-lock-timer">
                 {isLocked ? '🔒' : countdown}
             </div>
         </div>

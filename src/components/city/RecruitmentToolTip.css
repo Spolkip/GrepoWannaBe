@@ -1,6 +1,6 @@
 /* src/components/city/RecruitmentTooltip.css */
 .recruitment-tooltip {
-    position: absolute;
+    position: absolute; 
     top: calc(100% + 10px);
     left: 50%; /* Center the tooltip */
     transform: translateX(-50%); /* Adjust for centering */
@@ -12,17 +12,17 @@
     color: #4a2c2a;
 }
 
-.tooltip-item {
+.recruitment-tooltip-item {
     display: flex;
     align-items: center;
     padding: 8px;
     border-bottom: 1px solid #d2b48c;
 }
-.tooltip-item:last-child {
+.recruitment-tooltip-item:last-child {
     border-bottom: none;
 }
 
-.tooltip-item-image {
+.recruitment-tooltip-item-image {
     width: 48px;
     height: 48px;
     margin-right: 12px;
@@ -31,11 +31,11 @@
     padding: 2px;
 }
 
-.tooltip-item-details {
+.recruitment-tooltip-item-details {
     flex-grow: 1;
 }
 
-.tooltip-timer {
+.recruitment-tooltip-timer {
     font-family: monospace;
     font-weight: bold;
     background-color: #333;
@@ -45,7 +45,7 @@
     display: inline-block;
 }
 
-.tooltip-cancel-btn {
+.recruitment-tooltip-cancel-btn {
     background-color: #c0392b;
     color: white;
     border: 1px solid #a03022;
@@ -57,11 +57,11 @@
     cursor: pointer;
     margin-left: 12px;
 }
-.tooltip-cancel-btn:hover {
+.recruitment-tooltip-cancel-btn:hover {
     background-color: #e74c3c;
 }
 
-.tooltip-lock-timer {
+.recruitment-tooltip-lock-timer {
     position: absolute;
     bottom: -14px; /* Position half outside */
     right: -14px; /* Position half outside */
@@ -79,4 +79,5 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     z-index: 101; /* Ensure timer is on top */
     pointer-events: all; /* Allow clicking the timer */
+     min-width: 28px;
 }

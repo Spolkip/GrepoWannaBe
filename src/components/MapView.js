@@ -63,7 +63,7 @@ const MapView = ({
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
-    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints } = useCityState(worldId);
+    const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
     
@@ -135,6 +135,11 @@ const MapView = ({
         const marketCap = getMarketCapacity(gameState.buildings.market?.level);
         return { availablePopulation: availablePop, happiness: happinessValue, marketCapacity: marketCap };
     }, [gameState, getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity]);
+
+    const productionRates = useMemo(() => {
+        if (!gameState) return { wood: 0, stone: 0, silver: 0 };
+        return getProductionRates(gameState.buildings);
+    }, [gameState, getProductionRates]);
 
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
 
@@ -314,6 +319,8 @@ const MapView = ({
                         availablePopulation={availablePopulation} 
                         happiness={happiness} 
                         worldState={worldState} 
+                        productionRates={productionRates}
+                        getWarehouseCapacity={getWarehouseCapacity}
                         movements={movements}
                         onCancelTrain={onCancelTrain}
                         onCancelMovement={onCancelMovement}
