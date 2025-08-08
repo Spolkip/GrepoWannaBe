@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { db } from '../../firebase/config';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
-    const { worldId } = useGame();
+    const { worldId, playerCities } = useGame();
     const [targetTag, setTargetTag] = useState('');
     const [message, setMessage] = useState('');
 
@@ -14,10 +14,12 @@ const AllianceDiplomacy = () => {
     const [treatyTargetTag, setTreatyTargetTag] = useState('');
     const [offerType, setOfferType] = useState('resources');
     const [offerResources, setOfferResources] = useState({ wood: 0, stone: 0, silver: 0 });
+    const [offerCityId, setOfferCityId] = useState('');
     const [offerAllianceAction, setOfferAllianceAction] = useState('declare_war');
     const [offerTargetAlliance, setOfferTargetAlliance] = useState('');
     const [demandType, setDemandType] = useState('resources');
     const [demandResources, setDemandResources] = useState({ wood: 0, stone: 0, silver: 0 });
+    const [demandCityName, setDemandCityName] = useState('');
     const [demandAllianceAction, setDemandAllianceAction] = useState('declare_war');
     const [demandTargetAlliance, setDemandTargetAlliance] = useState('');
     const [frequency, setFrequency] = useState('once');
@@ -26,41 +28,77 @@ const AllianceDiplomacy = () => {
 
     // Autocomplete states
     const [allAlliances, setAllAlliances] = useState([]);
+    const [allCities, setAllCities] = useState([]);
+    const [allAllianceCities, setAllAllianceCities] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
     const [activeSuggestionInput, setActiveSuggestionInput] = useState(null);
 
-    // Fetch all alliances for autocomplete
+    // #comment Fetch all alliances, world cities, and alliance cities for autocomplete and offers
     useEffect(() => {
-        if (!worldId) return;
+        if (!worldId || !playerAlliance) return;
+
         const fetchAlliances = async () => {
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
             const snapshot = await getDocs(alliancesRef);
             const alliances = snapshot.docs
                 .map(doc => doc.data().tag)
-                .filter(tag => tag !== playerAlliance.tag); // Exclude self
+                .filter(tag => tag !== playerAlliance.tag);
             setAllAlliances(alliances);
         };
-        fetchAlliances();
-    }, [worldId, playerAlliance.tag]);
 
+        const fetchAllCities = async () => {
+            const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
+            const q = query(citiesRef, where("ownerId", "!=", null));
+            const snapshot = await getDocs(q);
+            setAllCities(snapshot.docs.map(doc => ({ name: doc.data().cityName, x: doc.data().x, y: doc.data().y })));
+        };
+
+        const fetchAllianceCities = async () => {
+            const cities = [];
+            for (const member of playerAlliance.members) {
+                const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
+                const snapshot = await getDocs(citiesRef);
+                snapshot.forEach(doc => {
+                    cities.push({ owner: member.username, ...doc.data() });
+                });
+            }
+            setAllAllianceCities(cities);
+        };
+
+        fetchAlliances();
+        fetchAllCities();
+        fetchAllianceCities();
+    }, [worldId, playerAlliance]);
+
+    // #comment A unified handler for all autocomplete inputs
     const handleInputChange = (value, fieldSetter, fieldName) => {
         fieldSetter(value);
         setActiveSuggestionInput(fieldName);
-        if (value.length > 0) {
-            const filteredSuggestions = allAlliances.filter(tag =>
-                tag.toLowerCase().startsWith(value.toLowerCase())
+
+        let sourceData = [];
+        if (fieldName === 'demandCity') {
+            sourceData = allCities.map(c => c.name);
+        } else {
+            // All other autocomplete fields are for alliance tags
+            sourceData = allAlliances;
+        }
+
+        if (value.length > 0 && sourceData.length > 0) {
+            const filteredSuggestions = sourceData.filter(item =>
+                item.toLowerCase().startsWith(value.toLowerCase())
             );
-            setSuggestions(filteredSuggestions);
+            setSuggestions(filteredSuggestions.slice(0, 5));
         } else {
             setSuggestions([]);
         }
     };
 
-    const handleSuggestionClick = (tag) => {
-        if (activeSuggestionInput === 'targetTag') setTargetTag(tag);
-        if (activeSuggestionInput === 'treatyTargetTag') setTreatyTargetTag(tag);
-        if (activeSuggestionInput === 'offerTargetAlliance') setOfferTargetAlliance(tag);
-        if (activeSuggestionInput === 'demandTargetAlliance') setDemandTargetAlliance(tag);
+    const handleSuggestionClick = (value) => {
+        if (activeSuggestionInput === 'targetTag') setTargetTag(value);
+        if (activeSuggestionInput === 'treatyTargetTag') setTreatyTargetTag(value);
+        if (activeSuggestionInput === 'offerTargetAlliance') setOfferTargetAlliance(value);
+        if (activeSuggestionInput === 'demandTargetAlliance') setDemandTargetAlliance(value);
+        if (activeSuggestionInput === 'demandCity') setDemandCityName(value);
         setSuggestions([]);
         setActiveSuggestionInput(null);
     };
@@ -106,11 +144,34 @@ const AllianceDiplomacy = () => {
         }
         setMessage('');
         try {
+            let offerPayload;
+            if (offerType === 'resources') {
+                offerPayload = { type: 'resources', data: offerResources };
+            } else if (offerType === 'city') {
+                if (!offerCityId) throw new Error("You must select a city to offer.");
+                const offeredCity = allAllianceCities.find(c => c.id === offerCityId);
+                if (!offeredCity) throw new Error("Offered city not found in alliance.");
+                offerPayload = { type: 'city', cityId: offerCityId, cityName: offeredCity.cityName, coords: `${offeredCity.x},${offeredCity.y}` };
+            } else {
+                offerPayload = { type: 'alliance_action', action: offerAllianceAction, target: offerTargetAlliance };
+            }
+
+            let demandPayload;
+            if (demandType === 'resources') {
+                demandPayload = { type: 'resources', data: demandResources };
+            } else if (demandType === 'city') {
+                const demandedCity = allCities.find(c => c.name.toLowerCase() === demandCityName.toLowerCase());
+                if (!demandedCity) throw new Error("The demanded city does not exist or could not be found.");
+                demandPayload = { type: 'city', coords: `${demandedCity.x},${demandedCity.y}`, cityName: demandedCity.name };
+            } else {
+                demandPayload = { type: 'alliance_action', action: demandAllianceAction, target: demandTargetAlliance };
+            }
+
             const details = {
-                offer: offerType === 'resources' ? { type: 'resources', data: offerResources } : { type: 'alliance_action', action: offerAllianceAction, target: offerTargetAlliance },
-                demand: demandType === 'resources' ? { type: 'resources', data: demandResources } : { type: 'alliance_action', action: demandAllianceAction, target: demandTargetAlliance },
+                offer: offerPayload,
+                demand: demandPayload,
                 frequency,
-                occurrences,
+                occurrences: frequency === 'once' ? 1 : occurrences,
                 message: treatyMessage,
             };
             await proposeTreaty(treatyTargetTag.trim().toUpperCase(), details);
@@ -125,6 +186,10 @@ const AllianceDiplomacy = () => {
     const requests = diplomacy.requests || [];
     const allies = diplomacy.allies || [];
     const enemies = diplomacy.enemies || [];
+
+    const allianceActionNeedsTarget = (action) => {
+        return ['declare_war', 'form_pact', 'coordinated_attack'].includes(action);
+    };
 
     return (
         <div className="bg-amber-100 text-gray-900 p-4 rounded-lg shadow-md space-y-6">
@@ -219,6 +284,7 @@ const AllianceDiplomacy = () => {
                             <select value={offerType} onChange={(e) => setOfferType(e.target.value)}>
                                 <option value="resources">Resources</option>
                                 <option value="alliance_action">Alliance Action</option>
+                                <option value="city">City</option>
                             </select>
                             {offerType === 'resources' ? (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
@@ -226,13 +292,32 @@ const AllianceDiplomacy = () => {
                                     <input type="number" value={offerResources.stone} onChange={(e) => setOfferResources(prev => ({...prev, stone: parseInt(e.target.value) || 0}))} placeholder="Stone" />
                                     <input type="number" value={offerResources.silver} onChange={(e) => setOfferResources(prev => ({...prev, silver: parseInt(e.target.value) || 0}))} placeholder="Silver" />
                                 </div>
+                            ) : offerType === 'city' ? (
+                                <select value={offerCityId} onChange={(e) => setOfferCityId(e.target.value)} className="w-full p-2 rounded border border-amber-300 mt-2">
+                                    <option value="">Select a city to offer</option>
+                                    {Object.values(allAllianceCities.reduce((acc, city) => {
+                                        (acc[city.owner] = acc[city.owner] || []).push(city);
+                                        return acc;
+                                    }, {})).map((cities, index) => (
+                                        <optgroup label={cities[0].owner} key={index}>
+                                            {cities.map(city => (
+                                                <option key={city.id} value={city.id}>{city.cityName} ({city.x},{city.y})</option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                </select>
                             ) : (
                                 <div className="grid grid-cols-2 gap-2 mt-2 autocomplete-suggestions-container">
                                     <select value={offerAllianceAction} onChange={(e) => setOfferAllianceAction(e.target.value)}>
                                         <option value="declare_war">Declare War On</option>
                                         <option value="form_pact">Form Pact With</option>
+                                        <option value="non_aggression">Non-Aggression Pact</option>
+                                        <option value="coordinated_attack">Coordinated Attack On</option>
+                                        <option value="offer_peace">Offer Peace</option>
                                     </select>
-                                    <input type="text" value={offerTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setOfferTargetAlliance, 'offerTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    {allianceActionNeedsTarget(offerAllianceAction) && (
+                                        <input type="text" value={offerTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setOfferTargetAlliance, 'offerTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    )}
                                     {suggestions.length > 0 && activeSuggestionInput === 'offerTargetAlliance' && (
                                         <ul className="autocomplete-suggestions-list light">
                                             {suggestions.map(tag => (
@@ -251,6 +336,7 @@ const AllianceDiplomacy = () => {
                             <select value={demandType} onChange={(e) => setDemandType(e.target.value)}>
                                 <option value="resources">Resources</option>
                                 <option value="alliance_action">Alliance Action</option>
+                                <option value="city">City</option>
                             </select>
                             {demandType === 'resources' ? (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
@@ -258,13 +344,38 @@ const AllianceDiplomacy = () => {
                                     <input type="number" value={demandResources.stone} onChange={(e) => setDemandResources(prev => ({...prev, stone: parseInt(e.target.value) || 0}))} placeholder="Stone" />
                                     <input type="number" value={demandResources.silver} onChange={(e) => setDemandResources(prev => ({...prev, silver: parseInt(e.target.value) || 0}))} placeholder="Silver" />
                                 </div>
+                            ) : demandType === 'city' ? (
+                                <div className="autocomplete-suggestions-container mt-2">
+                                    <input
+                                        type="text"
+                                        value={demandCityName}
+                                        onChange={(e) => handleInputChange(e.target.value, setDemandCityName, 'demandCity')}
+                                        placeholder="Enter City Name"
+                                        className="w-full p-2 rounded border border-amber-300"
+                                        autoComplete="off"
+                                    />
+                                    {suggestions.length > 0 && activeSuggestionInput === 'demandCity' && (
+                                        <ul className="autocomplete-suggestions-list light">
+                                            {suggestions.map(name => (
+                                                <li key={name} onClick={() => handleSuggestionClick(name)}>
+                                                    {name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-2 gap-2 mt-2 autocomplete-suggestions-container">
                                     <select value={demandAllianceAction} onChange={(e) => setDemandAllianceAction(e.target.value)}>
                                         <option value="declare_war">Declare War On</option>
                                         <option value="form_pact">Form Pact With</option>
+                                        <option value="non_aggression">Non-Aggression Pact</option>
+                                        <option value="coordinated_attack">Coordinated Attack On</option>
+                                        <option value="demand_surrender">Demand Surrender</option>
                                     </select>
-                                    <input type="text" value={demandTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setDemandTargetAlliance, 'demandTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    {allianceActionNeedsTarget(demandAllianceAction) && (
+                                        <input type="text" value={demandTargetAlliance} onChange={(e) => handleInputChange(e.target.value, setDemandTargetAlliance, 'demandTargetAlliance')} placeholder="Target Alliance Tag" autoComplete="off"/>
+                                    )}
                                     {suggestions.length > 0 && activeSuggestionInput === 'demandTargetAlliance' && (
                                         <ul className="autocomplete-suggestions-list light">
                                             {suggestions.map(tag => (
@@ -284,7 +395,9 @@ const AllianceDiplomacy = () => {
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
                             </select>
-                            <input type="number" value={occurrences} onChange={(e) => setOccurrences(parseInt(e.target.value) || 1)} placeholder="Occurrences" />
+                            {frequency !== 'once' && (
+                                <input type="number" value={occurrences} onChange={(e) => setOccurrences(parseInt(e.target.value) || 1)} placeholder="Occurrences" />
+                            )}
                         </div>
                         <textarea value={treatyMessage} onChange={(e) => setTreatyMessage(e.target.value)} placeholder="Message (optional)" className="w-full p-2 rounded border border-amber-300" rows="2"></textarea>
                         <button onClick={handleProposeTreaty} className="btn btn-confirm w-full">Propose Treaty</button>

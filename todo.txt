@@ -1,11 +1,9 @@
 - put special buildings on cityscape
 - add icons to back to world selection and logout
 - add animation on open tooltip for spells when press on the god
-- center cities number
 - add more research and make them to actually work
-- fix treaties
 - make settings better
-- make it so whe nyou switch cities it doesnt necessarly puts you inside the city
+- make it so whe you switch cities it doesnt necessarly puts you inside the city
 - add autocomplete on distribute resources on bank
 - add more things on properties
 - add battle points
