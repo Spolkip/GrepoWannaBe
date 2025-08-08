@@ -1,3 +1,4 @@
+// src/components/map/TopBar.js
 import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
@@ -148,12 +149,12 @@ const TopBar = ({
     const [isTooltipLocked, setIsTooltipLocked] = useState(false);
     const [hoveredResource, setHoveredResource] = useState(null);
     const tooltipTimeoutRef = useRef(null);
+    const lockTooltipTimeoutRef = useRef(null); // #comment Ref for the auto-lock timer
     const activityTrackerRef = useRef(null);
     const [isEditingCityName, setIsEditingCityName] = useState(false);
     const [newCityName, setNewCityName] = useState('');
 
     // #comment This hook handles clicks outside the activity tracker to close a locked tooltip.
-    // #comment It's placed before any early returns to comply with the Rules of Hooks.
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (isTooltipLocked && activityTrackerRef.current && !activityTrackerRef.current.contains(event.target)) {
@@ -166,6 +167,24 @@ const TopBar = ({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isTooltipLocked]);
+
+    // #comment This effect automatically locks the tooltip after a delay if the user hovers over it.
+    useEffect(() => {
+        // Clear any existing lock timer when the active tooltip changes or it gets locked/unlocked
+        clearTimeout(lockTooltipTimeoutRef.current);
+
+        // If a tooltip is active and not yet locked, start a timer to lock it
+        if (activeTooltip && !isTooltipLocked) {
+            lockTooltipTimeoutRef.current = setTimeout(() => {
+                setIsTooltipLocked(true);
+            }, 5000); // 5 seconds
+        }
+
+        // Cleanup function to clear the timer if the component unmounts or dependencies change
+        return () => {
+            clearTimeout(lockTooltipTimeoutRef.current);
+        };
+    }, [activeTooltip, isTooltipLocked]);
 
     // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
     const getSafeDate = (timestamp) => {
@@ -248,13 +267,16 @@ const TopBar = ({
 
     // #comment Handlers to show/hide tooltips with a small delay
     const handleMouseEnter = (tooltip) => {
-        if (isTooltipLocked) return;
-        clearTimeout(tooltipTimeoutRef.current);
+        // If a different tooltip is locked, unlock it and show the new one.
+        if (isTooltipLocked && activeTooltip !== tooltip) {
+            setIsTooltipLocked(false);
+        }
+        clearTimeout(tooltipTimeoutRef.current); // Clear any pending hide timer
         setActiveTooltip(tooltip);
     };
 
     const handleMouseLeave = () => {
-        if (isTooltipLocked) return;
+        if (isTooltipLocked) return; // Don't hide if locked
         tooltipTimeoutRef.current = setTimeout(() => {
             setActiveTooltip(null);
         }, 300);
@@ -262,12 +284,13 @@ const TopBar = ({
     
     const handleTooltipClick = (e, tooltip) => {
         e.stopPropagation();
+        // Toggle lock state on click
         if (isTooltipLocked && activeTooltip === tooltip) {
             setIsTooltipLocked(false);
-            setActiveTooltip(null);
+            setActiveTooltip(null); // Hide immediately on unlock-click
         } else {
             setIsTooltipLocked(true);
-            setActiveTooltip(tooltip);
+            setActiveTooltip(tooltip); // Ensure it's active and locked
         }
     };
 

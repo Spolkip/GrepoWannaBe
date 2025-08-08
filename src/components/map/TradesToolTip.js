@@ -3,7 +3,7 @@ import React from 'react';
 import MovementItem from './MovementItem';
 import './TradesToolTip.css';
 
-const TradesTooltip = ({ movements, combinedSlots, onCancel }) => {
+const TradesTooltip = ({ movements, combinedSlots, onCancel, isLocked, countdown }) => {
     // #comment Helper to identify if a movement is trade-related
     const isTradeMovement = (m) => {
         if (m.type === 'trade') return true;
@@ -32,6 +32,9 @@ const TradesTooltip = ({ movements, combinedSlots, onCancel }) => {
             ) : (
                 <p className="p-4 text-center text-sm">No active trade movements.</p>
             )}
+            <div className="tooltip-lock-timer">
+                {isLocked ? '🔒' : countdown}
+            </div>
         </div>
     );
 };

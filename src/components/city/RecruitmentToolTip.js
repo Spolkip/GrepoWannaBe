@@ -11,7 +11,7 @@ imageContext.keys().forEach((item) => {
     images[key] = imageContext(item);
 });
 
-const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
+const RecruitmentTooltip = ({ playerCities, onCancelTrain, isLocked, countdown }) => {
     // #comment Safely converts Firestore Timestamps or JS Dates into a JS Date object
     const getSafeDate = (timestamp) => {
         if (!timestamp) return null;
@@ -65,6 +65,9 @@ const RecruitmentTooltip = ({ playerCities, onCancelTrain }) => {
                     </div>
                 );
             })}
+            <div className="tooltip-lock-timer">
+                {isLocked ? '🔒' : countdown}
+            </div>
         </div>
     );
 };
