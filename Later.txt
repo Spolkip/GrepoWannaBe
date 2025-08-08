@@ -8,10 +8,20 @@ Maybe:
 - add cities inside the island
 - fix population and resource max
 - add presets for the workers
+
 Bugs:
-- fix recruitment tooltip
+- Allince doesn't work on all cities
+- storage 
+
+
+Amin panel Bugs:
+- when going to map view admin cheats get disable
+- when putting resources it shows the amout you put for a second and then reverts itself to storage amount
+
 
 Models:
 - add a battle simulation
 - add troops into the city
 
+Fix: 
+Indicator visual on both people

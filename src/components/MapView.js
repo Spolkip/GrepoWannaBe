@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy } from 'firebase/firestore';
 
 // UI Components
 import SidebarNav from './map/SidebarNav';

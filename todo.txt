@@ -20,13 +20,14 @@
 - add counters and more stats to troops
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
-- fix the returning to ome of the troops 
 - fix the click area of tooltips
 - on alliance members add when the lastly log on
 - add seas
 - add minimap
 - add coords
 - add buildings to build when the island is full of an alliance
+- add a warning when you cancel a building
+- add to demolish per level and also add it on queue with time
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 

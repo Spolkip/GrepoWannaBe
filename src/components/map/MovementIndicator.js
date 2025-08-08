@@ -5,19 +5,25 @@ import { motion } from 'framer-motion';
 const TILE_SIZE = 32;
 
 const MovementIndicator = React.memo(({ movement, citySlots, allMovements = [] }) => {
-    if (!movement || !citySlots) return null;
+    if (!movement) return null;
 
     const isReturning = movement.status === 'returning';
-    // #comment Use targetSlotId for non-return trips to get coordinates from map data.
-    const originId = isReturning ? (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId) : movement.originCityId;
-    const targetId = isReturning ? movement.originCityId : (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId);
 
+    // #comment Prioritize using coordinates directly from the movement object.
+    let originCity = isReturning ? movement.targetCoords : movement.originCoords;
+    let targetCity = isReturning ? movement.originCoords : movement.targetCoords;
 
-    const originCity = citySlots[originId];
-    const targetCity = citySlots[targetId];
+    // #comment Fallback to lookup method if coordinates are not on the movement object.
+    if ((!originCity || !targetCity) && citySlots) {
+        const originId = isReturning ? (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId) : movement.originCityId;
+        const targetId = isReturning ? movement.originCityId : (movement.targetSlotId || movement.targetVillageId || movement.targetRuinId || movement.targetTownId);
+        
+        if (!originCity) originCity = citySlots[originId];
+        if (!targetCity) targetCity = citySlots[targetId];
+    }
     
     if (!originCity || !targetCity) {
-        // console.warn(`Could not find origin or target for movement ${movement.id}`, {originId, targetId, originCity, targetCity});
+        // console.warn(`Could not find origin or target for movement ${movement.id}`);
         return null;
     }
 

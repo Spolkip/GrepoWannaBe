@@ -96,6 +96,7 @@ export const useMovementProcessor = (worldId) => {
                         batch.update(movementDoc.ref, {
                             status: 'returning',
                             arrivalTime: returnArrivalTime,
+                            involvedParties: [movement.originOwnerId]
                         });
                         break;
                     }
@@ -153,6 +154,7 @@ export const useMovementProcessor = (worldId) => {
                         units: survivingAttackers,
                         resources: resourcesWon,
                         arrivalTime: returnArrivalTime,
+                        involvedParties: [movement.originOwnerId]
                     });
                 
                     break;
@@ -224,6 +226,7 @@ export const useMovementProcessor = (worldId) => {
                             resources: result.plunder,
                             wounded: result.wounded,
                             arrivalTime: returnArrivalTime,
+                            involvedParties: [movement.originOwnerId]
                         });
                     } else {
                         console.log('No survivors. Deleting movement.');
@@ -312,6 +315,7 @@ export const useMovementProcessor = (worldId) => {
                             units: survivingAttackers,
                             wounded: result.wounded,
                             arrivalTime: returnArrivalTime,
+                            involvedParties: [movement.originOwnerId]
                         });
                     } else {
                         batch.delete(movementDoc.ref);
@@ -388,6 +392,7 @@ export const useMovementProcessor = (worldId) => {
                             resources: result.plunder,
                             wounded: result.wounded,
                             arrivalTime: returnArrivalTime,
+                            involvedParties: [movement.originOwnerId]
                         });
                     } else {
                         batch.delete(movementDoc.ref);
