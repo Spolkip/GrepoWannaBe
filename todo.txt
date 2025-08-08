@@ -28,6 +28,8 @@
 - add buildings to build when the island is full of an alliance
 - add a warning when you cancel a building
 - add to demolish per level and also add it on queue with time
+- suggest alliances when you arent on an alliance
+
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 

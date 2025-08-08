@@ -12,7 +12,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
     const { worldId } = useGame();
     const [newRankName, setNewRankName] = useState('');
     const [newRankPermissions, setNewRankPermissions] = useState({
-        manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false
+        manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false, viewMemberActivity: false
     });
     const [message, setMessage] = useState('');
     const [editingMemberId, setEditingMemberId] = useState(null);
@@ -44,7 +44,7 @@ const AllianceRanks = ({ alliance, isLeader }) => {
 
         setNewRankName('');
         setNewRankPermissions({
-            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false
+            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false, viewMemberActivity: false
         });
         setMessage('Rank created!');
     };

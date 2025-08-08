@@ -4,17 +4,28 @@ import { useAlliance } from '../../contexts/AllianceContext';
 import { useGame } from '../../contexts/GameContext';
 import { useCityState } from '../../hooks/useCityState';
 import { db } from '../../firebase/config';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import allianceResearch from '../../gameData/allianceResearch.json';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AllianceMembers = () => {
     const { playerAlliance } = useAlliance();
     const { worldId } = useGame();
-    const { calculateTotalPoints } = useCityState(worldId); // We only need this function
+    const { currentUser } = useAuth();
+    const { calculateTotalPoints } = useCityState(worldId);
 
     const [detailedMembers, setDetailedMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'username', direction: 'ascending' });
+
+    // #comment Check if the current user has permission to view member activity
+    const canViewActivity = useMemo(() => {
+        if (!playerAlliance || !currentUser) return false;
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        if (!member) return false;
+        const rank = playerAlliance.ranks.find(r => r.id === member.rank);
+        return rank?.permissions?.viewMemberActivity || false;
+    }, [playerAlliance, currentUser]);
 
     // #comment Calculate max members based on research
     const maxMembers = useMemo(() => {
@@ -43,10 +54,21 @@ const AllianceMembers = () => {
                     totalPoints += calculateTotalPoints(city);
                 }
 
+                // #comment Fetch lastLogin if permission is granted
+                let lastLogin = null;
+                if (canViewActivity) {
+                    const userDocRef = doc(db, 'users', member.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+                    if (userDocSnap.exists()) {
+                        lastLogin = userDocSnap.data().lastLogin?.toDate() || null;
+                    }
+                }
+
                 return {
                     ...member,
                     points: totalPoints,
                     cityCount: citiesList.length,
+                    lastLogin: lastLogin,
                 };
             });
 
@@ -56,7 +78,7 @@ const AllianceMembers = () => {
         };
 
         fetchMemberDetails();
-    }, [playerAlliance, worldId, calculateTotalPoints]);
+    }, [playerAlliance, worldId, calculateTotalPoints, canViewActivity]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...detailedMembers];
@@ -98,6 +120,23 @@ const AllianceMembers = () => {
         return '';
     };
 
+    // #comment Helper function to format the last login time
+    const formatLastLogin = (date) => {
+        if (!date) return 'Unknown';
+        const now = new Date();
+        const diffSeconds = Math.round((now - date) / 1000);
+        const diffMinutes = Math.round(diffSeconds / 60);
+        const diffHours = Math.round(diffMinutes / 60);
+        const diffDays = Math.round(diffHours / 24);
+
+        if (diffSeconds < 60) return `${diffSeconds}s ago`;
+        if (diffMinutes < 60) return `${diffMinutes}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+    };
+
     if (loading) {
         return <div>Loading member data...</div>;
     }
@@ -120,6 +159,11 @@ const AllianceMembers = () => {
                         <th className="p-2 cursor-pointer text-right" onClick={() => requestSort('cityCount')}>
                             Cities{getSortIndicator('cityCount')}
                         </th>
+                        {canViewActivity && (
+                            <th className="p-2 cursor-pointer text-right" onClick={() => requestSort('lastLogin')}>
+                                Last Online{getSortIndicator('lastLogin')}
+                            </th>
+                        )}
                     </tr>
                 </thead>
                 <tbody>
@@ -129,6 +173,9 @@ const AllianceMembers = () => {
                             <td className="p-2">{member.rank}</td>
                             <td className="p-2 text-right">{member.points.toLocaleString()}</td>
                             <td className="p-2 text-right">{member.cityCount}</td>
+                            {canViewActivity && (
+                                <td className="p-2 text-right">{formatLastLogin(member.lastLogin)}</td>
+                            )}
                         </tr>
                     ))}
                 </tbody>
