@@ -6,7 +6,7 @@ import { useGame } from '../../contexts/GameContext';
 
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
-    const { worldId, playerCities } = useGame();
+    const { worldId} = useGame();
     const [targetTag, setTargetTag] = useState('');
     const [message, setMessage] = useState('');
 
