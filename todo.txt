@@ -1,5 +1,3 @@
-
-- on trade to show the from and to
 - put special buildings on cityscape
 - timer for the tooltip to lock until you click somewhere else
 - add icons to back to world selection and logout
