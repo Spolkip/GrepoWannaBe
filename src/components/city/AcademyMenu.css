@@ -90,7 +90,7 @@
     padding: 8px;
     position: absolute;
     z-index: 10;
-    bottom: 125%;
+    top: 125%; 
     left: 50%;
     margin-left: -110px;
     transition: opacity 0.3s;
@@ -100,12 +100,12 @@
 .research-tooltip::after {
     content: "";
     position: absolute;
-    top: 100%;
+    bottom: 100%; 
     left: 50%;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
-    border-color: #8B4513 transparent transparent transparent;
+    border-color: transparent transparent #8B4513 transparent; 
 }
 
 .tooltip-title { font-weight: bold; font-size: 1rem; color: #8B4513; }

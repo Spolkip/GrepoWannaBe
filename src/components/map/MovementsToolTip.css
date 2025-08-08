@@ -2,7 +2,7 @@
     position: absolute;
     top: calc(100% + 10px); /* #comment Position below the trigger */
     left: 0;
-    width: 0px;
+    width: 450px;
     background-color: #F5DEB3;
     border: 8px solid;
     border-image-slice: 1;
@@ -10,8 +10,6 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     z-index: 100;
     color: #4a2c2a;
-    max-height: 500px; /* #comment Increased max-height to prevent scrolling */
-    overflow-y: auto;
     position: relative; /* #comment Added for positioning context for the timer */
 }
 

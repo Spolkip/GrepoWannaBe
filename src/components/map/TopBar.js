@@ -1,5 +1,5 @@
 // src/components/map/TopBar.js
-import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import woodImage from '../../images/resources/wood.png';
 import stoneImage from '../../images/resources/stone.png';
@@ -10,10 +10,10 @@ import tradeicon from '../../images/trade.png';
 import movementicon from '../../images/movement.png'
 import './TopBar.css';
 
-// Lazy load the tooltip components to prevent circular dependencies
-const RecruitmentTooltip = lazy(() => import('../city/RecruitmentToolTip'));
-const TradesTooltip = lazy(() => import('./TradesToolTip'));
-const MovementsTooltip = lazy(() => import('./MovementsToolTip'));
+// #comment Import tooltips directly to place them inside relative containers
+import RecruitmentTooltip from '../city/RecruitmentToolTip';
+import TradesTooltip from './TradesToolTip';
+import MovementsTooltip from './MovementsToolTip';
 
 
 // A dropdown to show all player cities and allow switching between them
@@ -153,6 +153,8 @@ const TopBar = ({
     const activityTrackerRef = useRef(null);
     const [isEditingCityName, setIsEditingCityName] = useState(false);
     const [newCityName, setNewCityName] = useState('');
+    const [lockCountdown, setLockCountdown] = useState(5);
+    const countdownIntervalRef = useRef(null);
 
     // #comment This hook handles clicks outside the activity tracker to close a locked tooltip.
     useEffect(() => {
@@ -170,19 +172,30 @@ const TopBar = ({
 
     // #comment This effect automatically locks the tooltip after a delay if the user hovers over it.
     useEffect(() => {
-        // Clear any existing lock timer when the active tooltip changes or it gets locked/unlocked
         clearTimeout(lockTooltipTimeoutRef.current);
+        clearInterval(countdownIntervalRef.current);
+        setLockCountdown(5);
 
-        // If a tooltip is active and not yet locked, start a timer to lock it
         if (activeTooltip && !isTooltipLocked) {
+            countdownIntervalRef.current = setInterval(() => {
+                setLockCountdown(prev => {
+                    if (prev <= 1) {
+                        clearInterval(countdownIntervalRef.current);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+
             lockTooltipTimeoutRef.current = setTimeout(() => {
                 setIsTooltipLocked(true);
-            }, 5000); // 5 seconds
+                clearInterval(countdownIntervalRef.current);
+            }, 5000);
         }
 
-        // Cleanup function to clear the timer if the component unmounts or dependencies change
         return () => {
             clearTimeout(lockTooltipTimeoutRef.current);
+            clearInterval(countdownIntervalRef.current);
         };
     }, [activeTooltip, isTooltipLocked]);
 
@@ -352,29 +365,45 @@ const TopBar = ({
                             <img src={recruitmenticon} alt="Recruitment" className="activity-icon-image" />
                         </button>
                         {recruitmentCount > 0 && <span className="activity-badge">{recruitmentCount}</span>}
+                        {activeTooltip === 'recruitment' && (
+                            <RecruitmentTooltip 
+                                playerCities={playerCities} 
+                                onCancelTrain={onCancelTrain} 
+                                isLocked={isTooltipLocked} 
+                                countdown={lockCountdown} 
+                            />
+                        )}
                     </div>
                     <div className="relative" onMouseEnter={() => handleMouseEnter('trades')} onClick={(e) => handleTooltipClick(e, 'trades')}>
-                        <img src={tradeicon} alt="Trade" className="activity-icon-image" />
+                         <button className="activity-icon-image-container">
+                            <img src={tradeicon} alt="Trade" className="activity-icon-image" />
+                        </button>
                         {tradeCount > 0 && <span className="activity-badge">{tradeCount}</span>}
+                        {activeTooltip === 'trades' && (
+                            <TradesTooltip 
+                                movements={movements} 
+                                combinedSlots={combinedSlots} 
+                                onCancel={onCancelMovement} 
+                                isLocked={isTooltipLocked} 
+                                countdown={lockCountdown} 
+                            />
+                        )}
                     </div>
                      <div className="relative" onMouseEnter={() => handleMouseEnter('movements')} onClick={(e) => handleTooltipClick(e, 'movements')}>
-                        <button onClick={(e) => { e.stopPropagation(); onOpenMovements(); }} className={`activity-icon ${isUnderAttack ? 'glowing-attack-icon' : ''}`}>
+                        <button onClick={(e) => { e.stopPropagation(); onOpenMovements(); }} className={`activity-icon-image-container ${isUnderAttack ? 'glowing-attack-icon' : ''}`}>
                             <img src={movementicon} alt="Movement" className="activity-icon-image" />
                         </button>
                         {movementCount > 0 && <span className="activity-badge">{movementCount}</span>}
-                    </div>
-                    
-                    <Suspense fallback={null}>
-                        {activeTooltip === 'recruitment' && (
-                            <RecruitmentTooltip playerCities={playerCities} onCancelTrain={onCancelTrain} />
-                        )}
-                        {activeTooltip === 'trades' && (
-                            <TradesTooltip movements={movements} combinedSlots={combinedSlots} onCancel={onCancelMovement} />
-                        )}
                         {activeTooltip === 'movements' && (
-                            <MovementsTooltip movements={movements} combinedSlots={combinedSlots} onCancel={onCancelMovement} />
+                            <MovementsTooltip 
+                                movements={movements} 
+                                combinedSlots={combinedSlots} 
+                                onCancel={onCancelMovement} 
+                                isLocked={isTooltipLocked} 
+                                countdown={lockCountdown} 
+                            />
                         )}
-                    </Suspense>
+                    </div>
                 </div>
                 {isEditingCityName ? (
                     <input

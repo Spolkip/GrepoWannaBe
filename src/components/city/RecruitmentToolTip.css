@@ -9,8 +9,6 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     z-index: 100;
     color: #4a2c2a;
-    max-height: 400px;
-    overflow-y: auto;
     position: relative; /* #comment Added for positioning context for the timer */
 }
 
