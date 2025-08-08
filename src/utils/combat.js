@@ -43,7 +43,7 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
     let currentAttackingUnits = { ...attackingUnits };
     let currentDefendingUnits = { ...defendingUnits };
 
-    // Function to calculate effective power considering counters
+    // #comment Function to calculate effective power considering counters
     const calculateEffectivePower = (units, opponentUnits, isAttacker, phalanxUnit, supportUnit) => {
         let totalPower = 0;
         let phalanxPower = 0;
@@ -65,11 +65,11 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
                 const opponentUnitCount = opponentUnits[opponentUnitId] || 0;
                 if (opponentUnitCount > 0) {
                     const opponentUnitInfo = unitConfig[opponentUnitId];
-                    if (unitInfo.counters && unitInfo.counters.includes(opponentUnitId)) {
+                    if (unitInfo.counters && opponentUnitInfo && unitInfo.counters.includes(opponentUnitId)) {
                         // If this unit counters the opponent unit, gain bonus attack
                         attack *= 1.2; // 20% attack bonus
                     }
-                    if (opponentUnitInfo.counters && opponentUnitInfo.counters.includes(unitId)) {
+                    if (opponentUnitInfo && opponentUnitInfo.counters && opponentUnitInfo.counters.includes(unitId)) {
                         // If opponent unit counters this unit, this unit's defense is reduced
                         defense *= 0.8; // 20% defense penalty
                     }
