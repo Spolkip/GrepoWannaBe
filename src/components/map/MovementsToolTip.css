@@ -1,7 +1,8 @@
 .activity-tooltip {
     position: absolute;
     top: calc(100% + 10px); /* #comment Position below the trigger */
-    left: 0;
+    left: 50%; /* #comment Center the tooltip */
+    transform: translateX(-50%); /* #comment Adjust for centering */
     width: 450px;
     background-color: #F5DEB3;
     border: 8px solid;

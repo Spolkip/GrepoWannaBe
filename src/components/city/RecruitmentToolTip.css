@@ -1,17 +1,18 @@
-/* src/components/city/RecruitmentTooltip.css */
 .activity-tooltip {
     position: absolute;
     top: calc(100% + 10px);
-    left: 0;
-    width: 350px;
+    left: 50%; /* #comment Center the tooltip */
+    transform: translateX(-50%); /* #comment Adjust for centering */
+    width: 450px; /* Wider to accommodate movement items */
     background-color: #F5DEB3;
-    border: 4px solid #8B4513;
+    border: 8px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     z-index: 100;
     color: #4a2c2a;
     /* #comment Removed conflicting relative positioning */
 }
-
 .tooltip-item {
     display: flex;
     align-items: center;
@@ -65,9 +66,9 @@
 
 .tooltip-lock-timer {
     position: absolute;
-    bottom: -10px; /* #comment Position half outside */
+    bottom: -14px; /* #comment Position half outside */
     right: -14px; /* #comment Position half outside */
-    width: 20px;
+    width: 28px;
     height: 28px;
     background-color: #4a2c2a;
     color: #f0e68c;
