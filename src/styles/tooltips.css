@@ -115,12 +115,12 @@
     color: #6b4a2b;
 }
 
-/* New styles for resource tooltip */
+/* #comment Corrected styles for resource tooltip */
 .resource-tooltip {
     position: absolute;
-    bottom: -10px; /* Adjust as needed */
+    top: calc(100% + 5px); /* Position below the parent */
     left: 50%;
-    transform: translate(-50%, 100%);
+    transform: translateX(-50%); /* Center it */
     background-color: rgba(0, 0, 0, 0.9);
     border: 1px solid #4a2c2a;
     border-radius: 4px;
