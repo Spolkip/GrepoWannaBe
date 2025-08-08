@@ -14,6 +14,7 @@ import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import DivinePowers from './city/DivinePowers';
 import QuestsButton from './QuestsButton';
+import MapOverlay from './map/MapOverlay'; // #comment Import the new overlay component
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -66,7 +67,28 @@ const MapView = ({
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
+    const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 }); // #comment State for mouse coordinates
     
+    // #comment Effect to track mouse coordinates on the map
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+
+        const handleMouseMove = (e) => {
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const mapX = Math.floor((-pan.x + mouseX) / (32 * zoom));
+            const mapY = Math.floor((-pan.y + mouseY) / (32 * zoom));
+
+            setMouseCoords({ x: mapX, y: mapY });
+        };
+
+        viewport.addEventListener('mousemove', handleMouseMove);
+        return () => viewport.removeEventListener('mousemove', handleMouseMove);
+    }, [pan, zoom]);
+
     const fetchAllCityPoints = useCallback(async () => {
         if (!worldId) return;
     
@@ -348,8 +370,18 @@ const MapView = ({
                         isAllianceMember={!!playerAlliance}
                         handleOpenEvents={handleOpenEvents}
                     />
-                    <SideInfoPanel gameState={gameState} className="absolute top-[55%] right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
+                    <SideInfoPanel gameState={gameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                     
+                    {/* #comment Add the MapOverlay component */}
+                    <MapOverlay 
+                        mouseCoords={mouseCoords}
+                        pan={pan}
+                        zoom={zoom}
+                        viewportSize={viewportSize}
+                        worldState={worldState}
+                        playerCities={playerCities}
+                    />
+
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
                         <div className="map-border top" style={{ opacity: borderOpacity.top }}></div>
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>

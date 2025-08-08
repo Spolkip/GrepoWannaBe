@@ -21,7 +21,6 @@
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
 - fix the click area of tooltips
-- on alliance members add when the lastly log on
 - add seas
 - add minimap
 - add coords

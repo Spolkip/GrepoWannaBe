@@ -59,7 +59,7 @@
     color: #4a2c2a;
     
     /* Centered positioning for both views */
-    @apply absolute top-1/2 -translate-y-1/2 z-30;
+    @apply absolute top-[55%] -translate-y-1/2 z-30;
     
     /* #comment Transparency on hover effect */
     @apply opacity-40 transition-opacity duration-300 ease-in-out;

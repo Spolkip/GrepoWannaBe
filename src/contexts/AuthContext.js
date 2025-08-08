@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -20,8 +20,14 @@ export const AuthProvider = ({ children }) => {
             unsubscribeProfile(); 
 
             if (user) {
-                setLoading(true);
                 const userDocRef = doc(db, "users", user.uid);
+                
+                // #comment Update lastLogin timestamp on authentication
+                updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
+                    console.error("Failed to update last login time:", err);
+                });
+
+                setLoading(true);
                 unsubscribeProfile = onSnapshot(userDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setUserProfile(docSnap.data());

@@ -10,6 +10,7 @@ import './styles/tooltips.css';
 import './components/ReportsView.css'; // Import the new CSS file
 import './components/map/MovementModal.css'; // Import the new CSS file
 import './components/map/OtherCityModal.css'; // Import the new CSS file
+import './components/map/MapOverlay.css'; // #comment Import the new overlay CSS
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 
