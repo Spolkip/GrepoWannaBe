@@ -428,7 +428,7 @@ const TopBar = ({
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
                     <span className="text-yellow-800 font-bold">{Math.floor(resources.wood)}</span>
                     {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
-                    {activeTooltip === 'wood' && productionRates && (
+                    {activeTooltip === 'wood' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="wood"
                             production={productionRates.wood}
@@ -446,7 +446,7 @@ const TopBar = ({
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
                     <span className="text-gray-600 font-bold">{Math.floor(resources.stone)}</span>
                      {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
-                     {activeTooltip === 'stone' && productionRates && (
+                     {activeTooltip === 'stone' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="stone"
                             production={productionRates.stone}
@@ -464,7 +464,7 @@ const TopBar = ({
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
                     <span className="text-blue-800 font-bold">{Math.floor(resources.silver)}</span>
                      {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
-                     {activeTooltip === 'silver' && productionRates && (
+                     {activeTooltip === 'silver' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="silver"
                             production={productionRates.silver}
@@ -486,7 +486,7 @@ const TopBar = ({
                     <span className="text-xl mr-2">{happinessIcon}</span>
                     <span className="font-bold text-green-800">{happiness}%</span>
                     {activeTooltip === 'happiness' && (
-                        <div className="resource-tooltip">
+                        <div className="resource-tooltip happiness-tooltip">
                             <pre>{happinessTooltip}</pre>
                             <div className="tooltip-lock-timer">
                                 {isTooltipLocked ? '🔒' : lockCountdown}
