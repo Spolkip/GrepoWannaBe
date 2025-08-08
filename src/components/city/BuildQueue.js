@@ -49,11 +49,18 @@ const QueueItem = ({ item, isFirst, onCancel }) => {
     if (!building) return null;
     const imageSrc = buildingImages[building.image];
 
+    const isDemolition = item.type === 'demolish';
+    const title = isDemolition 
+        ? `Demolish ${building.name} to Lvl ${item.level}`
+        : `${building.name} (Level ${item.level})`;
+    const levelText = isDemolition ? ` Lvl ${item.level}` : `^${item.level}`;
+
+
     return (
-        <div className="relative w-16 h-16 bg-gray-700 border-2 border-gray-600 rounded-md flex-shrink-0" title={`${building.name} (Level ${item.level})`}>
+        <div className={`relative w-16 h-16 bg-gray-700 border-2 rounded-md flex-shrink-0 ${isDemolition ? 'border-red-500' : 'border-gray-600'}`} title={title}>
             <img src={imageSrc} alt={building.name} className="w-full h-full object-contain p-1" />
-            <span className="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-bl-md z-10">
-                ^{item.level}
+             <span className={`absolute top-0 right-0 text-black text-xs font-bold px-1 rounded-bl-md z-10 ${isDemolition ? 'bg-red-500 text-white' : 'bg-yellow-500'}`}>
+                {levelText}
             </span>
             {isFirst && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs text-center py-0.5 font-mono">
@@ -82,7 +89,7 @@ const BuildQueue = ({ buildQueue, onCancel }) => {
             </div>
             <div className="flex-grow flex items-center gap-3">
                 {buildQueue && buildQueue.map((item, index) => (
-                    <QueueItem key={`${item.buildingId}-${index}`} item={item} isFirst={index === 0} onCancel={() => onCancel(index)} />
+                    <QueueItem key={item.id || `${item.buildingId}-${index}`} item={item} isFirst={index === 0} onCancel={() => onCancel(item)} />
                 ))}
                 {emptySlots.map((_, index) => (
                     <div key={`empty-${index}`} className="w-16 h-16 bg-gray-800 border-2 border-dashed border-gray-600 rounded-md flex items-center justify-center flex-shrink-0">

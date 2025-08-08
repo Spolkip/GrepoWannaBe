@@ -76,7 +76,17 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         ['city_wall', 'cave', 'special_building_plot']
     ];
 
-    const isBuildingInQueue = (buildingId) => (buildQueue || []).some(task => task.buildingId === buildingId);
+    // #comment Calculate the final level of a building after all queued tasks are complete.
+    const getFinalLevelInQueue = (buildingId) => {
+        let finalLevel = buildings[buildingId]?.level || 0;
+        const tasksForBuilding = (buildQueue || []).filter(task => task.buildingId === buildingId);
+        if (tasksForBuilding.length > 0) {
+            // The final level is the target level of the last task in the queue for this building.
+            finalLevel = tasksForBuilding[tasksForBuilding.length - 1].level;
+        }
+        return finalLevel;
+    };
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
@@ -142,7 +152,15 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                 .filter(([id, data]) => data.level > 0 && buildingConfig[id].constructible !== false && id !== 'senate')
                                 .map(([id, data]) => {
                                     const config = buildingConfig[id];
-                                    const inQueue = isBuildingInQueue(id);
+                                    const finalLevel = getFinalLevelInQueue(id);
+                                    const canDemolish = finalLevel > 0;
+                                    const isQueueFull = (buildQueue || []).length >= 5;
+                                    
+                                    let buttonText = 'Demolish';
+                                    if (finalLevel > 1) {
+                                        buttonText = `Demolish to Lvl ${finalLevel - 1}`;
+                                    }
+
                                     return (
                                         <div key={id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
                                             <div>
@@ -150,11 +168,11 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                                 <p className="text-sm text-gray-300">Level {data.level}</p>
                                             </div>
                                             <button 
-                                                onClick={() => onDemolish(id, setMessage)}
-                                                disabled={inQueue || (buildQueue || []).length >= 5}
-                                                className={`py-2 px-4 rounded font-bold ${inQueue || (buildQueue || []).length >= 5 ? 'btn-disabled' : 'btn-danger'}`}
+                                                onClick={() => onDemolish(id)}
+                                                disabled={!canDemolish || isQueueFull}
+                                                className={`py-2 px-4 rounded font-bold ${!canDemolish || isQueueFull ? 'btn-disabled' : 'btn-danger'}`}
                                             >
-                                                {inQueue ? 'In Queue' : 'Demolish'}
+                                                {isQueueFull ? 'Queue Full' : !canDemolish ? 'At Lvl 0' : buttonText}
                                             </button>
                                         </div>
                                     );

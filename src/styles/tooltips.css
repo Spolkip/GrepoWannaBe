@@ -154,7 +154,7 @@
 
 .happiness-tooltip {
     left: auto;
-    right: -10%;
+    right: 0%;
     transform: none;
     margin-right: 10px;
 }

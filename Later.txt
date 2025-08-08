@@ -5,14 +5,14 @@ Later:
 - be able to surrender if you have one city and you are about to lose it 
 
 Maybe: 
-- add cities inside the island
+
 - fix population and resource max
 - add presets for the workers
+- add cities inside the island
 
 Bugs:
-- Allince doesn't work on all cities
+
 - storage says the limit on resources but in the background it keeps stacking
-- Demolish goes to 0 and not lowering by 1 level
 - Farm Need population to build
 - Barracks last number does not get deleted there is always 1 number left when using backspace
 - Academy demolish it always with research and does not deletes them
@@ -27,6 +27,7 @@ Bugs:
 - Trading on with your other cities is not working
 - Can skip building levels by deleting the first level in the building queue after building 5 lvl of a building
 - Market Spaming Click Create Offer makes more
+- When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
  
 Admin panel Bugs:
 - When going to map view admin cheats get disable
@@ -38,5 +39,6 @@ Models:
 - add a battle simulation
 - add troops into the city
 
-Fix: 
-Indicator visual on both people
+Fixed: 
+- Indicator visual on both people
+- Allince doesn't work on all cities

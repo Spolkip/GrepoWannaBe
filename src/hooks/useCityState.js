@@ -336,8 +336,28 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
             processSingleQueue('buildQueue', (completed, updates) => {
                 updates.buildings = updates.buildings || { ...currentState.buildings };
+                updates.resources = updates.resources || { ...currentState.resources };
+            
                 completed.forEach(task => {
-                    if (task.isSpecial) {
+                    if (task.type === 'demolish') {
+                        // #comment Handle demolition completion
+                        if (updates.buildings[task.buildingId]) {
+                            updates.buildings[task.buildingId].level = task.level; // task.level is currentLevel - 1
+                        }
+                        
+                        // #comment Calculate and apply resource refund
+                        const costToBuildLastLevel = getUpgradeCost(task.buildingId, task.currentLevel);
+                        const refund = {
+                            wood: Math.floor(costToBuildLastLevel.wood * 0.5),
+                            stone: Math.floor(costToBuildLastLevel.stone * 0.5),
+                            silver: Math.floor(costToBuildLastLevel.silver * 0.5),
+                        };
+            
+                        updates.resources.wood += refund.wood;
+                        updates.resources.stone += refund.stone;
+                        updates.resources.silver += refund.silver;
+            
+                    } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
                     } else {
                         if (!updates.buildings[task.buildingId]) {
@@ -397,7 +417,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost]);
 
 useEffect(() => {
     const autoSave = async () => {

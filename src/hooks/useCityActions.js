@@ -15,7 +15,7 @@ export const useCityActions = ({
     cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
     getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
     setMessage, openModal, closeModal, setModalState,
-    setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
+    setIsInstantBuild, setIsInstantResearch, setIsInstantUnits, isInstantBuild
 }) => {
     const { worldState } = useGame();
 
@@ -110,6 +110,7 @@ export const useCityActions = ({
             const endTime = new Date(lastEndTime + cost.time * 1000);
 
             const newQueueItem = {
+                id: uuidv4(),
                 buildingId,
                 level: nextLevelToQueue,
                 endTime: endTime,
@@ -130,45 +131,61 @@ export const useCityActions = ({
         }
     };
 
-    const handleCancelBuild = async (itemIndex) => {
+    const handleCancelBuild = async (itemToCancel) => {
         const currentState = cityGameState;
-        if (!currentState || !currentState.buildQueue || itemIndex < 0 || itemIndex >= currentState.buildQueue.length) {
+        if (!currentState || !currentState.buildQueue) {
             return;
         }
-
+    
+        const itemIndex = currentState.buildQueue.findIndex(item => item.id === itemToCancel.id);
+    
+        if (itemIndex === -1) {
+            console.error("Could not find item to cancel in build queue.");
+            return;
+        }
+    
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
         
-        let cost;
-        if (canceledTask.isSpecial) {
-            cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
-        } else {
-            cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+        const newGameState = { ...currentState, buildQueue: newQueue };
+    
+        // #comment Only refund resources for upgrades, not demolitions
+        if (canceledTask.type !== 'demolish') {
+            let cost;
+            if (canceledTask.isSpecial) {
+                cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
+            } else {
+                cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+            }
+    
+            newGameState.resources = {
+                ...currentState.resources,
+                wood: currentState.resources.wood + cost.wood,
+                stone: currentState.resources.stone + cost.stone,
+                silver: currentState.resources.silver + cost.silver,
+            };
+    
+            if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
+                newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
+            }
         }
-
-        const newResources = {
-            ...currentState.resources,
-            wood: currentState.resources.wood + cost.wood,
-            stone: currentState.resources.stone + cost.stone,
-            silver: currentState.resources.silver + cost.silver,
-        };
-        
-        const newGameState = { ...currentState, resources: newResources, buildQueue: newQueue };
-
-        if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
-            newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
-        }
-
+    
+        // #comment Recalculate end times for the rest of the queue
         for (let i = itemIndex; i < newQueue.length; i++) {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
             const taskToUpdate = newQueue[i];
             
             let taskTime;
             if (taskToUpdate.isSpecial) {
                 taskTime = 7200;
-            } else {
+            } else if (taskToUpdate.type === 'demolish') {
+                const costConfig = buildingConfig[taskToUpdate.buildingId].baseCost;
+                const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, taskToUpdate.currentLevel - 1));
+                taskTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
+            }
+            else {
                 taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
             }
             
@@ -182,28 +199,71 @@ export const useCityActions = ({
     
     const handleDemolish = async (buildingId) => {
         const currentState = cityGameState;
-        const building = currentState.buildings[buildingId];
-        if (!building || building.level === 0) {
-            setMessage("Building not found or already at level 0.");
+        if (!currentState || !worldId) return;
+    
+        const currentQueue = currentState.buildQueue || [];
+        if (currentQueue.length >= 5) {
+            setMessage("Build queue is full (max 5).");
             return;
         }
-
-        const cost = getUpgradeCost(buildingId, building.level);
-        const refund = {
-            wood: Math.floor(cost.wood * 0.5),
-            stone: Math.floor(cost.stone * 0.5),
-            silver: Math.floor(cost.silver * 0.5),
+    
+        const building = currentState.buildings[buildingId];
+        if (!building) {
+            setMessage("Building not found.");
+            return;
+        }
+    
+        // #comment Calculate the final level of the building after the current queue is processed.
+        let finalLevel = building.level;
+        const tasksForBuilding = currentQueue.filter(task => task.buildingId === buildingId);
+        // Tasks are sequential, so the last task for this building determines its final level.
+        if (tasksForBuilding.length > 0) {
+            finalLevel = tasksForBuilding[tasksForBuilding.length - 1].level;
+        }
+    
+        if (finalLevel <= 0) {
+            setMessage("Building is already at or being demolished to level 0.");
+            return;
+        }
+    
+        const levelToDemolishFrom = finalLevel;
+        const targetLevel = finalLevel - 1;
+    
+        // #comment Demolition time is half the time it took to build the level being demolished.
+        const costConfig = buildingConfig[buildingId].baseCost;
+        const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, levelToDemolishFrom - 1));
+        const demolitionTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
+    
+        let lastEndTime = Date.now();
+        if (currentQueue.length > 0) {
+            const lastQueueItem = currentQueue[currentQueue.length - 1];
+            if (lastQueueItem.endTime) {
+                lastEndTime = lastQueueItem.endTime.toDate
+                    ? lastQueueItem.endTime.toDate().getTime()
+                    : new Date(lastQueueItem.endTime).getTime();
+            }
+        }
+        const endTime = new Date(lastEndTime + demolitionTime * 1000);
+    
+        const newQueueItem = {
+            id: uuidv4(),
+            type: 'demolish',
+            buildingId,
+            level: targetLevel, // Target level after demolition
+            currentLevel: levelToDemolishFrom, // Level being demolished (for refund calculation)
+            endTime: endTime,
         };
-        
+    
         const newGameState = JSON.parse(JSON.stringify(currentState));
-        newGameState.resources.wood += refund.wood;
-        newGameState.resources.stone += refund.stone;
-        newGameState.resources.silver += refund.silver;
-        newGameState.buildings[buildingId].level = 0;
-
-        await saveGameState(newGameState);
-        setCityGameState(newGameState);
-        setMessage(`${buildingConfig[buildingId].name} has been demolished.`);
+        newGameState.buildQueue = [...currentQueue, newQueueItem];
+    
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+        } catch (error) {
+            console.error("Error adding demolition to build queue:", error);
+            setMessage("Could not start demolition. Please try again.");
+        }
     };
 
     const handleStartResearch = async (researchId) => {
