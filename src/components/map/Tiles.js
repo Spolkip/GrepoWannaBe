@@ -56,7 +56,9 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
     if (slotData.ownerId) {
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
-        const points = cityPoints[slotData.id] ? cityPoints[slotData.id].toLocaleString() : '...';
+        // #comment More robust points display, checking both the direct prop and the cityPoints map
+        const points = slotData.points?.toLocaleString() || cityPoints[slotData.id]?.toLocaleString() || '...';
+
 
         let troopsHTML = '';
         // #comment Check for troops in own city or in scouted reports for other cities

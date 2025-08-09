@@ -23,6 +23,7 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity }) 
                 </div>
                 <div className="other-city-modal-content">
                     <div className="info-box">
+                        <p className="text-center font-bold mb-2">Points: {city.points?.toLocaleString() || 'Calculating...'}</p>
                         <TroopDisplay units={city.units} unitsData={unitsData} title="Garrison" />
                     </div>
                     <div className="action-buttons-grid">

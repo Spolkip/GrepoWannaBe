@@ -2,6 +2,7 @@
 import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
 import { useGame } from '../contexts/GameContext';
+import { useCityState } from './useCityState'; // #comment Import useCityState to calculate points
 
 /**
  * #comment Encapsulates click handling logic for map objects.
@@ -21,7 +22,8 @@ export const useMapClickHandler = ({
     playerAlliance,
     activeCityId // #comment Receive activeCityId to differentiate between active and inactive cities
 }) => {
-    const { playerCities } = useGame();
+    const { playerCities, worldId } = useGame();
+    const { calculateTotalPoints } = useCityState(worldId); // #comment Get the point calculation function
 
     const onCitySlotClick = (e, slotData) => {
         if (!playerCity) {
@@ -35,22 +37,29 @@ export const useMapClickHandler = ({
         }
 
         if (slotData.ownerId === currentUser.uid) {
+            // #comment The slotData from the map tile should have a unique ID which is the slotId.
+            // We find the full city object from our playerCities context using this slotId.
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
+
             if (city) {
-                // #comment If the clicked city is the currently active one, go into city view.
                 if (city.id === activeCityId) {
+                    // #comment If the clicked city is the currently active one, go into city view.
                     showCity(city.id);
                 } else {
-                    // #comment If it's one of the player's other cities, open the new inactive city modal.
-                    const distance = calculateDistance(playerCity, slotData);
+                    // #comment If it's one of the player's other cities, open the inactive city modal.
+                    const distance = calculateDistance(playerCity, city);
                     setTravelTimeInfo({ distance });
-                    // #comment FIX: Merge ownerId from slotData to ensure it's available in the modal.
-                    const cityWithOwnerData = { ...city, ownerId: slotData.ownerId, ownerUsername: slotData.ownerUsername };
-                    openModal('ownInactiveCity', cityWithOwnerData);
+                    const cityDataForModal = { 
+                        ...city, 
+                        points: calculateTotalPoints(city) 
+                    };
+                    closeModal('city'); // #comment Ensure other modals are closed
+                    openModal('ownInactiveCity', cityDataForModal);
                 }
             } else {
-                console.error("Clicked on own city slot, but no matching city found.", slotData);
-                setMessage("Could not find data for your city.");
+                // #comment This error indicates a mismatch between map data and player city data.
+                console.error("Clicked on own city slot, but no matching city found in playerCities context.", { slotData, playerCities });
+                setMessage("Could not retrieve full data for your city.");
             }
         } else if (slotData.ownerId) {
             const distance = calculateDistance(playerCity, slotData);
