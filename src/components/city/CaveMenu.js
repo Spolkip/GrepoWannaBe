@@ -14,7 +14,7 @@ const CaveMenu = ({ cityGameState, onClose, saveGameState, currentUser, worldId 
     }
 
     const caveLevel = cityGameState.buildings.cave?.level || 0;
-    const maxSilverStorage = caveLevel * 1000; // Example: 1000 silver per cave level
+    const maxSilverStorage = caveLevel === 10 ? Infinity : caveLevel * 1000; // #comment Set to Infinity if level 10
     const currentSilverInCave = cityGameState.cave?.silver || 0;
 
     const handleDeposit = async () => {
@@ -29,7 +29,7 @@ const CaveMenu = ({ cityGameState, onClose, saveGameState, currentUser, worldId 
             return;
         }
 
-        if (currentSilverInCave + amount > maxSilverStorage) {
+        if (caveLevel < 10 && currentSilverInCave + amount > maxSilverStorage) {
             setMessage(`Cannot deposit. Cave storage limit is ${maxSilverStorage}.`);
             return;
         }
@@ -79,7 +79,7 @@ const CaveMenu = ({ cityGameState, onClose, saveGameState, currentUser, worldId 
             <div className="p-4 bg-gray-800 text-white rounded-lg shadow-lg">
                 <h2 className="text-2xl font-bold mb-4 text-center text-yellow-400">Cave</h2>
                 <p className="text-center mb-4">
-                    Silver in Cave: <span className="font-semibold text-green-400">{currentSilverInCave}</span> / <span className="font-semibold text-blue-400">{maxSilverStorage}</span>
+                    Silver in Cave: <span className="font-semibold text-green-400">{currentSilverInCave.toLocaleString()}</span> / <span className="font-semibold text-blue-400">{maxSilverStorage === Infinity ? 'Unlimited' : maxSilverStorage.toLocaleString()}</span>
                 </p>
 
                 <div className="mb-6">

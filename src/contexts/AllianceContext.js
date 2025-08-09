@@ -227,8 +227,15 @@ export const AllianceProvider = ({ children }) => {
             }
             const targetUsername = targetUserDoc.data().username;
 
-            // #comment Add a document to the invitations subcollection for tracking
+            // #comment Check if an invitation already exists
             const invitesRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'invitations');
+            const q = query(invitesRef, where('invitedUserId', '==', targetUserId));
+            const existingInviteSnap = await getDocs(q);
+            if (!existingInviteSnap.empty) {
+                throw new Error("An invitation has already been sent to this player.");
+            }
+
+            // #comment Add a document to the invitations subcollection for tracking
             await addDoc(invitesRef, {
                 invitedUserId: targetUserId,
                 invitedUsername: targetUsername,
@@ -325,13 +332,20 @@ export const AllianceProvider = ({ children }) => {
     // accept an invitation to join an alliance
     const acceptAllianceInvitation = async (allianceId) => {
         if (!currentUser || !worldId) return;
+
+        // #comment Check if user is already in an alliance before doing anything
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const gameDocSnap = await getDoc(gameDocRef);
+        if (gameDocSnap.exists() && gameDocSnap.data().alliance) {
+            alert("You are already in an alliance. Please leave your current alliance before joining a new one.");
+            return;
+        }
     
         const citiesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
         const citiesSnap = await getDocs(citiesRef);
         const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
 
         const newAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
-        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
     
         try {
             await runTransaction(db, async (transaction) => {
@@ -384,6 +398,15 @@ export const AllianceProvider = ({ children }) => {
                 for (const slotId of userCitySlotIds) {
                     const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
                     transaction.update(citySlotRef, { alliance: allianceId, allianceName: newAllianceData.name });
+                }
+
+                // #comment Delete the pending invitation from the subcollection
+                const invitesRef = collection(db, 'worlds', worldId, 'alliances', allianceId, 'invitations');
+                const q = query(invitesRef, where('invitedUserId', '==', currentUser.uid));
+                const inviteSnapshot = await getDocs(q); // Use getDocs directly, not inside transaction
+                if (!inviteSnapshot.empty) {
+                    const inviteDocToDelete = inviteSnapshot.docs[0];
+                    transaction.delete(inviteDocToDelete.ref);
                 }
             });
         } catch (error) {
