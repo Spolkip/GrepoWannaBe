@@ -17,7 +17,7 @@ export const useCityActions = ({
     setMessage, openModal, closeModal, setModalState,
     setIsInstantBuild, setIsInstantResearch, setIsInstantUnits, isInstantBuild
 }) => {
-    const { worldState } = useGame();
+    const { worldState, playerCities } = useGame();
 
     const handleSpawnGodTown = async () => {
         if (!userProfile?.is_admin || !worldState) {
@@ -812,69 +812,71 @@ const handleTrainTroops = async (unitId, amount) => {
             const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', selectedSlot.id);
             const newCityDocRef = doc(collection(db, 'users', currentUser.uid, 'games', worldId, 'cities'));
 
-            const batch = writeBatch(db);
-            
-            const citiesCollectionRef = collection(db, 'users', currentUser.uid, 'games', worldId, 'cities');
-            const citiesSnapshot = await getDocs(citiesCollectionRef);
-            const existingCityNames = citiesSnapshot.docs.map(doc => doc.data().cityName);
-            
-            const baseName = `${userProfile.username}'s Colony`;
-            let finalCityName = baseName;
-            
-            if (existingCityNames.includes(finalCityName)) {
-                let count = 2;
-                let newName;
-                do {
-                    newName = `${baseName} ${count}`;
-                    count++;
-                } while (existingCityNames.includes(newName));
-                finalCityName = newName;
-            }
-
-            batch.update(citySlotRef, {
-                ownerId: currentUser.uid,
-                ownerUsername: userProfile.username,
-                cityName: finalCityName
-            });
-
-            const initialBuildings = {};
-            Object.keys(buildingConfig).forEach(id => {
-                initialBuildings[id] = { level: 0 };
-            });
-            ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
-                initialBuildings[id] = { level: 1 };
-            });
-
-            const newCityData = {
-                id: newCityDocRef.id,
-                slotId: selectedSlot.id,
-                x: selectedSlot.x,
-                y: selectedSlot.y,
-                islandId: selectedSlot.islandId,
-                cityName: finalCityName,
-                playerInfo: cityGameState.playerInfo,
-                resources: { wood: 1000, stone: 1000, silver: 500 },
-                buildings: initialBuildings,
-                units: {},
-                wounded: {},
-                research: {},
-                worship: {},
-                cave: { silver: 0 },
-                buildQueue: [],
-                barracksQueue: [],
-                shipyardQueue: [],
-                divineTempleQueue: [],
-                healQueue: [],
-                lastUpdated: Date.now(),
-            };
-            
-            batch.set(newCityDocRef, newCityData);
-
+            // #comment Use a transaction to prevent race conditions when founding a new city via cheats.
             try {
-                await batch.commit();
-                setMessage(`New city "${finalCityName}" founded at (${selectedSlot.x}, ${selectedSlot.y})!`);
+                await runTransaction(db, async (transaction) => {
+                    const slotSnap = await transaction.get(citySlotRef);
+                    if (!slotSnap.exists() || slotSnap.data().ownerId !== null) {
+                        throw new Error("This location was taken while processing. Please try again.");
+                    }
+
+                    const existingCityNames = Object.values(playerCities).map(c => c.cityName);
+                    
+                    const baseName = `${userProfile.username}'s Colony`;
+                    let finalCityName = baseName;
+                    
+                    if (existingCityNames.includes(finalCityName)) {
+                        let count = 2;
+                        let newName;
+                        do {
+                            newName = `${baseName} ${count}`;
+                            count++;
+                        } while (existingCityNames.includes(newName));
+                        finalCityName = newName;
+                    }
+
+                    transaction.update(citySlotRef, {
+                        ownerId: currentUser.uid,
+                        ownerUsername: userProfile.username,
+                        cityName: finalCityName
+                    });
+
+                    const initialBuildings = {};
+                    Object.keys(buildingConfig).forEach(id => {
+                        initialBuildings[id] = { level: 0 };
+                    });
+                    ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
+                        initialBuildings[id] = { level: 1 };
+                    });
+
+                    const newCityData = {
+                        id: newCityDocRef.id,
+                        slotId: selectedSlot.id,
+                        x: selectedSlot.x,
+                        y: selectedSlot.y,
+                        islandId: selectedSlot.islandId,
+                        cityName: finalCityName,
+                        playerInfo: cityGameState.playerInfo,
+                        resources: { wood: 1000, stone: 1000, silver: 500 },
+                        buildings: initialBuildings,
+                        units: {},
+                        wounded: {},
+                        research: {},
+                        worship: {},
+                        cave: { silver: 0 },
+                        buildQueue: [],
+                        barracksQueue: [],
+                        shipyardQueue: [],
+                        divineTempleQueue: [],
+                        healQueue: [],
+                        lastUpdated: Date.now(),
+                    };
+                    
+                    transaction.set(newCityDocRef, newCityData);
+                });
+                setMessage(`New city founded successfully!`);
             } catch (error) {
-                console.error("Error founding city: ", error);
+                console.error("Error founding city with cheat: ", error);
                 setMessage(`Failed to found city: ${error.message}`);
             }
             return;

@@ -57,9 +57,13 @@ export const useMapClickHandler = ({
                     openModal('ownInactiveCity', cityDataForModal);
                 }
             } else {
-                // #comment This error indicates a mismatch between map data and player city data.
-                console.error("Clicked on own city slot, but no matching city found in playerCities context.", { slotData, playerCities });
-                setMessage("Could not retrieve full data for your city.");
+                // #comment Enhanced debugging for the city lookup issue.
+                console.error("City lookup failed. This is a data consistency issue.");
+                console.log("Searching for slotId:", slotData.id);
+                console.log("Available playerCities:", playerCities);
+                const availableSlotIds = Object.values(playerCities).map(c => c.slotId);
+                console.log("Available slotIds in playerCities context:", availableSlotIds);
+                setMessage("Data for your city is out of sync. Please try refreshing the page.");
             }
         } else if (slotData.ownerId) {
             const distance = calculateDistance(playerCity, slotData);
