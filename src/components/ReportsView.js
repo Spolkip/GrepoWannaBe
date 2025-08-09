@@ -201,6 +201,8 @@ const ReportsView = ({ onClose }) => {
         const outcome = report.outcome || {};
         const attacker = report.attacker || {};
         const defender = report.defender || {};
+        const defenderName = defender.cityName || defender.villageName || defender.ruinName || defender.townName || 'Unknown';
+
         switch (report.type) {
             case 'attack_god_town':
             case 'attack':
@@ -219,23 +221,25 @@ const ReportsView = ({ onClose }) => {
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.cityName || defender.villageName || 'Unknown'}</p>
+                                <p className="font-bold text-lg">{defenderName}</p>
                                 <p className="text-sm text-gray-500">{report.type === 'attack_village' ? 'Neutral' : (report.ownerUsername || 'Opponent')}</p>
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
-                                {renderTroopDisplay(attacker.units)}
+                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker</h4>
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
                                 {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
                                     <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
                                 )}
                             </div>
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender Units</h4>
-                                {renderTroopDisplay(defender.units || defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender</h4>
+                                {outcome.attackerWon ? (
+                                    <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                ) : (
+                                    <p className="mt-2 italic text-gray-500">Enemy forces remain unknown.</p>
+                                )}
                             </div>
                         </div>
                         {outcome.attackerWon && outcome.plunder && (
@@ -264,23 +268,25 @@ const ReportsView = ({ onClose }) => {
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.ruinName || 'Ancient Ruins'}</p>
+                                <p className="font-bold text-lg">{defenderName}</p>
                                 <p className="text-sm text-gray-500">Ancient Guardians</p>
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
-                                {renderTroopDisplay(attacker.units)}
+                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker</h4>
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
                                 {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
                                     <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
                                 )}
                             </div>
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
-                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Guardian Units</h4>
-                                {renderTroopDisplay(defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender</h4>
+                                {outcome.attackerWon ? (
+                                    <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                ) : (
+                                    <p className="mt-2 italic text-gray-500">Enemy forces remain unknown.</p>
+                                )}
                             </div>
                         </div>
                         {report.reward && (

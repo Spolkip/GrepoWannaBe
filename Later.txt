@@ -15,11 +15,7 @@ Bugs:
 - storage says the limit on resources but in the background it keeps stacking
 - Barracks last number does not get deleted there is always 1 number left when using backspace
 - Academy demolish it always with research and does not deletes them
-- Defult troops need to be remove
 - Agrotika xoria icons are Wrong
-- Attacks show all troops in enemy cities
-- Trading on with your other cities is not working
-- Market Spaming Click Create Offer makes more
 - When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
  
 Admin panel Bugs:
@@ -42,3 +38,7 @@ Fixed:
 - Can accept OLD Allince Invite 
 - Chat has no limit in text
 - Ruins attack icon movement doesn't happen after arriving
+- Trading on with your other cities is not working
+- Defult troops need to be remove
+- Market Spaming Click Create Offer makes more
+- Attacks show all troops in enemy cities

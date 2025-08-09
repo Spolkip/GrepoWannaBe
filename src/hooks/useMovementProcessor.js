@@ -123,6 +123,14 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${townData.name}`,
                         timestamp: serverTimestamp(),
                         outcome: combatResult,
+                        attacker: {
+                            cityName: originCityState.cityName,
+                            losses: combatResult.attackerLosses
+                        },
+                        defender: {
+                            townName: townData.name,
+                            ...(combatResult.attackerWon && { losses: combatResult.defenderLosses })
+                        },
                         rewards: { warPoints, resources: resourcesWon },
                         read: false,
                     };
@@ -199,8 +207,14 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${villageData.name}`,
                         timestamp: serverTimestamp(),
                         outcome: result,
-                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { villageName: villageData.name, troops: villageTroops, losses: result.defenderLosses },
+                        attacker: {
+                            cityName: originCityState.cityName,
+                            losses: result.attackerLosses
+                        },
+                        defender: {
+                            villageName: villageData.name,
+                            ...(result.attackerWon && { losses: result.defenderLosses })
+                        },
                         read: false,
                     };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
@@ -289,8 +303,14 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${ruinData.name}`,
                         timestamp: serverTimestamp(),
                         outcome: result,
-                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { ruinName: ruinData.name, troops: ruinData.troops, losses: result.defenderLosses },
+                        attacker: {
+                            cityName: originCityState.cityName,
+                            losses: result.attackerLosses
+                        },
+                        defender: {
+                            ruinName: ruinData.name,
+                            ...(result.attackerWon && { losses: result.defenderLosses })
+                        },
                         reward: result.attackerWon ? ruinData.researchReward : null,
                         read: false,
                     };
@@ -353,15 +373,24 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${targetCityState.cityName}`,
                         timestamp: serverTimestamp(),
                         outcome: result,
-                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses },
+                        attacker: {
+                            cityName: originCityState.cityName,
+                            losses: result.attackerLosses
+                        },
+                        defender: {
+                            cityName: targetCityState.cityName,
+                            ...(result.attackerWon && { losses: result.defenderLosses })
+                        },
                         read: false,
                     };
                     const defenderReport = { 
-                        ...attackerReport, 
+                        type: 'attack',
                         title: `Defense against ${originCityState.cityName}`, 
+                        timestamp: serverTimestamp(),
+                        outcome: { ...result, attackerWon: !result.attackerWon },
+                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
+                        defender: { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses },
                         read: false,
-                        outcome: { ...result, attackerWon: !result.attackerWon } 
                     };
 
                     batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });

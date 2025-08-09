@@ -44,7 +44,9 @@ export const useMapClickHandler = ({
                     // #comment If it's one of the player's other cities, open the new inactive city modal.
                     const distance = calculateDistance(playerCity, slotData);
                     setTravelTimeInfo({ distance });
-                    openModal('ownInactiveCity', city);
+                    // #comment FIX: Merge ownerId from slotData to ensure it's available in the modal.
+                    const cityWithOwnerData = { ...city, ownerId: slotData.ownerId, ownerUsername: slotData.ownerUsername };
+                    openModal('ownInactiveCity', cityWithOwnerData);
                 }
             } else {
                 console.error("Clicked on own city slot, but no matching city found.", slotData);
