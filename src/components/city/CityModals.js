@@ -1,4 +1,3 @@
-// src/components/city/CityModals.js
 import React from 'react';
 import AdminCheatMenu from './AdminCheatMenu';
 import BarracksMenu from './BarracksMenu';
@@ -115,7 +114,7 @@ const CityModals = ({
           onClose={() => closeModal('isBarracksMenuOpen')}
           cityGameState={cityGameState}
           unitQueue={cityGameState.barracksQueue} // Pass barracksQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'barracks')} // Pass item and queueType
+          onCancelTrain={() => handleCancelTrain('barracks')} // Pass function with queueType
         />
       )}
        {isDivineTempleMenuOpen && (
@@ -125,7 +124,7 @@ const CityModals = ({
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isDivineTempleMenuOpen')}
           unitQueue={cityGameState.divineTempleQueue} // Pass divineTempleQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'divineTemple')} // Pass item and queueType
+          onCancelTrain={() => handleCancelTrain('divineTemple')} // Pass item and queueType
           cityGameState={cityGameState}
         />
       )}
@@ -137,7 +136,7 @@ const CityModals = ({
           onClose={() => closeModal('isShipyardMenuOpen')}
           cityGameState={cityGameState}
           unitQueue={cityGameState.shipyardQueue} // Pass shipyardQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'shipyard')} // Pass item and queueType
+          onCancelTrain={() => handleCancelTrain('shipyard')} // Pass item and queueType
         />
       )}
       {isTempleMenuOpen && (

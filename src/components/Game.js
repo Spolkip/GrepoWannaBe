@@ -1,4 +1,3 @@
-// src/components/Game.js
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -46,8 +45,11 @@ const Game = ({ onBackToWorlds }) => {
     const [viewingReportId, setViewingReportId] = useState(null);
     const [selectedGodTownId, setSelectedGodTownId] = useState(null);
 
-    // #comment Movements are still fetched globally as they are critical for alerts.
+    // State for globally available map data
     const [movements, setMovements] = useState([]);
+    const [villages, setVillages] = useState({});
+    const [ruins, setRuins] = useState({});
+    const [godTowns, setGodTowns] = useState({});
 
     useMovementProcessor(worldId);
 
@@ -56,6 +58,7 @@ const Game = ({ onBackToWorlds }) => {
     
     const showMap = () => setView('map');
     
+    // #comment Moved showCity definition before its usage in useMapActions
     const showCity = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
@@ -121,25 +124,49 @@ const Game = ({ onBackToWorlds }) => {
             const allMovements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setMovements(allMovements.sort((a, b) => a.arrivalTime.toMillis() - b.arrivalTime.toMillis()));
         });
+
+        const villagesColRef = collection(db, 'worlds', worldId, 'villages');
+        const unsubscribeVillages = onSnapshot(villagesColRef, (snapshot) => {
+            const villagesData = {};
+            snapshot.docs.forEach(doc => {
+                villagesData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setVillages(villagesData);
+        });
+
+        const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
+        const unsubscribeRuins = onSnapshot(ruinsColRef, (snapshot) => {
+            const ruinsData = {};
+            snapshot.docs.forEach(doc => {
+                ruinsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setRuins(ruinsData);
+        });
         
-        // #comment Removed global listeners for villages, ruins, and godTowns.
-        // #comment This data is now loaded by the useMapData hook in chunks.
+        const godTownsColRef = collection(db, 'worlds', worldId, 'godTowns');
+        const unsubscribeGodTowns = onSnapshot(godTownsColRef, (snapshot) => {
+            const townsData = {};
+            snapshot.docs.forEach(doc => {
+                townsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setGodTowns(townsData);
+        });
 
         return () => {
             unsubscribeMovements();
+            unsubscribeVillages();
+            unsubscribeRuins();
+            unsubscribeGodTowns();
         };
     }, [worldId, currentUser]);
 
-    const handleCancelTrain = useCallback(async (item, queueType) => {
-        const cityId = item.cityId;
+    const handleCancelTrain = useCallback(async (cityId, queueType) => {
         const cityState = playerCities[cityId];
+        if (!cityState) return;
+    
         const queueName = queueType === 'heal' ? 'healQueue' : `${queueType}Queue`;
         const costField = queueType === 'heal' ? 'heal_cost' : 'cost';
         const refundField = queueType === 'heal' ? 'wounded' : 'units';
-    
-        if (!cityState || !cityState[queueName]) {
-            return;
-        }
     
         const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityId);
     
@@ -149,10 +176,12 @@ const Game = ({ onBackToWorlds }) => {
                 if (!cityDoc.exists()) throw new Error("City data not found.");
                 
                 const currentState = cityDoc.data();
-                const itemIndex = currentState[queueName].findIndex(i => i.id === item.id);
-                if (itemIndex === -1) throw new Error("Item not found in queue.");
+                const currentQueue = currentState[queueName] || [];
+                if (currentQueue.length === 0) return; // Nothing to cancel
 
-                const newQueue = [...currentState[queueName]];
+                const itemIndex = currentQueue.length - 1; // Always last item
+
+                const newQueue = [...currentQueue];
                 const canceledTask = newQueue.splice(itemIndex, 1)[0];
                 const unit = unitConfig[canceledTask.unitId];
     
@@ -166,13 +195,7 @@ const Game = ({ onBackToWorlds }) => {
                     newRefundUnits[canceledTask.unitId] = (newRefundUnits[canceledTask.unitId] || 0) + canceledTask.amount;
                 }
     
-                for (let i = itemIndex; i < newQueue.length; i++) {
-                    const prevEndTime = (i === 0) ? Date.now() : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
-                    const task = newQueue[i];
-                    const taskUnit = unitConfig[task.unitId];
-                    const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
-                    newQueue[i].endTime = new Date(prevEndTime + taskTime * 1000);
-                }
+                // No need to recalculate end times
     
                 const updates = {
                     resources: newResources,
@@ -209,6 +232,8 @@ const Game = ({ onBackToWorlds }) => {
         return { incomingAttackCount: count, isUnderAttack: count > 0 };
     }, [movements, playerCities, conqueredVillages]);
 
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...villages, ...ruins }), [playerCities, villages, ruins]);
+    
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
     const handleMessageAction = async (type, id) => {
         if (type === 'accept_invite') {
@@ -246,6 +271,7 @@ const Game = ({ onBackToWorlds }) => {
         setSelectedGodTownId(null);
     };
     
+    // #comment Handler for opening the admin event trigger modal
     const handleOpenEvents = () => {
         openModal('eventTrigger');
     };
@@ -268,8 +294,8 @@ const Game = ({ onBackToWorlds }) => {
                     handleOpenAlliance={handleOpenAlliance}
                     handleOpenProfile={handleOpenProfile}
                     movements={movements}
-                    onCancelTrain={handleCancelTrain}
                     onCancelMovement={handleCancelMovement}
+                    combinedSlots={combinedSlots}
                     onRenameCity={renameCity}
                     quests={quests}
                     handleOpenEvents={handleOpenEvents}
@@ -290,8 +316,12 @@ const Game = ({ onBackToWorlds }) => {
                     setPanToCoords={setPanToCoords}
                     handleGoToCityFromProfile={handleGoToCityFromProfile}
                     movements={movements}
+                    villages={villages}
+                    ruins={ruins}
+                    godTowns={godTowns}
                     onCancelTrain={handleCancelTrain}
                     onCancelMovement={handleCancelMovement}
+                    combinedSlots={combinedSlots}
                     isUnderAttack={isUnderAttack}
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={renameCity}
@@ -301,6 +331,7 @@ const Game = ({ onBackToWorlds }) => {
                 />
             )}
             
+            {/* Render shared modals here */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleMessageAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} />}
@@ -326,6 +357,8 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isMovementsPanelOpen && <MovementsPanel
                 movements={movements}
                 onClose={() => closeModal('movements')}
+                combinedSlots={combinedSlots}
+                villages={villages}
                 onCancel={handleCancelMovement}
                 onRush={handleRushMovement}
                 isAdmin={userProfile?.is_admin}

@@ -13,7 +13,6 @@ Maybe:
 Bugs:
 
 - storage says the limit on resources but in the background it keeps stacking
-- Farm Need population to build
 - Barracks last number does not get deleted there is always 1 number left when using backspace
 - Academy demolish it always with research and does not deletes them
 - Cave at lvl 10 is just 10k not infinite (also make it autoroctect to the amount to fill the cave)
