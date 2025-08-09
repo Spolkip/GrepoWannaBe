@@ -10,7 +10,6 @@ import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
 import './ReportsView.css'; // Import the new CSS
 
-// (Image import logic remains the same)
 const images = {};
 const imageContexts = [
     require.context('../images', false, /\.(png|jpe?g|svg)$/),
@@ -70,15 +69,12 @@ const ReportsView = ({ onClose }) => {
         }
     };
 
-    // #comment Handle sharing a report
     const handleShareReport = async (report) => {
         setMessage('');
         try {
-            // Create a copy of the report in a public collection
             const sharedReportRef = doc(db, 'worlds', worldId, 'shared_reports', report.id);
             await setDoc(sharedReportRef, report);
 
-            // Copy the BBCode to the clipboard
             const bbCode = `[report]${report.id}[/report]`;
             navigator.clipboard.writeText(bbCode);
             
@@ -137,9 +133,10 @@ const ReportsView = ({ onClose }) => {
         return isLosses ? <span className="text-red-600 font-semibold">{content}</span> : content;
     };
 
+    // #comment Safely get an image URL, preventing console errors for missing images.
     const getImageUrl = (imageName) => {
         if (!imageName || !images[imageName]) {
-            console.warn(`Image not found: ${imageName}`);
+            // #comment Don't log a warning, just return an empty string if the image doesn't exist.
             return '';
         }
         return images[imageName];

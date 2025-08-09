@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// src/components/leaderboard/Leaderboard.js
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '../../firebase/config';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useCityState } from '../../hooks/useCityState';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import './Leaderboard.css';
+
+// #comment We'll cache the leaderboard data for 5 minutes to reduce reads.
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
     const { worldId } = useGame();
@@ -13,6 +17,13 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('players');
     const { calculateTotalPoints } = useCityState(worldId);
+
+    // #comment Refs to store cached data and the last fetch time.
+    const cacheRef = useRef({
+        players: null,
+        alliances: null,
+        lastFetch: 0,
+    });
 
     const fetchAllPlayerData = useCallback(async () => {
         if (!worldId) return new Map();
@@ -31,13 +42,11 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                 for (const cityDoc of citiesSnapshot.docs) {
                     const cityData = cityDoc.data();
                     totalPoints += calculateTotalPoints(cityData);
-                    // Assuming alliance info is consistent across cities for a player in a world
                     if (!allianceInfo && cityData.alliance) {
                          allianceInfo = cityData.alliance;
                     }
                 }
                 
-                // #comment Get alliance from game doc as fallback
                 if (!allianceInfo) {
                     const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
                     const gameSnap = await getDoc(gameDocRef);
@@ -60,14 +69,23 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
     useEffect(() => {
         const fetchLeaderboards = async () => {
             setLoading(true);
+            const now = Date.now();
+
+            // #comment Check if the cache is still valid. If so, use cached data.
+            if (cacheRef.current.lastFetch && (now - cacheRef.current.lastFetch < CACHE_DURATION)) {
+                setPlayerLeaderboard(cacheRef.current.players || []);
+                setAllianceLeaderboard(cacheRef.current.alliances || []);
+                setLoading(false);
+                return;
+            }
+
+            // #comment If cache is invalid, fetch new data.
             const allPlayerData = await fetchAllPlayerData();
 
-            // #comment Generate player leaderboard
             const playersList = Array.from(allPlayerData.values());
             playersList.sort((a, b) => b.points - a.points);
             setPlayerLeaderboard(playersList);
 
-            // #comment Generate alliance leaderboard
             if (worldId) {
                 const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
                 const alliancesSnapshot = await getDocs(alliancesRef);
@@ -82,7 +100,6 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                         }
                     });
 
-                    // #comment Calculate max members
                     const baseMax = 20;
                     const researchLevel = alliance.research?.expanded_charter?.level || 0;
                     const researchBonus = allianceResearch.expanded_charter.effect.value * researchLevel;
@@ -99,6 +116,13 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                 }
                 alliancesData.sort((a, b) => b.points - a.points);
                 setAllianceLeaderboard(alliancesData);
+
+                // #comment Update the cache with the new data.
+                cacheRef.current = {
+                    players: playersList,
+                    alliances: alliancesData,
+                    lastFetch: now,
+                };
             }
             
             setLoading(false);

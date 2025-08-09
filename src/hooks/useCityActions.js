@@ -86,7 +86,7 @@ export const useCityActions = ({
             currentState.resources.wood >= cost.wood &&
             currentState.resources.stone >= cost.stone &&
             currentState.resources.silver >= cost.silver &&
-            newTotalPopulation <= maxPopulation
+            (newTotalPopulation <= maxPopulation || buildingId === 'farm' || buildingId === 'warehouse')
         ) {
             const newGameState = JSON.parse(JSON.stringify(currentState));
             newGameState.resources.wood -= cost.wood;
@@ -127,7 +127,7 @@ export const useCityActions = ({
             }
         }
         else {
-            setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
+            setMessage(newTotalPopulation > maxPopulation && buildingId !== 'farm' && buildingId !== 'warehouse' ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
         }
     };
 

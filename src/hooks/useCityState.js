@@ -6,10 +6,7 @@ import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
 import researchConfig from '../gameData/research.json';
 import { useGame } from '../contexts/GameContext';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
-
-// #comment This hook now gets the active city ID from the GameContext
-// #comment and uses it to listen to and update the correct city document.
+import { v4 as uuidv4 } from 'uuid';
 
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
@@ -19,7 +16,7 @@ const getMarketCapacity = (level) => {
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
-    const { activeCityId } = useGame(); // #comment Get activeCityId from context
+    const { activeCityId } = useGame();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
 
@@ -27,7 +24,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         gameStateRef.current = cityGameState;
     }, [cityGameState]);
 
-    // #comment Calculates city happiness details: base gain, penalty, and total.
     const getHappinessDetails = useCallback((buildings) => {
         if (!buildings || !buildings.senate) return { base: 0, penalty: 0, total: 0 };
         const base = buildings.senate.level * 10;
@@ -45,7 +41,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return { base, penalty, total };
     }, []);
 
-    // #comment Calculates city happiness based on Senate level and worker upkeep.
     const calculateHappiness = useCallback((buildings) => {
         if (!buildings || !buildings.senate) return 0;
         return getHappinessDetails(buildings).total;
@@ -56,12 +51,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return Math.min(6, 1 + Math.floor(level / 5));
     }, []);
 
-    // #comment Calculates resource production rates, applying happiness bonuses or penalties.
     const getProductionRates = useCallback((buildings) => {
         if (!buildings) return { wood: 0, stone: 0, silver: 0 };
         
         const happiness = calculateHappiness(buildings);
-        const happinessBonus = happiness > 70 ? 1.10 : (happiness < 40 ? 0.9 : 1.0); // Bonus when happy, penalty when unhappy
+        const happinessBonus = happiness > 70 ? 1.10 : (happiness < 40 ? 0.9 : 1.0);
 
         const rates = {
             wood: Math.floor(30 * Math.pow(1.2, (buildings.timber_camp?.level || 1) - 1)),
@@ -80,13 +74,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return rates;
     }, [calculateHappiness]);
 
-    // #comment Adjusted warehouse capacity for better resource balance.
     const getWarehouseCapacity = useCallback((level) => {
         if (!level) return 0;
         return Math.floor(1500 * Math.pow(1.4, level - 1));
     }, []);
 
-    // #comment Adjusted farm capacity for better population balance.
     const getFarmCapacity = useCallback((level) => {
         if (!level) return 0;
         return Math.floor(200 * Math.pow(1.25, level - 1));
@@ -157,7 +149,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         return used;
     }, [getUpgradeCost]);
 
-    // #comment Calculates total points from buildings, units, and research.
     const calculateTotalPoints = useCallback((gameState) => {
         if (!gameState) return 0;
         let points = 0;
@@ -166,7 +157,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 const buildingData = gameState.buildings[buildingId];
                 const buildingInfo = buildingConfig[buildingId];
                 if (buildingInfo && buildingInfo.points) {
-                    // #comment Points now increase with each level, using the sum of an arithmetic series.
                     const level = buildingData.level;
                     points += buildingInfo.points * (level * (level + 1) / 2);
                 }
@@ -175,11 +165,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (gameState.units) {
             for (const unitId in gameState.units) {
                 const unit = unitConfig[unitId];
-                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1); // Points for units based on population cost
+                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1);
             }
         }
         if (gameState.research) {
-            points += Object.keys(gameState.research).length * 50; // Points for research
+            points += Object.keys(gameState.research).length * 50;
         }
         return Math.floor(points);
     }, []);
@@ -189,8 +179,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         try {
             const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
             const dataToSave = { ...stateToSave, lastUpdated: Date.now() };
-
-            // #comment Firestore's setDoc can handle JS Date objects directly, so no special conversion is needed.
             await setDoc(cityDocRef, dataToSave, { merge: true });
         } catch (error) {
             console.error('Failed to save game state:', error);
@@ -202,13 +190,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             setCityGameState(null);
             return;
         }
-        // #comment This now listens to the specific city document based on activeCityId
         const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
         const unsubscribe = onSnapshot(cityDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                // #comment Ensure all top-level properties and buildings exist to prevent crashes
                 if (!data.buildings) data.buildings = {};
                 for (const buildingId in buildingConfig) {
                     if (!data.buildings[buildingId]) {
@@ -222,16 +208,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 if (!data.cave) data.cave = { silver: 0 }; 
                 if (!data.research) data.research = {};
                 if (!data.buildQueue) data.buildQueue = [];
-                // Initialize new separate queues
                 if (!data.barracksQueue) data.barracksQueue = [];
                 if (!data.shipyardQueue) data.shipyardQueue = [];
                 if (!data.divineTempleQueue) data.divineTempleQueue = [];
-                // Retain healQueue
                 if (!data.healQueue) data.healQueue = [];
                 
-                // #comment Helper to convert Firestore Timestamps to JS Dates and assign IDs if missing
                 const convertAndAssignIds = (queue) => (queue || []).map(task => ({
-                    id: task.id || uuidv4(), // Assign ID if missing
+                    id: task.id || uuidv4(),
                     ...task,
                     endTime: task.endTime?.toDate ? task.endTime.toDate() : task.endTime
                 }));
@@ -248,8 +231,16 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 setCityGameState(null);
             }
         });
-        return () => unsubscribe();
-    }, [currentUser, worldId, activeCityId]);
+        
+        // #comment Save the current state when the component unmounts or the city changes.
+        // #comment This prevents loss of passively generated resources without constant writes.
+        return () => {
+            unsubscribe();
+            if (gameStateRef.current) {
+                saveGameState(gameStateRef.current);
+            }
+        };
+    }, [currentUser, worldId, activeCityId, saveGameState]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -340,12 +331,10 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             
                 completed.forEach(task => {
                     if (task.type === 'demolish') {
-                        // #comment Handle demolition completion
                         if (updates.buildings[task.buildingId]) {
-                            updates.buildings[task.buildingId].level = task.level; // task.level is currentLevel - 1
+                            updates.buildings[task.buildingId].level = task.level;
                         }
                         
-                        // #comment Calculate and apply resource refund
                         const costToBuildLastLevel = getUpgradeCost(task.buildingId, task.currentLevel);
                         const refund = {
                             wood: Math.floor(costToBuildLastLevel.wood * 0.5),
@@ -415,24 +404,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         }
     };
 
-    const interval = setInterval(processQueue, 1000);
+    const interval = setInterval(processQueue, 2500);
     return () => clearInterval(interval);
 }, [currentUser, worldId, activeCityId, getUpgradeCost]);
-
-useEffect(() => {
-    const autoSave = async () => {
-        if (gameStateRef.current) {
-            try {
-                await saveGameState(gameStateRef.current);
-            } catch (error) {
-                console.error("Auto-save failed:", error);
-            }
-        }
-    };
-
-    const saveInterval = setInterval(autoSave, 30000);
-    return () => clearInterval(saveInterval);
-}, [saveGameState]);
 
 return { 
     cityGameState, 
