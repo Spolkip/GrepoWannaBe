@@ -242,7 +242,7 @@ const Game = ({ onBackToWorlds }) => {
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...villages, ...ruins }), [playerCities, villages, ruins]);
     
-    const handleOpenAlliance = () => openModal('alliance'); // #comment Simplified this call
+    const handleOpenAlliance = () => openModal('alliance');
     const handleMessageAction = async (type, id) => {
         if (type === 'accept_invite') {
             try {
@@ -352,7 +352,7 @@ const Game = ({ onBackToWorlds }) => {
             {/* Render shared modals here */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleMessageAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
-            {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} />}
+            {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} openModal={openModal} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
             {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} onActionClick={handleMessageAction} />}
             {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} cityState={gameState} />}

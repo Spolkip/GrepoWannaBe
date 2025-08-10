@@ -10,15 +10,29 @@ import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
 import AllianceProperties from '../alliance/AllianceProperties';
 import AllianceBank from '../alliance/AllianceBank';
-import AllianceSuggestions from '../alliance/AllianceSuggestions'; // #comment Import the new component
+import AllianceSuggestions from '../alliance/AllianceSuggestions';
+import AllianceCreation from '../alliance/AllianceCreation';
 import './AllianceModal.css';
 
-const AllianceModal = ({ onClose, onOpenAllianceProfile }) => { // #comment Added onOpenAllianceProfile
+const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
     const { playerAlliance } = useAlliance();
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState(playerAlliance ? 'overview' : 'suggestions'); // #comment Default to suggestions if no alliance
+    const [activeTab, setActiveTab] = useState(playerAlliance ? 'overview' : 'suggestions');
+    const [isCreating, setIsCreating] = useState(false);
 
-    // #comment If the player is not in an alliance, show the suggestions view.
+    const handleOpenCreate = () => {
+        setIsCreating(true);
+    };
+
+    const handleCloseCreate = () => {
+        setIsCreating(false);
+        onClose(); // Close the main alliance modal too after creation
+    };
+
+    if (isCreating) {
+        return <AllianceCreation onClose={handleCloseCreate} />;
+    }
+
     if (!playerAlliance) {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -28,7 +42,7 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile }) => { // #comment Adde
                         <button onClick={onClose} className="close-button">&times;</button>
                     </div>
                     <div className="alliance-modal-content">
-                        <AllianceSuggestions onAllianceClick={onOpenAllianceProfile} />
+                        <AllianceSuggestions onAllianceClick={onOpenAllianceProfile} onOpenCreate={handleOpenCreate} />
                     </div>
                 </div>
             </div>

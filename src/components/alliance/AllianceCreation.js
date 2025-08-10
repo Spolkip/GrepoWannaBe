@@ -6,11 +6,20 @@ const AllianceCreation = ({ onClose }) => {
     const { createAlliance } = useAlliance();
     const [name, setName] = useState('');
     const [tag, setTag] = useState('');
+    const [error, setError] = useState('');
 
-    const handleCreate = () => {
+    // #comment handle create alliance and show errors
+    const handleCreate = async () => {
+        setError('');
         if (name.trim() && tag.trim()) {
-            createAlliance(name.trim(), tag.trim());
-            onClose();
+            try {
+                await createAlliance(name.trim(), tag.trim());
+                onClose();
+            } catch (err) {
+                setError(err.message);
+            }
+        } else {
+            setError('Both name and tag are required.');
         }
     };
 
@@ -21,6 +30,7 @@ const AllianceCreation = ({ onClose }) => {
                     <h3 className="text-xl font-bold mb-2">Create an Alliance</h3>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
+                {error && <p className="text-red-500 text-center mb-4">{error}</p>}
                 <div className="flex flex-col gap-4">
                     <input
                         type="text"

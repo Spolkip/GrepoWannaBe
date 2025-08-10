@@ -59,8 +59,7 @@ export const AllianceProvider = ({ children }) => {
         const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
     
         if (userCitySlotIds.length === 0) {
-            alert("You must have a city to create an alliance.");
-            return;
+            throw new Error("You must have a city to create an alliance.");
         }
 
         const allianceId = tag.toUpperCase();
@@ -119,7 +118,7 @@ export const AllianceProvider = ({ children }) => {
             });
         } catch (error) {
             console.error("Error creating alliance: ", error);
-            alert("Failed to create alliance: " + error.message);
+            throw error;
         }
     };
     
@@ -497,6 +496,18 @@ export const AllianceProvider = ({ children }) => {
         }
 
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
+        
+        const allianceSnap = await getDoc(allianceRef);
+        if (allianceSnap.exists()) {
+            const allianceData = allianceSnap.data();
+            const existingApplication = allianceData.applications?.find(app => app.userId === currentUser.uid);
+            if (existingApplication) {
+                throw new Error("You have already applied to this alliance.");
+            }
+        } else {
+            throw new Error("Alliance not found.");
+        }
+
         await updateDoc(allianceRef, {
             applications: arrayUnion({
                 userId: currentUser.uid,
@@ -735,27 +746,36 @@ export const AllianceProvider = ({ children }) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
             throw new Error("You don't have permission to do this.");
         }
-
+    
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const applicantGameRef = doc(db, `users/${application.userId}/games`, worldId);
-
+    
         const citiesRef = collection(db, `users/${application.userId}/games`, worldId, 'cities');
         const citiesSnap = await getDocs(citiesRef);
         const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
-
+    
         await runTransaction(db, async (transaction) => {
             const allianceDoc = await transaction.get(allianceRef);
-            if (!allianceDoc.exists()) throw new Error("Data not found.");
-
+            const applicantGameDoc = await transaction.get(applicantGameRef);
+    
+            if (!allianceDoc.exists()) throw new Error("Alliance data not found.");
+    
             const allianceData = allianceDoc.data();
-
-            const appToRemove = allianceData.applications.find(app => app.userId === application.userId);
+    
+            const appToRemove = allianceData.applications?.find(app => app.userId === application.userId);
             if (appToRemove) {
                 transaction.update(allianceRef, { applications: arrayRemove(appToRemove) });
+            } else {
+                return;
             }
-
+    
             if (action === 'accept') {
-                // #comment Check if the alliance is full before accepting
+                if (!applicantGameDoc.exists()) throw new Error("Applicant's game data not found.");
+                const applicantGameData = applicantGameDoc.data();
+                if (applicantGameData.alliance) {
+                    throw new Error("This player has already joined another alliance.");
+                }
+    
                 const maxMembers = calculateMaxMembers(allianceData);
                 if (allianceData.members.length >= maxMembers) {
                     throw new Error("This alliance is full and cannot accept new members.");
