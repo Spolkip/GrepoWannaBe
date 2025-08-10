@@ -39,7 +39,7 @@ import unitConfig from '../gameData/units.json';
 const Game = ({ onBackToWorlds }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity } = useGame();
     const { currentUser, userProfile } = useAuth();
-    const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation } = useAlliance();
+    const { playerAlliance, acceptAllianceInvitation, sendAllianceInvitation, declineAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [panToCoords, setPanToCoords] = useState(null);
@@ -245,9 +245,18 @@ const Game = ({ onBackToWorlds }) => {
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
     const handleMessageAction = async (type, id) => {
         if (type === 'accept_invite') {
-            await acceptAllianceInvitation(id);
+            try {
+                await acceptAllianceInvitation(id);
+            } catch (error) {
+                alert(error.message);
+            }
         } else if (type === 'decline_invite') {
-            alert("Invitation declined.");
+            try {
+                await declineAllianceInvitation(id);
+                alert("Invitation declined.");
+            } catch (error) {
+                alert(error.message);
+            }
         } else if (type === 'view_report') {
             setViewingReportId(id);
         }

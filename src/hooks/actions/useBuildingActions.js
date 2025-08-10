@@ -27,65 +27,78 @@ export const useBuildingActions = ({
 
         const nextLevelToQueue = effectiveCurrentLevel + 1;
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
+        
+        const hasEnoughResources = currentState.resources.wood >= cost.wood &&
+                                   currentState.resources.stone >= cost.stone &&
+                                   currentState.resources.silver >= cost.silver;
+
+        if (!hasEnoughResources) {
+            setMessage('Not enough resources to upgrade!');
+            return;
+        }
+
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const newTotalPopulation = currentUsedPopulation + cost.population;
+        const hasEnoughPopulation = newTotalPopulation <= maxPopulation;
 
-        if (
-            currentState.resources.wood >= cost.wood &&
-            currentState.resources.stone >= cost.stone &&
-            currentState.resources.silver >= cost.silver &&
-            (newTotalPopulation <= maxPopulation || buildingId === 'farm' || buildingId === 'warehouse')
-        ) {
-            const newGameState = JSON.parse(JSON.stringify(currentState));
-            newGameState.resources.wood -= cost.wood;
-            newGameState.resources.stone -= cost.stone;
-            newGameState.resources.silver -= cost.silver;
+        // #comment Allow farm and warehouse upgrades regardless of population status.
+        if (!hasEnoughPopulation && buildingId !== 'farm' && buildingId !== 'warehouse') {
+            setMessage('Not enough population capacity!');
+            return;
+        }
 
-            if (buildingId === 'academy') {
-                newGameState.researchPoints = (newGameState.researchPoints || 0) + 4;
-            }
+        // All checks passed, proceed with upgrade
+        const newGameState = JSON.parse(JSON.stringify(currentState));
+        newGameState.resources.wood -= cost.wood;
+        newGameState.resources.stone -= cost.stone;
+        newGameState.resources.silver -= cost.silver;
 
-            let lastEndTime = Date.now();
-            if (currentQueue.length > 0) {
-                const lastQueueItem = currentQueue[currentQueue.length - 1];
-                if (lastQueueItem.endTime) {
-                    lastEndTime = lastQueueItem.endTime.toDate
-                        ? lastQueueItem.endTime.toDate().getTime()
-                        : new Date(lastQueueItem.endTime).getTime();
-                }
-            }
-            const endTime = new Date(lastEndTime + cost.time * 1000);
+        if (buildingId === 'academy') {
+            newGameState.researchPoints = (newGameState.researchPoints || 0) + 4;
+        }
 
-            const newQueueItem = {
-                id: uuidv4(),
-                buildingId,
-                level: nextLevelToQueue,
-                endTime: endTime,
-            };
-            newGameState.buildQueue = [...currentQueue, newQueueItem];
-
-            try {
-                await saveGameState(newGameState);
-                setCityGameState(newGameState);
-            }
-            catch (error) {
-                console.error("Error adding to build queue:", error);
-                setMessage("Could not start upgrade. Please try again.");
+        let lastEndTime = Date.now();
+        if (currentQueue.length > 0) {
+            const lastQueueItem = currentQueue[currentQueue.length - 1];
+            if (lastQueueItem.endTime) {
+                lastEndTime = lastQueueItem.endTime.toDate
+                    ? lastQueueItem.endTime.toDate().getTime()
+                    : new Date(lastQueueItem.endTime).getTime();
             }
         }
-        else {
-            setMessage(newTotalPopulation > maxPopulation && buildingId !== 'farm' && buildingId !== 'warehouse' ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
+        const endTime = new Date(lastEndTime + cost.time * 1000);
+
+        const newQueueItem = {
+            id: uuidv4(),
+            buildingId,
+            level: nextLevelToQueue,
+            endTime: endTime,
+        };
+        newGameState.buildQueue = [...currentQueue, newQueueItem];
+
+        try {
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
+        }
+        catch (error) {
+            console.error("Error adding to build queue:", error);
+            setMessage("Could not start upgrade. Please try again.");
         }
     };
 
-    const handleCancelBuild = async () => {
+    const handleCancelBuild = async (itemToCancel) => {
         const currentState = cityGameState;
-        if (!currentState || !currentState.buildQueue || currentState.buildQueue.length === 0) {
+        if (!currentState || !currentState.buildQueue) {
             return;
         }
     
-        const itemIndex = currentState.buildQueue.length - 1;
+        const itemIndex = currentState.buildQueue.findIndex(item => item.id === itemToCancel.id);
+    
+        if (itemIndex === -1) {
+            console.error("Could not find item to cancel in build queue.");
+            return;
+        }
     
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
@@ -110,6 +123,28 @@ export const useBuildingActions = ({
             if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
                 newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
             }
+        }
+        
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
+            const taskToUpdate = newQueue[i];
+            
+            let taskTime;
+            if (taskToUpdate.isSpecial) {
+                taskTime = 7200;
+            } else if (taskToUpdate.type === 'demolish') {
+                const costConfig = buildingConfig[taskToUpdate.buildingId].baseCost;
+                const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, taskToUpdate.currentLevel - 1));
+                taskTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
+            }
+            else {
+                taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
+            }
+            
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
         
         await saveGameState(newGameState);

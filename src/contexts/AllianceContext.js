@@ -322,6 +322,21 @@ export const AllianceProvider = ({ children }) => {
         }
     };
 
+    const declineAllianceInvitation = async (allianceId) => {
+        if (!currentUser || !worldId) throw new Error("User or world not identified.");
+
+        const invitesRef = collection(db, 'worlds', worldId, 'alliances', allianceId, 'invitations');
+        const q = query(invitesRef, where('invitedUserId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            throw new Error("Invitation not found. It may have been revoked or already handled.");
+        }
+
+        const inviteDocRef = snapshot.docs[0].ref;
+        await deleteDoc(inviteDocRef);
+    };
+
     // accept an invitation to join an alliance
     const acceptAllianceInvitation = async (allianceId) => {
         if (!currentUser || !worldId) return;
@@ -332,9 +347,23 @@ export const AllianceProvider = ({ children }) => {
 
         const newAllianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        const invitesRef = collection(db, 'worlds', worldId, 'alliances', allianceId, 'invitations');
+        const q = query(invitesRef, where('invitedUserId', '==', currentUser.uid));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            throw new Error("Invitation not found. It may have been revoked or already handled.");
+        }
+        const inviteDocRef = snapshot.docs[0].ref;
     
         try {
             await runTransaction(db, async (transaction) => {
+                const inviteDoc = await transaction.get(inviteDocRef);
+                if (!inviteDoc.exists()) {
+                    throw new Error("Invitation was handled by another action.");
+                }
+
                 const newAllianceDoc = await transaction.get(newAllianceDocRef);
                 const gameDoc = await transaction.get(gameDocRef);
     
@@ -347,7 +376,6 @@ export const AllianceProvider = ({ children }) => {
     
                 if (oldAllianceId === allianceId) throw new Error("You are already in this alliance.");
                 
-                // #comment Check if the alliance is full
                 const maxMembers = calculateMaxMembers(newAllianceData);
                 if (newAllianceData.members.length >= maxMembers) {
                     throw new Error("This alliance is full.");
@@ -385,6 +413,8 @@ export const AllianceProvider = ({ children }) => {
                     const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
                     transaction.update(citySlotRef, { alliance: allianceId, allianceName: newAllianceData.name });
                 }
+
+                transaction.delete(inviteDocRef);
             });
         } catch (error) {
             console.error("Error accepting invitation:", error);
@@ -967,6 +997,7 @@ export const AllianceProvider = ({ children }) => {
         sendAllianceInvitation,
         revokeAllianceInvitation,
         acceptAllianceInvitation,
+        declineAllianceInvitation,
         createAllianceRank,
         updateAllianceMemberRank,
         updateRanksOrder,

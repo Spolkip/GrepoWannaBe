@@ -11,24 +11,22 @@ Maybe:
 - add cities inside the island
 
 Bugs:
-
+Hard to fix:
 - storage says the limit on resources but in the background it keeps stacking
+- When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
+
+Ez to fix:
 - Farm Need population to build
-- Barracks last number does not get deleted there is always 1 number left when using backspace
-- Academy demolish it always with research and does not deletes them
-- Cave at lvl 10 is just 10k not infinite (also make it autoroctect to the amount to fill the cave)
-- Can accept OLD Allince Invite 
-- Chat has no limit in text
-- Defult troops need to be remove
-- Can't attack my own city
-- Agrotika xoria icons are Wrong
-- Attacks show all troops in enemy cities
-- Ruins attack icon movement doesn't happen after arriving
-- Trading on with your other cities is not working
 - Can skip building levels by deleting the first level in the building queue after building 5 lvl of a building
 - Market Spaming Click Create Offer makes more
-- When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
- 
+- Attacks show all troops in enemy cities
+- Trading on with your other cities is not working
+
+Later fixes: 
+- Agrotika xoria icons are Wrong
+- Barracks last number does not get deleted there is always 1 number left when using backspace
+- Academy demolish it always with research and does not deletes them
+
 Admin panel Bugs:
 - When going to map view admin cheats get disable
 - When putting resources it shows the amout you put for a second and then reverts itself to storage amount
@@ -43,3 +41,8 @@ Fixed:
 - Indicator visual on both people
 - Allince doesn't work on all cities
 - Demolish goes to 0 and not lowering by 1 level
+- Defult troops need to be remove
+- Ruins attack icon movement doesn't happen after arriving
+- Chat has no limit in text
+- Cave at lvl 10 is just 10k not infinite (also make it autoroctect to the amount to fill the cave)
+- Can accept OLD Allince Invite 

@@ -158,6 +158,7 @@ const Chat = ({ isVisible, onClose }) => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
+                    maxLength="75"
                 />
                 <button type="submit">Send</button>
             </form>

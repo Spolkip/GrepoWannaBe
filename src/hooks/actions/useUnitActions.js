@@ -131,7 +131,7 @@ export const useUnitActions = ({
         }
     };
 
-    const handleCancelTrain = async (queueType) => { // Only takes queueType
+    const handleCancelTrain = async (canceledItem, queueType) => {
         const currentState = cityGameState;
         let queueName;
         let costField;
@@ -156,12 +156,18 @@ export const useUnitActions = ({
                 return;
         }
     
-        if (!currentState || !currentState[queueName] || currentState[queueName].length === 0) {
+        if (!currentState || !currentState[queueName]) {
             return;
         }
     
         const currentQueue = [...currentState[queueName]];
-        const itemIndex = currentQueue.length - 1; // Always cancel the last item
+        const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
+    
+        if (itemIndex === -1) {
+            console.error("Item not found in queue for cancellation:", canceledItem);
+            setMessage("Error: Item not found in queue.");
+            return;
+        }
     
         const newQueue = [...currentQueue];
         const removedTask = newQueue.splice(itemIndex, 1)[0];
@@ -185,7 +191,17 @@ export const useUnitActions = ({
             newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
         }
     
-        // No need to recalculate end times
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+            
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
     
         const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
     
@@ -297,8 +313,8 @@ export const useUnitActions = ({
         }
     };
 
-    const handleCancelHeal = async () => {
-        await handleCancelTrain('heal');
+    const handleCancelHeal = async (item) => {
+        await handleCancelTrain(item, 'heal');
     };
 
     const handleFireTroops = async (unitsToFire) => {
