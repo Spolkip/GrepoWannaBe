@@ -54,13 +54,15 @@ const AllianceMembers = () => {
                     totalPoints += calculateTotalPoints(city);
                 }
 
-                // #comment Fetch lastLogin if permission is granted
+                // #comment Fetch lastLogin and lastSeen if permission is granted
                 let lastLogin = null;
+                let lastSeen = null;
                 if (canViewActivity) {
                     const userDocRef = doc(db, 'users', member.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     if (userDocSnap.exists()) {
                         lastLogin = userDocSnap.data().lastLogin?.toDate() || null;
+                        lastSeen = userDocSnap.data().lastSeen?.toDate() || null;
                     }
                 }
 
@@ -69,6 +71,7 @@ const AllianceMembers = () => {
                     points: totalPoints,
                     cityCount: citiesList.length,
                     lastLogin: lastLogin,
+                    lastSeen: lastSeen,
                 };
             });
 
@@ -92,6 +95,17 @@ const AllianceMembers = () => {
                     aValue = playerAlliance.ranks.findIndex(r => r.id === a.rank);
                     bValue = playerAlliance.ranks.findIndex(r => r.id === b.rank);
                 }
+                
+                // #comment Special case for status sorting (online first)
+                if (sortConfig.key === 'status') {
+                    const aIsOnline = a.lastSeen && (new Date() - a.lastSeen) < 5 * 60 * 1000;
+                    const bIsOnline = b.lastSeen && (new Date() - b.lastSeen) < 5 * 60 * 1000;
+                    if (aIsOnline && !bIsOnline) return -1;
+                    if (!aIsOnline && bIsOnline) return 1;
+                    aValue = b.lastSeen || 0; // Sort by most recent seen
+                    bValue = a.lastSeen || 0;
+                }
+
 
                 if (aValue < bValue) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -121,15 +135,17 @@ const AllianceMembers = () => {
     };
 
     // #comment Helper function to format the last login time
-    const formatLastLogin = (date) => {
+    const formatLastSeen = (date) => {
         if (!date) return 'Unknown';
         const now = new Date();
         const diffSeconds = Math.round((now - date) / 1000);
+        
+        if (diffSeconds < 5 * 60) return <span className="text-green-500 font-bold">Online</span>;
+
         const diffMinutes = Math.round(diffSeconds / 60);
         const diffHours = Math.round(diffMinutes / 60);
         const diffDays = Math.round(diffHours / 24);
 
-        if (diffSeconds < 60) return `${diffSeconds}s ago`;
         if (diffMinutes < 60) return `${diffMinutes}m ago`;
         if (diffHours < 24) return `${diffHours}h ago`;
         if (diffDays === 1) return 'Yesterday';
@@ -160,8 +176,8 @@ const AllianceMembers = () => {
                             Cities{getSortIndicator('cityCount')}
                         </th>
                         {canViewActivity && (
-                            <th className="p-2 cursor-pointer text-right" onClick={() => requestSort('lastLogin')}>
-                                Last Online{getSortIndicator('lastLogin')}
+                            <th className="p-2 cursor-pointer text-right" onClick={() => requestSort('status')}>
+                                Status{getSortIndicator('status')}
                             </th>
                         )}
                     </tr>
@@ -174,7 +190,7 @@ const AllianceMembers = () => {
                             <td className="p-2 text-right">{member.points.toLocaleString()}</td>
                             <td className="p-2 text-right">{member.cityCount}</td>
                             {canViewActivity && (
-                                <td className="p-2 text-right">{formatLastLogin(member.lastLogin)}</td>
+                                <td className="p-2 text-right">{formatLastSeen(member.lastSeen)}</td>
                             )}
                         </tr>
                     ))}
