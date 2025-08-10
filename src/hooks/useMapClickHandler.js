@@ -11,7 +11,6 @@ export const useMapClickHandler = ({
     currentUser,
     isPlacingDummyCity,
     handleCreateDummyCity,
-    showCity,
     setTravelTimeInfo,
     openModal,
     closeModal,
@@ -19,7 +18,7 @@ export const useMapClickHandler = ({
     conqueredVillages,
     conqueredRuins,
     playerAlliance,
-    activeCityId // #comment Receive activeCityId to differentiate between active and inactive cities
+    activeCityId
 }) => {
     const { playerCities } = useGame();
 
@@ -37,15 +36,10 @@ export const useMapClickHandler = ({
         if (slotData.ownerId === currentUser.uid) {
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
             if (city) {
-                // #comment If the clicked city is the currently active one, go into city view.
-                if (city.id === activeCityId) {
-                    showCity(city.id);
-                } else {
-                    // #comment If it's one of the player's other cities, open the new inactive city modal.
-                    const distance = calculateDistance(playerCity, slotData);
-                    setTravelTimeInfo({ distance });
-                    openModal('ownInactiveCity', city);
-                }
+                // #comment Always open the modal for any of the player's cities, regardless of whether it's active.
+                const distance = calculateDistance(playerCity, slotData);
+                setTravelTimeInfo({ distance });
+                openModal('ownInactiveCity', city);
             } else {
                 console.error("Clicked on own city slot, but no matching city found.", slotData);
                 setMessage("Could not find data for your city.");

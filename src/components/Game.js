@@ -59,13 +59,13 @@ const Game = ({ onBackToWorlds }) => {
     
     const showMap = () => setView('map');
     
-    // #comment Moved showCity definition before its usage in useMapActions
-    const showCity = useCallback((cityId) => {
+    // #comment Renamed showCity to onEnterCityView for clarity
+    const onEnterCityView = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
     }, [setActiveCityId]);
 
-    const { handleCancelMovement, handleActionClick } = useMapActions(openModal, closeModal, showCity, () => {});
+    const { handleCancelMovement, handleActionClick } = useMapActions(openModal, closeModal, onEnterCityView, () => {});
 
     const toggleView = () => {
         setView(prevView => prevView === 'city' ? 'map' : 'city');
@@ -321,7 +321,7 @@ const Game = ({ onBackToWorlds }) => {
             )}
             {view === 'map' && (
                 <MapView 
-                    showCity={showCity} 
+                    onEnterCityView={onEnterCityView} 
                     openModal={openModal}
                     closeModal={closeModal}
                     modalState={modalState}

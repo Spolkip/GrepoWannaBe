@@ -28,7 +28,7 @@ import { useMapClickHandler } from '../hooks/useMapClickHandler';
 import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({ 
-    showCity, 
+    onEnterCityView, 
     openModal,
     closeModal,
     modalState,
@@ -63,7 +63,7 @@ const MapView = ({
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
+    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, onEnterCityView, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
@@ -143,7 +143,7 @@ const MapView = ({
     }, [panToCoords, goToCoordinates, setPanToCoords]);
 
     const { onCitySlotClick, onVillageClick, onRuinClick } = useMapClickHandler({
-        playerCity, currentUser, isPlacingDummyCity, handleCreateDummyCity, showCity,
+        playerCity, currentUser, isPlacingDummyCity, handleCreateDummyCity,
         setTravelTimeInfo, openModal, closeModal, setMessage, conqueredVillages,
         conqueredRuins, playerAlliance, activeCityId
     });
@@ -276,7 +276,7 @@ const MapView = ({
 
     const handleGoToActiveCity = () => {
         if (activeCityId) {
-            showCity(activeCityId);
+            onEnterCityView(activeCityId);
         } else {
             setMessage("No active city to view.");
         }
@@ -284,7 +284,7 @@ const MapView = ({
 
     const handleEnterCity = (cityId) => {
         setActiveCityId(cityId);
-        showCity(cityId);
+        onEnterCityView(cityId);
         closeModal('ownInactiveCity');
     };
 
