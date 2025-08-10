@@ -1,3 +1,4 @@
+// src/components/chat/Chat.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -157,7 +158,6 @@ const Chat = ({ isVisible, onClose }) => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
-                    maxLength="100"
                 />
                 <button type="submit">Send</button>
             </form>

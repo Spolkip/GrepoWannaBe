@@ -86,7 +86,7 @@ export const useCityActions = ({
             currentState.resources.wood >= cost.wood &&
             currentState.resources.stone >= cost.stone &&
             currentState.resources.silver >= cost.silver &&
-            (newTotalPopulation <= maxPopulation || buildingId === 'farm' || buildingId === 'warehouse')
+            newTotalPopulation <= maxPopulation
         ) {
             const newGameState = JSON.parse(JSON.stringify(currentState));
             newGameState.resources.wood -= cost.wood;
@@ -127,24 +127,29 @@ export const useCityActions = ({
             }
         }
         else {
-            setMessage(newTotalPopulation > maxPopulation && buildingId !== 'farm' && buildingId !== 'warehouse' ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
+            setMessage(newTotalPopulation > maxPopulation ? 'Not enough population capacity!' : 'Not enough resources to upgrade!');
         }
     };
 
-    const handleCancelBuild = async () => { // No longer takes an item
+    const handleCancelBuild = async (itemToCancel) => {
         const currentState = cityGameState;
-        if (!currentState || !currentState.buildQueue || currentState.buildQueue.length === 0) {
+        if (!currentState || !currentState.buildQueue) {
             return;
         }
     
-        const itemIndex = currentState.buildQueue.length - 1; // Always cancel the last item
+        const itemIndex = currentState.buildQueue.findIndex(item => item.id === itemToCancel.id);
+    
+        if (itemIndex === -1) {
+            console.error("Could not find item to cancel in build queue.");
+            return;
+        }
     
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
         
         const newGameState = { ...currentState, buildQueue: newQueue };
     
-        // Only refund resources for upgrades, not demolitions
+        // #comment Only refund resources for upgrades, not demolitions
         if (canceledTask.type !== 'demolish') {
             let cost;
             if (canceledTask.isSpecial) {
@@ -164,8 +169,29 @@ export const useCityActions = ({
                 newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
             }
         }
-        
-        // No need to recalculate end times as we are only removing the last item
+    
+        // #comment Recalculate end times for the rest of the queue
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
+            const taskToUpdate = newQueue[i];
+            
+            let taskTime;
+            if (taskToUpdate.isSpecial) {
+                taskTime = 7200;
+            } else if (taskToUpdate.type === 'demolish') {
+                const costConfig = buildingConfig[taskToUpdate.buildingId].baseCost;
+                const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, taskToUpdate.currentLevel - 1));
+                taskTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
+            }
+            else {
+                taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
+            }
+            
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
         
         await saveGameState(newGameState);
         setCityGameState(newGameState);
@@ -346,7 +372,7 @@ export const useCityActions = ({
         setCityGameState(newGameState);
     };
 
-    const handleCancelTrain = async (queueType) => { // Only takes queueType
+    const handleCancelTrain = async (canceledItem, queueType) => {
         const currentState = cityGameState;
         let queueName;
         let costField;
@@ -371,12 +397,18 @@ export const useCityActions = ({
                 return;
         }
     
-        if (!currentState || !currentState[queueName] || currentState[queueName].length === 0) {
+        if (!currentState || !currentState[queueName]) {
             return;
         }
     
         const currentQueue = [...currentState[queueName]];
-        const itemIndex = currentQueue.length - 1; // Always cancel the last item
+        const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
+    
+        if (itemIndex === -1) {
+            console.error("Item not found in queue for cancellation:", canceledItem);
+            setMessage("Error: Item not found in queue.");
+            return;
+        }
     
         const newQueue = [...currentQueue];
         const removedTask = newQueue.splice(itemIndex, 1)[0];
@@ -400,7 +432,17 @@ export const useCityActions = ({
             newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
         }
     
-        // No need to recalculate end times
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+            
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
     
         const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
     
@@ -633,8 +675,41 @@ const handleTrainTroops = async (unitId, amount) => {
         }
     };
 
-    const handleCancelHeal = async () => {
-        await handleCancelTrain('heal');
+    const handleCancelHeal = async (itemIndex) => {
+        const currentState = cityGameState;
+        if (!currentState || !currentState.healQueue || itemIndex < 0 || itemIndex >= currentState.healQueue.length) {
+            return;
+        }
+
+        const newQueue = [...currentState.healQueue];
+        const canceledTask = newQueue.splice(itemIndex, 1)[0];
+        const unit = unitConfig[canceledTask.unitId];
+
+        const newResources = {
+            ...currentState.resources,
+            wood: currentState.resources.wood + (unit.heal_cost.wood * canceledTask.amount),
+            stone: currentState.resources.stone + (unit.heal_cost.stone * canceledTask.amount),
+            silver: currentState.resources.silver + (unit.heal_cost.silver * canceledTask.amount),
+        };
+        
+        const newWounded = { ...currentState.wounded };
+        newWounded[canceledTask.unitId] = (newWounded[canceledTask.unitId] || 0) + canceledTask.amount;
+
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+            
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const taskTime = (taskUnit.heal_time || 0) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+
+        const newGameState = { ...currentState, resources: newResources, wounded: newWounded, healQueue: newQueue };
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
     };
 
     // #comment Use a Firestore transaction to safely dismiss troops.

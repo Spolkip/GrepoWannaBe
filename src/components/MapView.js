@@ -14,7 +14,7 @@ import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import DivinePowers from './city/DivinePowers';
 import QuestsButton from './QuestsButton';
-import MapOverlay from './map/MapOverlay';
+import MapOverlay from './map/MapOverlay'; // #comment Import the new overlay component
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -26,9 +26,6 @@ import { useMapClickHandler } from '../hooks/useMapClickHandler';
 
 // Utilities
 import buildingConfig from '../gameData/buildings.json';
-
-// #comment Cache tooltip data for 3 minutes to reduce reads.
-const TOOLTIP_CACHE_DURATION = 3 * 60 * 1000;
 
 const MapView = ({ 
     showCity, 
@@ -44,6 +41,9 @@ const MapView = ({
     setPanToCoords,
     handleGoToCityFromProfile,
     movements,
+    villages,
+    ruins,
+    godTowns,
     onCancelTrain,
     onCancelMovement,
     isUnderAttack,
@@ -62,22 +62,14 @@ const MapView = ({
 
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
-    
-    const { visibleSlots, visibleVillages, visibleRuins, visibleGodTowns, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    
+    const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
-    const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 });
+    const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 }); // #comment State for mouse coordinates
     
-    // #comment Ref to store cached tooltip data.
-    const tooltipCacheRef = useRef({
-        points: null,
-        scouts: null,
-        lastFetch: 0,
-    });
-
+    // #comment Effect to track mouse coordinates on the map
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
@@ -97,61 +89,51 @@ const MapView = ({
         return () => viewport.removeEventListener('mousemove', handleMouseMove);
     }, [pan, zoom]);
 
-    // #comment This useEffect now handles fetching and caching tooltip data.
+    const fetchAllCityPoints = useCallback(async () => {
+        if (!worldId) return;
+    
+        const points = {};
+        const usersRef = collection(db, 'users');
+        const usersSnapshot = await getDocs(usersRef);
+    
+        for (const userDoc of usersSnapshot.docs) {
+            const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
+            const citiesSnapshot = await getDocs(citiesRef);
+            for (const cityDoc of citiesSnapshot.docs) {
+                const cityData = cityDoc.data();
+                if (cityData.slotId) {
+                    const totalPoints = calculateTotalPoints(cityData);
+                    points[cityData.slotId] = totalPoints;
+                }
+            }
+        }
+        setCityPoints(points);
+    }, [worldId, calculateTotalPoints]);
+
+    const fetchScoutedData = useCallback(async () => {
+        if (!currentUser || !worldId) return;
+
+        const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
+        const q = query(reportsRef, orderBy('timestamp', 'desc'));
+        
+        const snapshot = await getDocs(q);
+        const latestScouts = {};
+        snapshot.forEach(doc => {
+            const report = doc.data();
+            if (report.type === 'scout' && report.scoutSucceeded) {
+                const targetId = report.targetSlotId; 
+                if (targetId && !latestScouts[targetId]) {
+                    latestScouts[targetId] = report.units;
+                }
+            }
+        });
+        setScoutedCities(latestScouts);
+    }, [currentUser, worldId]);
+    
     useEffect(() => {
-        const fetchTooltipData = async () => {
-            const now = Date.now();
-            if (tooltipCacheRef.current.lastFetch && (now - tooltipCacheRef.current.lastFetch < TOOLTIP_CACHE_DURATION)) {
-                setCityPoints(tooltipCacheRef.current.points || {});
-                setScoutedCities(tooltipCacheRef.current.scouts || {});
-                return;
-            }
-
-            if (!worldId || !currentUser) return;
-
-            // Fetch City Points
-            const points = {};
-            const usersRef = collection(db, 'users');
-            const usersSnapshot = await getDocs(usersRef);
-            for (const userDoc of usersSnapshot.docs) {
-                const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
-                const citiesSnapshot = await getDocs(citiesRef);
-                for (const cityDoc of citiesSnapshot.docs) {
-                    const cityData = cityDoc.data();
-                    if (cityData.slotId) {
-                        points[cityData.slotId] = calculateTotalPoints(cityData);
-                    }
-                }
-            }
-            setCityPoints(points);
-
-            // Fetch Scouted Data
-            const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
-            const q = query(reportsRef, orderBy('timestamp', 'desc'));
-            const snapshot = await getDocs(q);
-            const latestScouts = {};
-            snapshot.forEach(doc => {
-                const report = doc.data();
-                if (report.type === 'scout' && report.scoutSucceeded) {
-                    const targetId = report.targetSlotId;
-                    if (targetId && !latestScouts[targetId]) {
-                        latestScouts[targetId] = report.units;
-                    }
-                }
-            });
-            setScoutedCities(latestScouts);
-
-            // Update cache
-            tooltipCacheRef.current = {
-                points,
-                scouts: latestScouts,
-                lastFetch: now,
-            };
-        };
-
-        fetchTooltipData();
-    }, [worldId, currentUser, calculateTotalPoints]);
-
+        fetchAllCityPoints();
+        fetchScoutedData();
+    }, [fetchAllCityPoints, fetchScoutedData]);
 
     useEffect(() => {
         if (panToCoords) {
@@ -183,7 +165,7 @@ const MapView = ({
 
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
 
-    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...visibleVillages, ...visibleRuins, ...visibleGodTowns }), [playerCities, visibleSlots, visibleVillages, visibleRuins, visibleGodTowns]);
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
 
     const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };
@@ -326,15 +308,15 @@ const MapView = ({
                 if (grid[y]?.[x]) grid[y][x] = { type: 'city_slot', data: slot };
             }
         });
-        Object.values(visibleVillages).forEach(village => {
+        Object.values(villages).forEach(village => {
             const x = Math.round(village.x), y = Math.round(village.y);
             if (grid[y]?.[x]?.type === 'land') grid[y][x] = { type: 'village', data: village };
         });
-        Object.values(visibleRuins).forEach(ruin => {
+        Object.values(ruins).forEach(ruin => {
             const x = Math.round(ruin.x), y = Math.round(ruin.y);
             if (grid[y]?.[x]?.type === 'water') grid[y][x] = { type: 'ruin', data: ruin };
         });
-        Object.values(visibleGodTowns).forEach(town => {
+        Object.values(godTowns).forEach(town => {
             const x = Math.round(town.x);
             const y = Math.round(town.y);
             if (grid[y]?.[x]) {
@@ -342,7 +324,7 @@ const MapView = ({
             }
         });
         return grid;
-    }, [worldState, combinedSlotsForGrid, visibleVillages, visibleRuins, visibleGodTowns]);
+    }, [worldState, combinedSlotsForGrid, villages, ruins, godTowns]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -390,6 +372,7 @@ const MapView = ({
                     />
                     <SideInfoPanel gameState={gameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
                     
+                    {/* #comment Add the MapOverlay component */}
                     <MapOverlay 
                         mouseCoords={mouseCoords}
                         pan={pan}
@@ -420,9 +403,9 @@ const MapView = ({
                                     isPlacingDummyCity={isPlacingDummyCity} 
                                     movements={movements} 
                                     combinedSlots={combinedSlotsForGrid} 
-                                    villages={visibleVillages} 
-                                    ruins={visibleRuins} 
-                                    godTowns={visibleGodTowns}
+                                    villages={villages} 
+                                    ruins={ruins} 
+                                    godTowns={godTowns}
                                     playerAlliance={playerAlliance} 
                                     conqueredVillages={conqueredVillages} 
                                     gameSettings={gameSettings}
@@ -434,7 +417,7 @@ const MapView = ({
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={visibleVillages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
         </div>
     );

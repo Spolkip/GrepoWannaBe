@@ -1,3 +1,4 @@
+// src/components/CityView.js
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
@@ -24,6 +25,7 @@ const CityView = ({
     handleOpenAlliance,
     handleOpenProfile,
     movements,
+    onCancelTrain,
     onCancelMovement,
     combinedSlots,
     onRenameCity,
@@ -110,7 +112,7 @@ const CityView = ({
                     worldState={worldState}
                     productionRates={productionRates}
                     movements={movements}
-                    onCancelTrain={actions.handleCancelTrain}
+                    onCancelTrain={onCancelTrain}
                     onCancelMovement={onCancelMovement}
                     combinedSlots={combinedSlots}
                     onOpenMovements={() => openModal('movements')}

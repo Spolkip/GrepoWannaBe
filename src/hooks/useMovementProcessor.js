@@ -52,6 +52,7 @@ export const useMovementProcessor = (worldId) => {
                     newResources[resourceId] = (newResources[resourceId] || 0) + movement.resources[resourceId];
                 }
             }
+            // #comment Handle wounded troops
             const newWounded = { ...newCityState.wounded };
             let totalWoundedInHospital = Object.values(newWounded).reduce((sum, count) => sum + count, 0);
             const hospitalCapacity = getHospitalCapacity(newCityState.buildings.hospital?.level || 0);
@@ -533,8 +534,7 @@ export const useMovementProcessor = (worldId) => {
             }
         };
 
-        // #comment Changed the interval from 5 seconds to 10 seconds to reduce query frequency.
-        const interval = setInterval(processMovements, 10000); // Check every 10 seconds
+        const interval = setInterval(processMovements, 5000); // #comment Check every 5 seconds
         return () => clearInterval(interval);
     }, [worldId, processMovement]);
 };

@@ -59,37 +59,83 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
             unsubscribeBaseVillage();
         };
     }, [worldId, village.id, currentUser, onClose]);
+
+    useEffect(() => {
+        if (!worldId || !village?.id || !baseVillageData) return;
+
+        const interval = setInterval(async () => {
+            const villageRef = doc(db, 'worlds', worldId, 'villages', village.id);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const villageDoc = await transaction.get(villageRef);
+                    if (!villageDoc.exists()) return;
+                    const villageData = villageDoc.data();
+                    
+                    const lastUpdated = villageData.lastUpdated?.toDate() || new Date();
+                    const now = new Date();
+                    const elapsedHours = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+                    if (elapsedHours > 0) {
+                        const newResources = { ...(villageData.resources || {}) };
+                        const productionRate = getVillageProductionRate(villageData.level);
+                        const maxResources = getVillageMaxCapacity(villageData.level);
+                        
+                        Object.keys(productionRate).forEach(resource => {
+                             newResources[resource] = Math.min(maxResources[resource], (newResources[resource] || 0) + productionRate[resource] * elapsedHours);
+                        });
+
+                        transaction.update(villageRef, { resources: newResources, lastUpdated: serverTimestamp() });
+                    }
+                });
+            } catch (error) {
+                console.error("Error updating village resources:", error);
+            }
+        }, 60000 * 5);
+        
+        return () => clearInterval(interval);
+    }, [worldId, village.id, baseVillageData]);
+
+    // This useEffect now handles happiness regeneration periodically.
+    useEffect(() => {
+        const happinessRegenInterval = setInterval(async () => {
+            if (!worldId || !village?.id || !currentUser) return;
     
-    // #comment Removed the two setIntervals that were causing frequent database writes.
-    // #comment Happiness and village resources are now calculated dynamically based on timestamps.
+            const playerVillageRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'conqueredVillages', village.id);
+    
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const villageDoc = await transaction.get(playerVillageRef);
+                    if (!villageDoc.exists()) return;
+    
+                    const villageData = villageDoc.data();
+                    if (villageData.happiness >= 100) return;
+    
+                    const lastUpdated = villageData.happinessLastUpdated?.toDate() || new Date();
+                    const now = new Date();
+                    const elapsedMinutes = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
+                    
+                    const happinessToRegen = elapsedMinutes * (2 / 60); // 2 happiness per hour
+    
+                    if (happinessToRegen > 0) {
+                        const newHappiness = Math.min(100, (villageData.happiness || 0) + happinessToRegen);
+                        if (newHappiness > villageData.happiness) {
+                            transaction.update(playerVillageRef, {
+                                happiness: newHappiness,
+                                happinessLastUpdated: serverTimestamp()
+                            });
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error regenerating village happiness:", error);
+            }
+        }, 60000); // Run every minute
+    
+        return () => clearInterval(happinessRegenInterval);
+    }, [worldId, village?.id, currentUser]);
+
     const getVillageProductionRate = (level) => ({ wood: level * 100, stone: level * 100, silver: Math.floor(level * 50) });
     const getVillageMaxCapacity = (level) => ({ wood: 1000 + (level - 1) * 500, stone: 1000 + (level - 1) * 500, silver: 1000 + (level - 1) * 500 });
-
-    const currentHappiness = useMemo(() => {
-        if (!village || village.happiness === undefined) return 100;
-        const lastUpdated = village.happinessLastUpdated?.toDate() || new Date();
-        const now = new Date();
-        const elapsedMinutes = (now.getTime() - lastUpdated.getTime()) / (1000 * 60);
-        const happinessToRegen = elapsedMinutes * (2 / 60); // 2 happiness per hour
-        return Math.min(100, village.happiness + happinessToRegen);
-    }, [village]);
-
-    const currentVillageResources = useMemo(() => {
-        if (!baseVillageData || !baseVillageData.resources) return { wood: 0, stone: 0, silver: 0 };
-        const lastUpdated = baseVillageData.lastUpdated?.toDate() || new Date();
-        const now = new Date();
-        const elapsedHours = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
-        
-        const newResources = { ...baseVillageData.resources };
-        const productionRate = getVillageProductionRate(baseVillageData.level);
-        const maxResources = getVillageMaxCapacity(baseVillageData.level);
-
-        Object.keys(productionRate).forEach(resource => {
-             newResources[resource] = Math.min(maxResources[resource], (newResources[resource] || 0) + productionRate[resource] * elapsedHours);
-        });
-        return newResources;
-    }, [baseVillageData]);
-
 
     useEffect(() => {
         if (village && village.lastCollected) {
@@ -109,6 +155,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         silver: Math.floor(100 * Math.pow(1.8, level - 1)),
     });
 
+    // #comment Calculate the demand yields with a memoized hook to ensure the UI updates when the bonus changes.
     const demandYields = useMemo(() => {
         const citiesOnIsland = countCitiesOnIsland(village.islandId);
         const bonusMultiplier = citiesOnIsland > 1 ? 1.20 : 1.0;
@@ -161,8 +208,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 }
     
                 const happinessCost = option.happinessCost || 0;
-                // #comment Use the dynamically calculated happiness for the transaction
-                const newHappiness = Math.max(0, currentHappiness - happinessCost);
+                const newHappiness = Math.max(0, (villageData.happiness || 100) - happinessCost);
     
                 transaction.update(cityDocRef, { resources: newResources });
                 transaction.update(playerVillageRef, { 
@@ -204,12 +250,15 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 const baseVillageDoc = await transaction.get(baseVillageRef);
                 if (!playerVillageDoc.exists() || !cityDoc.exists() || !baseVillageDoc.exists()) throw new Error("Required data not found.");
 
+                const villageData = playerVillageDoc.data();
                 const cityData = cityDoc.data();
                 const baseData = baseVillageDoc.data();
+                const currentHappiness = villageData.happiness !== undefined ? villageData.happiness : 100;
                 
-                const plunderAmount = { wood: Math.floor((currentVillageResources.wood || 0) * 0.5), stone: Math.floor((currentVillageResources.stone || 0) * 0.5), silver: Math.floor((currentVillageResources.silver || 0) * 0.5) };
+                // Plunder always yields resources, regardless of revolt outcome
+                const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
                 const newPlayerResources = { ...cityData.resources };
-                const newVillageResources = { ...currentVillageResources };
+                const newVillageResources = { ...baseData.resources };
                 const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
 
                 for(const res in plunderAmount) {
@@ -218,8 +267,9 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 }
                 
                 transaction.update(cityDocRef, { resources: newPlayerResources });
-                transaction.update(baseVillageRef, { resources: newVillageResources, lastUpdated: serverTimestamp() });
+                transaction.update(baseVillageRef, { resources: newVillageResources });
 
+                // Check for revolt: guaranteed if happiness is low
                 if (currentHappiness <= 40) {
                     const retaliationLosses = resolveVillageRetaliation(cityData.units);
                     const newUnits = { ...cityData.units };
@@ -232,6 +282,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     transaction.set(doc(reportsRef), report);
                     return { ...cityData, units: newUnits, resources: newPlayerResources };
                 } else {
+                    // Successful plunder, no revolt
                     const newHappiness = Math.max(0, currentHappiness - 40);
                     transaction.update(playerVillageRef, { happiness: newHappiness, happinessLastUpdated: serverTimestamp() });
                     
@@ -305,23 +356,24 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 if (!cityDoc.exists() || !villageDoc.exists()) throw new Error("Game state or village data not found.");
     
                 const cityData = cityDoc.data();
-                const resourceToGive = baseVillageData.demands;
-                const resourceToGet = baseVillageData.supplies;
-                const amountToGet = Math.floor(tradeAmount / baseVillageData.tradeRatio);
+                const villageData = villageDoc.data();
+                const resourceToGive = villageData.demands;
+                const resourceToGet = villageData.supplies;
+                const amountToGet = Math.floor(tradeAmount / villageData.tradeRatio);
     
                 if (cityData.resources[resourceToGive] < tradeAmount) throw new Error(`Not enough ${resourceToGive} to trade.`);
-                if (currentVillageResources[resourceToGet] < amountToGet) throw new Error(`The village does not have enough ${resourceToGet} to trade.`);
+                if (villageData.resources[resourceToGet] < amountToGet) throw new Error(`The village does not have enough ${resourceToGet} to trade.`);
     
                 const newPlayerResources = { ...cityData.resources };
                 newPlayerResources[resourceToGive] -= tradeAmount;
                 newPlayerResources[resourceToGet] += amountToGet;
     
-                const newVillageResources = { ...currentVillageResources };
+                const newVillageResources = { ...villageData.resources };
                 newVillageResources[resourceToGive] += tradeAmount;
                 newVillageResources[resourceToGet] -= amountToGet;
     
                 transaction.update(cityDocRef, { resources: newPlayerResources });
-                transaction.update(villageRef, { resources: newVillageResources, lastUpdated: serverTimestamp() });
+                transaction.update(villageRef, { resources: newVillageResources });
                 return { ...cityData, resources: newPlayerResources };
             });
             
@@ -337,14 +389,14 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
 
     const cost = getUpgradeCost(village.level + 1);
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
-    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands] || 0, Math.floor((currentVillageResources?.[baseVillageData.supplies] || 0) * (baseVillageData.tradeRatio || 1)), marketCapacity || 0) : 0;
+    const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands] || 0, Math.floor((baseVillageData.resources?.[baseVillageData.supplies] || 0) * (baseVillageData.tradeRatio || 1)), marketCapacity || 0) : 0;
     
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" onClick={onClose}>
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl text-center border border-gray-600 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-yellow-400">{`Farming Village: ${baseVillageData?.name || village.name} (Level ${village.level})`}</h2>
-                    <h3 className="text-xl font-semibold text-white">Happiness: <span className="text-green-400">{Math.floor(currentHappiness)}%</span></h3>
+                    <h3 className="text-xl font-semibold text-white">Happiness: <span className="text-green-400">{Math.floor(village.happiness !== undefined ? village.happiness : 100)}%</span></h3>
                 </div>
                 <div className="flex border-b border-gray-600 my-4">
                     <button onClick={() => setActiveTab('demand')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'demand' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Demand</button>
@@ -392,7 +444,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                             <h4 className="font-bold text-lg text-center mb-2 text-red-400">Plunder Village</h4>
                             <p className="text-center text-gray-400 text-sm mb-4">Forcefully take resources from the village. This action is much faster and yields more than demanding, but it will significantly lower happiness and risks a revolt.</p>
                             <div className="bg-gray-900 p-4 rounded-lg">
-                                <p className="mb-2">Current Happiness: <span className="font-bold text-green-400">{Math.floor(currentHappiness)}%</span></p>
+                                <p className="mb-2">Current Happiness: <span className="font-bold text-green-400">{Math.floor(village.happiness !== undefined ? village.happiness : 100)}%</span></p>
                                 <p className="text-xs text-gray-500 mb-4">Plundering a village with 40% or less happiness will cause it to revolt, and you will lose control of it.</p>
                                 <button onClick={handlePlunder} disabled={isProcessing} className="btn btn-danger w-full text-lg py-2">{isProcessing ? 'Plundering...' : 'Launch Plunder Raid (-40 Happiness)'}</button>
                             </div>
@@ -410,7 +462,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                                     </div>
                                     <p className="text-center text-gray-400 text-sm mb-4">Trade Ratio: {baseVillageData.tradeRatio}:1 | Your Market Capacity: {marketCapacity}<span className="block mt-2 text-xs text-red-400 italic">(Trade amount is also limited by the village's current supplies)</span></p>
                                     <div className="bg-gray-700 p-4 rounded-lg">
-                                        <div className="flex justify-between items-center mb-2"><span className="capitalize">Your {baseVillageData.demands}: {Math.floor(gameState.resources[baseVillageData.demands] || 0)}</span><span className="capitalize">Village's {baseVillageData.supplies}: {Math.floor(currentVillageResources?.[baseVillageData.supplies] || 0)}</span></div>
+                                        <div className="flex justify-between items-center mb-2"><span className="capitalize">Your {baseVillageData.demands}: {Math.floor(gameState.resources[baseVillageData.demands] || 0)}</span><span className="capitalize">Village's {baseVillageData.supplies}: {Math.floor(baseVillageData.resources?.[baseVillageData.supplies] || 0)}</span></div>
                                         <input type="range" min="0" max={maxTradeAmount || 0} value={tradeAmount} onChange={(e) => setTradeAmount(Number(e.target.value))} className="w-full"/>
                                         <div className="flex justify-between items-center mt-2"><span className="capitalize">You give: <span className="font-bold text-red-400">{tradeAmount} {baseVillageData.demands}</span></span><span className="capitalize">You receive: <span className="font-bold text-green-400">{Math.floor(tradeAmount / (baseVillageData.tradeRatio || 1))} {baseVillageData.supplies}</span></span></div>
                                         <button onClick={handleTrade} disabled={isProcessing || tradeAmount <= 0 || maxTradeAmount <= 0} className="btn btn-confirm w-full mt-4 py-2">Trade</button>

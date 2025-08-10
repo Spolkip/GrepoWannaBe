@@ -1,3 +1,4 @@
+// src/components/Game.js
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -160,13 +161,16 @@ const Game = ({ onBackToWorlds }) => {
         };
     }, [worldId, currentUser]);
 
-    const handleCancelTrain = useCallback(async (cityId, queueType) => {
+    const handleCancelTrain = useCallback(async (item, queueType) => {
+        const cityId = item.cityId;
         const cityState = playerCities[cityId];
-        if (!cityState) return;
-    
         const queueName = queueType === 'heal' ? 'healQueue' : `${queueType}Queue`;
         const costField = queueType === 'heal' ? 'heal_cost' : 'cost';
         const refundField = queueType === 'heal' ? 'wounded' : 'units';
+    
+        if (!cityState || !cityState[queueName]) {
+            return;
+        }
     
         const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityId);
     
@@ -176,12 +180,10 @@ const Game = ({ onBackToWorlds }) => {
                 if (!cityDoc.exists()) throw new Error("City data not found.");
                 
                 const currentState = cityDoc.data();
-                const currentQueue = currentState[queueName] || [];
-                if (currentQueue.length === 0) return; // Nothing to cancel
+                const itemIndex = currentState[queueName].findIndex(i => i.id === item.id);
+                if (itemIndex === -1) throw new Error("Item not found in queue.");
 
-                const itemIndex = currentQueue.length - 1; // Always last item
-
-                const newQueue = [...currentQueue];
+                const newQueue = [...currentState[queueName]];
                 const canceledTask = newQueue.splice(itemIndex, 1)[0];
                 const unit = unitConfig[canceledTask.unitId];
     
@@ -195,7 +197,13 @@ const Game = ({ onBackToWorlds }) => {
                     newRefundUnits[canceledTask.unitId] = (newRefundUnits[canceledTask.unitId] || 0) + canceledTask.amount;
                 }
     
-                // No need to recalculate end times
+                for (let i = itemIndex; i < newQueue.length; i++) {
+                    const prevEndTime = (i === 0) ? Date.now() : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
+                    const task = newQueue[i];
+                    const taskUnit = unitConfig[task.unitId];
+                    const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
+                    newQueue[i].endTime = new Date(prevEndTime + taskTime * 1000);
+                }
     
                 const updates = {
                     resources: newResources,
@@ -294,6 +302,7 @@ const Game = ({ onBackToWorlds }) => {
                     handleOpenAlliance={handleOpenAlliance}
                     handleOpenProfile={handleOpenProfile}
                     movements={movements}
+                    onCancelTrain={handleCancelTrain}
                     onCancelMovement={handleCancelMovement}
                     combinedSlots={combinedSlots}
                     onRenameCity={renameCity}
