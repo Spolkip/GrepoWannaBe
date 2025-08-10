@@ -237,8 +237,14 @@ const ReportsView = ({ onClose }) => {
                             </div>
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender Units</h4>
-                                {renderTroopDisplay(defender.units || defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                {outcome.message ? (
+                                    <p className="text-gray-500 italic">Unknown</p>
+                                ) : (
+                                    <>
+                                        {renderTroopDisplay(defender.units || defender.troops)}
+                                        <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
+                                    </>
+                                )}
                             </div>
                         </div>
                         {outcome.attackerWon && outcome.plunder && (
@@ -249,7 +255,7 @@ const ReportsView = ({ onClose }) => {
                                 </div>
                             </div>
                         )}
-                        <p className="text-gray-500 mt-4">No battle points received.</p>
+                        <p className="text-gray-500 mt-4 italic">{outcome.message || 'No battle points received.'}</p>
                     </div>
                 );
             case 'attack_ruin':

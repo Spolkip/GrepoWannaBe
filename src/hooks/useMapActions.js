@@ -53,8 +53,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         for (const unitId in units) {
             if (units[unitId] > 0) {
                 const config = unitConfig[unitId];
-                if (config.type === 'land') { 
-                    hasLandUnits = true; 
+                if (config.type === 'land') {
+                    hasLandUnits = true;
                     totalLandUnitsToSend += units[unitId];
                     if (config.flying) {
                         hasFlyingUnits = true;
@@ -74,21 +74,29 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
 
+        // #comment If targetCity.ownerId is undefined, it's our own city. Assign the current user's ID.
+        const finalTargetOwnerId = targetCity.ownerId || currentUser.uid;
+        const isOwnCityTarget = finalTargetOwnerId === currentUser.uid;
         let targetCityDocId = null;
-        if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && !targetCity.isGodTownTarget && targetCity.ownerId) {
-            const citiesRef = collection(db, `users/${targetCity.ownerId}/games`, worldId, 'cities');
-            const q = query(citiesRef, where('slotId', '==', targetCity.id), limit(1));
-            try {
-                const cityQuerySnap = await getDocs(q);
-                if (cityQuerySnap.empty) {
-                    setMessage("Error: Could not find the target city's data. It may have been conquered or deleted.");
+
+        if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && !targetCity.isGodTownTarget && finalTargetOwnerId) {
+            if (isOwnCityTarget) {
+                targetCityDocId = targetCity.id;
+            } else {
+                const citiesRef = collection(db, `users/${finalTargetOwnerId}/games`, worldId, 'cities');
+                const q = query(citiesRef, where('slotId', '==', targetCity.id), limit(1));
+                try {
+                    const cityQuerySnap = await getDocs(q);
+                    if (cityQuerySnap.empty) {
+                        setMessage("Error: Could not find the target city's data. It may have been conquered or deleted.");
+                        return;
+                    }
+                    targetCityDocId = cityQuerySnap.docs[0].id;
+                } catch (error) {
+                    console.error("Error fetching target city doc ID:", error);
+                    setMessage("An error occurred while trying to target the city.");
                     return;
                 }
-                targetCityDocId = cityQuerySnap.docs[0].id;
-            } catch (error) {
-                console.error("Error fetching target city doc ID:", error);
-                setMessage("An error occurred while trying to target the city.");
-                return;
             }
         }
 
@@ -181,10 +189,10 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
                 targetCityId: targetCityDocId,
-                targetSlotId: targetCity.id,
+                targetSlotId: isOwnCityTarget ? targetCity.slotId : targetCity.id,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
-                targetOwnerId: targetCity.ownerId,
-                ownerUsername: targetCity.ownerUsername,
+                targetOwnerId: finalTargetOwnerId,
+                ownerUsername: targetCity.ownerUsername || userProfile.username,
                 targetCityName: targetCity.cityName,
                 units,
                 resources: resources || {},
@@ -193,7 +201,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
-                involvedParties: mode === 'scout' ? [currentUser.uid] : [currentUser.uid, targetCity.ownerId].filter(id => id),
+                involvedParties: mode === 'scout' ? [currentUser.uid] : [currentUser.uid, finalTargetOwnerId].filter(id => id),
                 isVillageTarget: !!targetCity.isVillageTarget,
                 isCrossIsland,
             };

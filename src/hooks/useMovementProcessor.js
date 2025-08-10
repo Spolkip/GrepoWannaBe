@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import { useCityState } from './useCityState';
+import unitConfig from '../gameData/units.json';
 
 /**
  * #comment A custom hook to process completed troop movements.
@@ -348,6 +349,19 @@ export const useMovementProcessor = (worldId) => {
                         newDefenderResources.stone = Math.max(0, newDefenderResources.stone - result.plunder.stone);
                         newDefenderResources.silver = Math.max(0, newDefenderResources.silver - result.plunder.silver);
                     }
+                    
+                    const survivingAttackers = {};
+                    for (const unitId in movement.units) {
+                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0) - (result.wounded[unitId] || 0);
+                        if (survivors > 0) {
+                            survivingAttackers[unitId] = survivors;
+                        }
+                    }
+
+                    const hasSurvivingLandOrMythic = Object.keys(survivingAttackers).some(unitId => {
+                        const unit = unitConfig[unitId];
+                        return unit && (unit.type === 'land' || unit.mythical);
+                    });
 
                     const attackerReport = {
                         type: 'attack',
@@ -355,14 +369,22 @@ export const useMovementProcessor = (worldId) => {
                         timestamp: serverTimestamp(),
                         outcome: result,
                         attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses },
+                        defender: hasSurvivingLandOrMythic
+                            ? { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses }
+                            : { cityName: targetCityState.cityName, units: {}, losses: {} },
                         read: false,
                     };
+
+                    if (!hasSurvivingLandOrMythic) {
+                        attackerReport.outcome.message = "Your forces were annihilated. No information could be gathered from the battle.";
+                    }
+
                     const defenderReport = { 
                         ...attackerReport, 
                         title: `Defense against ${originCityState.cityName}`, 
                         read: false,
-                        outcome: { ...result, attackerWon: !result.attackerWon } 
+                        outcome: { ...result, attackerWon: !result.attackerWon },
+                        defender: { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses }
                     };
 
                     batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });
@@ -372,18 +394,7 @@ export const useMovementProcessor = (worldId) => {
                         batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), defenderReport);
                     }
 
-
-                    const survivingAttackers = {};
-                    let anySurvivors = false;
-                    for (const unitId in movement.units) {
-                        const survivors = movement.units[unitId] - (result.attackerLosses[unitId] || 0) - (result.wounded[unitId] || 0);
-                        if (survivors > 0) {
-                            survivingAttackers[unitId] = survivors;
-                            anySurvivors = true;
-                        }
-                    }
-
-                    if (anySurvivors || Object.keys(result.wounded).length > 0) {
+                    if (Object.keys(survivingAttackers).length > 0 || Object.keys(result.wounded).length > 0) {
                         const travelDuration = movement.arrivalTime.toMillis() - movement.departureTime.toMillis();
                         const returnArrivalTime = new Date(movement.arrivalTime.toDate().getTime() + travelDuration);
                         batch.update(movementDoc.ref, {

@@ -16,10 +16,7 @@ Hard to fix:
 - When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
 
 Ez to fix:
-- Can skip building levels by deleting the first level in the building queue after building 5 lvl of a building
-
 - Attacks show all troops in enemy cities
-- Trading on with your other cities is not working
 
 Later fixes: 
 - Agrotika xoria icons are Wrong
@@ -47,3 +44,4 @@ Fixed:
 - Can accept OLD Allince Invite 
 - Farm Need population to build
 - Market Spaming Click Create Offer makes more
+- Trading on with your other cities is not working
