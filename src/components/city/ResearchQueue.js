@@ -10,13 +10,13 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const ResearchQueueItem = ({ item, onCancel }) => {
+const ResearchQueueItem = ({ item, onCancel, isFirst, isLast }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
-        // #comment This useEffect is now solely responsible for calculating the time left for the item.
+        if (!isFirst) return; // Only calculate time for the first item.
+
         const calculateTimeLeft = () => {
-            // #comment Ensure endTime is a valid Date object before calling getTime()
             const endTime = (item.endTime instanceof Date) ? item.endTime : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
                 setTimeLeft(0);
@@ -29,7 +29,7 @@ const ResearchQueueItem = ({ item, onCancel }) => {
         calculateTimeLeft();
         const interval = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(interval);
-    }, [item.endTime]);
+    }, [item.endTime, isFirst]);
 
     const research = researchConfig[item.researchId];
 
@@ -37,14 +37,16 @@ const ResearchQueueItem = ({ item, onCancel }) => {
         <div className="flex justify-between items-center bg-gray-600 p-2 rounded">
             <span className="font-semibold">{research.name}</span>
             <div className="flex items-center gap-4">
-                <span className="font-mono text-yellow-300">{formatTime(timeLeft)}</span>
-                <button 
-                    onClick={onCancel} 
-                    className="text-red-400 hover:text-red-300 font-bold text-xl leading-none px-2 rounded-full"
-                    title="Cancel Research"
-                >
-                    &times;
-                </button>
+                {isFirst && <span className="font-mono text-yellow-300">{formatTime(timeLeft)}</span>}
+                {isLast && (
+                    <button 
+                        onClick={onCancel} 
+                        className="text-red-400 hover:text-red-300 font-bold text-xl leading-none px-2 rounded-full"
+                        title="Cancel Research"
+                    >
+                        &times;
+                    </button>
+                )}
             </div>
         </div>
     );
@@ -64,7 +66,13 @@ const ResearchQueue = ({ researchQueue, onCancel }) => {
             <h4 className="text-lg font-semibold text-yellow-400 mb-2">Research Queue ({researchQueue.length}/5)</h4>
             <div className="space-y-2">
                 {researchQueue.map((item, index) => (
-                    <ResearchQueueItem key={`${item.researchId}-${index}`} item={item} onCancel={() => onCancel(index)} />
+                    <ResearchQueueItem 
+                        key={`${item.researchId}-${index}`} 
+                        item={item} 
+                        onCancel={() => onCancel(index)} 
+                        isFirst={index === 0}
+                        isLast={index === researchQueue.length - 1}
+                    />
                 ))}
             </div>
         </div>

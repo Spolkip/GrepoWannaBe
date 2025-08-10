@@ -24,6 +24,7 @@
 - add a warning when you cancel a building
 - add to demolish per level and also add it on queue with time
 - suggest alliances when you arent on an alliance
+- add queues on hover to say info
 
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player

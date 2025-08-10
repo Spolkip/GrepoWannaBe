@@ -16,9 +16,8 @@ Hard to fix:
 - When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
 
 Ez to fix:
-- Farm Need population to build
 - Can skip building levels by deleting the first level in the building queue after building 5 lvl of a building
-- Market Spaming Click Create Offer makes more
+
 - Attacks show all troops in enemy cities
 - Trading on with your other cities is not working
 
@@ -46,3 +45,5 @@ Fixed:
 - Chat has no limit in text
 - Cave at lvl 10 is just 10k not infinite (also make it autoroctect to the amount to fill the cave)
 - Can accept OLD Allince Invite 
+- Farm Need population to build
+- Market Spaming Click Create Offer makes more

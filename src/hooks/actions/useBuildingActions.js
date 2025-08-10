@@ -100,6 +100,11 @@ export const useBuildingActions = ({
             return;
         }
     
+        if (itemIndex !== currentState.buildQueue.length - 1) {
+            setMessage("You can only cancel the last item in the queue.");
+            return;
+        }
+
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
         

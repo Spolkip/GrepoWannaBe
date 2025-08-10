@@ -126,7 +126,10 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                         if (config.constructible === false && id !== 'senate') return null;
                                         const level = buildings[id]?.level || 0;
                                         const cost = getUpgradeCost(id, level + 1);
-                                        const canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && (maxPopulation - usedPopulation >= cost.population);
+                                        let canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver;
+                                        if (id !== 'farm' && id !== 'warehouse') {
+                                            canAfford = canAfford && (maxPopulation - usedPopulation >= cost.population);
+                                        }
                                         const isQueueFull = (buildQueue || []).length >= 5;
 
                                         return (

@@ -168,6 +168,11 @@ export const useUnitActions = ({
             setMessage("Error: Item not found in queue.");
             return;
         }
+
+        if (itemIndex !== currentQueue.length - 1) {
+            setMessage("You can only cancel the last item in the queue.");
+            return;
+        }
     
         const newQueue = [...currentQueue];
         const removedTask = newQueue.splice(itemIndex, 1)[0];

@@ -18,7 +18,7 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const UnitQueueItem = ({ item, onCancel, isFirst }) => {
+const UnitQueueItem = ({ item, onCancel, isFirst, isLast }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
@@ -58,13 +58,15 @@ const UnitQueueItem = ({ item, onCancel, isFirst }) => {
                     {formatTime(timeLeft)}
                 </div>
             )}
-            <button
-                onClick={() => onCancel(item)} // Pass the entire item object
-                className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
-                title="Cancel"
-            >
-                &times;
-            </button>
+            {isLast && (
+                <button
+                    onClick={() => onCancel(item)} // Pass the entire item object
+                    className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
+                    title="Cancel"
+                >
+                    &times;
+                </button>
+            )}
         </div>
     );
 };
@@ -90,6 +92,7 @@ const UnitQueue = ({ unitQueue, onCancel, title = "In Training" }) => {
                         item={item} 
                         onCancel={onCancel} 
                         isFirst={index === 0}
+                        isLast={index === unitQueue.length - 1}
                     />
                 ))}
             </div>

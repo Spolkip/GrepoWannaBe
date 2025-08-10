@@ -20,7 +20,7 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const QueueItem = ({ item, isFirst, onCancel }) => {
+const QueueItem = ({ item, isFirst, onCancel, isLast }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
@@ -67,13 +67,15 @@ const QueueItem = ({ item, isFirst, onCancel }) => {
                     {formatTime(timeLeft)}
                 </div>
             )}
-            <button
-                onClick={onCancel}
-                className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
-                title="Cancel Construction"
-            >
-                &times;
-            </button>
+            {isLast && (
+                <button
+                    onClick={onCancel}
+                    className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-xs hover:bg-red-500 transition-colors z-10"
+                    title="Cancel Construction"
+                >
+                    &times;
+                </button>
+            )}
         </div>
     );
 };
@@ -89,7 +91,7 @@ const BuildQueue = ({ buildQueue, onCancel }) => {
             </div>
             <div className="flex-grow flex items-center gap-3">
                 {buildQueue && buildQueue.map((item, index) => (
-                    <QueueItem key={item.id || `${item.buildingId}-${index}`} item={item} isFirst={index === 0} onCancel={() => onCancel(item)} />
+                    <QueueItem key={item.id || `${item.buildingId}-${index}`} item={item} isFirst={index === 0} isLast={index === buildQueue.length - 1} onCancel={() => onCancel(item)} />
                 ))}
                 {emptySlots.map((_, index) => (
                     <div key={`empty-${index}`} className="w-16 h-16 bg-gray-800 border-2 border-dashed border-gray-600 rounded-md flex items-center justify-center flex-shrink-0">

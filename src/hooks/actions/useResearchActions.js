@@ -84,6 +84,12 @@ export const useResearchActions = ({
         if (!currentState || !currentState.researchQueue || itemIndex < 0 || itemIndex >= currentState.researchQueue.length) {
             return;
         }
+
+        if (itemIndex !== currentState.researchQueue.length - 1) {
+            setMessage("You can only cancel the last item in the research queue.");
+            return;
+        }
+
         const newQueue = [...currentState.researchQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
         const researchData = researchConfig[canceledTask.researchId];

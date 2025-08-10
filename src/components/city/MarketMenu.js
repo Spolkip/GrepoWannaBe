@@ -23,6 +23,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const [myTrades, setMyTrades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // State for creating a new trade
     const [offerResource, setOfferResource] = useState('wood');
@@ -54,6 +55,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     // #comment handle creation of a new trade offer
     const handleCreateTrade = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setError('');
         const offerAmountNum = parseInt(offerAmount, 10);
         const demandAmountNum = parseInt(demandAmount, 10);
@@ -75,6 +77,7 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
             return;
         }
 
+        setIsSubmitting(true);
         const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
         const tradesRef = collection(db, 'worlds', worldId, 'trades');
 
@@ -108,9 +111,11 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
             setOfferAmount('');
             setDemandAmount('');
             setActiveTab('my-trades');
+            setTimeout(() => setIsSubmitting(false), 3000); // 3-second cooldown
         } catch (error) {
             console.error("Error creating trade:", error);
             setError(`Failed to create trade: ${error.message}`);
+            setIsSubmitting(false);
         }
     };
 
@@ -275,7 +280,9 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
                                 </div>
                             </div>
                              <p className="capacity-info">Your Silver: {Math.floor(cityGameState.resources.silver)} | Market Capacity: {marketCapacity}</p>
-                            <button type="submit" className="market-btn create-btn">Create Offer</button>
+                            <button type="submit" className="market-btn create-btn" disabled={isSubmitting}>
+                                {isSubmitting ? 'Creating...' : 'Create Offer'}
+                            </button>
                         </form>
                     )}
                 </div>
