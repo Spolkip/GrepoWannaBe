@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/config';
-import { doc, writeBatch, collection, getDocs, query} from 'firebase/firestore';
+import { doc, writeBatch, deleteDoc, setDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {

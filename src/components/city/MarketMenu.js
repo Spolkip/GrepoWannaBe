@@ -23,7 +23,6 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const [myTrades, setMyTrades] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [lastTradeTime, setLastTradeTime] = useState(0);
 
     // State for creating a new trade
     const [offerResource, setOfferResource] = useState('wood');
@@ -56,13 +55,6 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
     const handleCreateTrade = async (e) => {
         e.preventDefault();
         setError('');
-
-        const COOLDOWN_SECONDS = 10;
-        if (Date.now() - lastTradeTime < COOLDOWN_SECONDS * 1000) {
-            setError(`You must wait ${COOLDOWN_SECONDS} seconds between creating trades.`);
-            return;
-        }
-
         const offerAmountNum = parseInt(offerAmount, 10);
         const demandAmountNum = parseInt(demandAmount, 10);
 
@@ -113,7 +105,6 @@ const MarketMenu = ({ onClose, cityGameState, worldId, marketCapacity }) => {
                 transaction.set(doc(tradesRef), newTrade);
             });
 
-            setLastTradeTime(Date.now());
             setOfferAmount('');
             setDemandAmount('');
             setActiveTab('my-trades');

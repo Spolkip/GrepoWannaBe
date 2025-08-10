@@ -77,9 +77,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         let targetCityDocId = null;
         if (!targetCity.isVillageTarget && !targetCity.isRuinTarget && !targetCity.isGodTownTarget && targetCity.ownerId) {
             const citiesRef = collection(db, `users/${targetCity.ownerId}/games`, worldId, 'cities');
-            // #comment FIX: Use slotId if available, otherwise fallback to id for querying.
-            const slotIdentifier = targetCity.slotId || targetCity.id;
-            const q = query(citiesRef, where('slotId', '==', slotIdentifier), limit(1));
+            const q = query(citiesRef, where('slotId', '==', targetCity.id), limit(1));
             try {
                 const cityQuerySnap = await getDocs(q);
                 if (cityQuerySnap.empty) {
@@ -176,7 +174,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 isCrossIsland: true,
             };
         } else {
-            const slotIdentifier = targetCity.slotId || targetCity.id;
             movementData = {
                 type: mode,
                 originCityId: playerCity.id,
@@ -184,10 +181,10 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
                 targetCityId: targetCityDocId,
-                targetSlotId: slotIdentifier,
+                targetSlotId: targetCity.id,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
-                targetOwnerId: targetCity.ownerId || null,
-                ownerUsername: targetCity.ownerUsername || null,
+                targetOwnerId: targetCity.ownerId,
+                ownerUsername: targetCity.ownerUsername,
                 targetCityName: targetCity.cityName,
                 units,
                 resources: resources || {},

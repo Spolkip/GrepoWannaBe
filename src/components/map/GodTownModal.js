@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import PuzzleRenderer from '../puzzles/PuzzleRenderer';
 import Countdown from './Countdown';
 import TroopDisplay from '../TroopDisplay'; // Import TroopDisplay

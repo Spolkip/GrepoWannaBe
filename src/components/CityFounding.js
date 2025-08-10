@@ -1,6 +1,6 @@
 // src/components/CityFounding.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, serverTimestamp, runTransaction} from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, query, where, limit, getDocs, serverTimestamp} from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -80,73 +80,75 @@ const CityFounding = ({ onCityFounded }) => {
         const newCityDocRef = doc(collection(gameDocRef, 'cities'));
 
         try {
-            // #comment Use a transaction to prevent race conditions when claiming a city slot.
-            await runTransaction(db, async (transaction) => {
-                const slotSnap = await transaction.get(citySlotRef);
-                if (!slotSnap.exists() || slotSnap.data().ownerId !== null) {
-                    throw new Error("This location was taken. Please try again.");
-                }
+            const slotSnap = await getDoc(citySlotRef);
+            if (!slotSnap.exists() || slotSnap.data().ownerId !== null) {
+                throw new Error("This location was taken. Please try again.");
+            }
 
-                let baseName = cityName.trim();
-                const existingCityNames = Object.values(playerCities).map(c => c.cityName);
-                
-                let finalCityName = baseName;
-                if (existingCityNames.includes(finalCityName)) {
-                    let count = 2;
-                    let newName;
-                    const colonyBaseName = baseName.replace(/ Colony \d+$/, "").trim();
-                    do {
-                        newName = `${colonyBaseName} Colony ${count}`;
-                        count++;
-                    } while (existingCityNames.includes(newName));
-                    finalCityName = newName;
-                }
+            const batch = writeBatch(db);
 
-                transaction.update(citySlotRef, {
-                    ownerId: currentUser.uid,
-                    ownerUsername: userProfile.username,
-                    cityName: finalCityName
-                });
+            // #comment Check for existing city names to avoid duplicates
+            let baseName = cityName.trim();
+            const existingCityNames = Object.values(playerCities).map(c => c.cityName);
+            
+            let finalCityName = baseName;
+            if (existingCityNames.includes(finalCityName)) {
+                let count = 2;
+                let newName;
+                const colonyBaseName = baseName.replace(/ Colony \d+$/, "").trim();
+                do {
+                    newName = `${colonyBaseName} Colony ${count}`;
+                    count++;
+                } while (existingCityNames.includes(newName));
+                finalCityName = newName;
+            }
 
-                transaction.set(gameDocRef, {
-                    worldName: worldState.name,
-                    joinedAt: serverTimestamp(),
-                    citySlotIds: [selectedSlot.id]
-                });
-
-                const initialBuildings = {};
-                Object.keys(buildingConfig).forEach(id => {
-                    initialBuildings[id] = { level: 0 };
-                });
-                ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
-                    initialBuildings[id].level = 1;
-                });
-
-                const newCityData = {
-                    id: newCityDocRef.id,
-                    slotId: selectedSlot.id,
-                    x: selectedSlot.x,
-                    y: selectedSlot.y,
-                    islandId: selectedSlot.islandId,
-                    cityName: finalCityName,
-                    playerInfo: { religion: selectedReligion, nation: selectedNation },
-                    resources: { wood: 1000, stone: 1000, silver: 500 },
-                    buildings: initialBuildings,
-                    units: {},
-                    wounded: {},
-                    research: {},
-                    worship: {},
-                    cave: { silver: 0 },
-                    buildQueue: [],
-                    unitQueue: [],
-                    researchQueue: [],
-                    healQueue: [],
-                    lastUpdated: Date.now(),
-                };
-                
-                transaction.set(newCityDocRef, newCityData);
+            batch.update(citySlotRef, {
+                ownerId: currentUser.uid,
+                ownerUsername: userProfile.username,
+                cityName: finalCityName
             });
 
+            // #comment Set the top-level game document with initial data, including the citySlotIds array
+            batch.set(gameDocRef, {
+                worldName: worldState.name,
+                joinedAt: serverTimestamp(),
+                citySlotIds: [selectedSlot.id]
+            });
+
+            const initialBuildings = {};
+            Object.keys(buildingConfig).forEach(id => {
+                initialBuildings[id] = { level: 0 };
+            });
+            ['senate', 'farm', 'warehouse', 'timber_camp', 'quarry', 'silver_mine', 'cave'].forEach(id => {
+                initialBuildings[id].level = 1;
+            });
+
+            const newCityData = {
+                id: newCityDocRef.id,
+                slotId: selectedSlot.id,
+                x: selectedSlot.x,
+                y: selectedSlot.y,
+                islandId: selectedSlot.islandId,
+                cityName: finalCityName,
+                playerInfo: { religion: selectedReligion, nation: selectedNation },
+                resources: { wood: 1000, stone: 1000, silver: 500 },
+                buildings: initialBuildings,
+                units: {},
+                wounded: {},
+                research: {},
+                worship: {},
+                cave: { silver: 0 },
+                buildQueue: [],
+                unitQueue: [],
+                researchQueue: [],
+                healQueue: [],
+                lastUpdated: Date.now(),
+            };
+            
+            batch.set(newCityDocRef, newCityData);
+
+            await batch.commit();
             setActiveCityId(newCityDocRef.id);
             if (onCityFounded && typeof onCityFounded === 'function') {
                 onCityFounded();
