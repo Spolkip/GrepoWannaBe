@@ -16,7 +16,6 @@ Hard to fix:
 - When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
 
 Ez to fix:
-- Attacks show all troops in enemy cities
 
 Later fixes: 
 - Agrotika xoria icons are Wrong
@@ -45,3 +44,4 @@ Fixed:
 - Farm Need population to build
 - Market Spaming Click Create Offer makes more
 - Trading on with your other cities is not working
+- Attacks show all troops in enemy cities

@@ -10,18 +10,26 @@ import AllianceInvitations from '../alliance/AllianceInvitations';
 import AllianceRanks from '../alliance/AllianceRanks';
 import AllianceProperties from '../alliance/AllianceProperties';
 import AllianceBank from '../alliance/AllianceBank';
+import AllianceSuggestions from '../alliance/AllianceSuggestions'; // #comment Import the new component
 import './AllianceModal.css';
 
-const AllianceModal = ({ onClose }) => {
+const AllianceModal = ({ onClose, onOpenAllianceProfile }) => { // #comment Added onOpenAllianceProfile
     const { playerAlliance } = useAlliance();
     const { currentUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState(playerAlliance ? 'overview' : 'suggestions'); // #comment Default to suggestions if no alliance
 
-    if (!currentUser || !playerAlliance) {
+    // #comment If the player is not in an alliance, show the suggestions view.
+    if (!playerAlliance) {
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center">
-                <div className="bg-gray-800 p-6 rounded-lg text-white">
-                    Loading alliance data...
+            <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+                <div className="alliance-modal" onClick={e => e.stopPropagation()}>
+                    <div className="alliance-modal-header">
+                        <h2 className="text-2xl font-bold text-white">Join an Alliance</h2>
+                        <button onClick={onClose} className="close-button">&times;</button>
+                    </div>
+                    <div className="alliance-modal-content">
+                        <AllianceSuggestions onAllianceClick={onOpenAllianceProfile} />
+                    </div>
                 </div>
             </div>
         );
