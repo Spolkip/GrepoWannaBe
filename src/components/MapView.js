@@ -169,7 +169,7 @@ const MapView = ({
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
 
-    // #comment This effect handles opening a city modal when triggered from another view (like reports)
+
     useEffect(() => {
         if (initialMapAction?.type === 'open_city_modal') {
             const { coords } = initialMapAction;
@@ -181,7 +181,7 @@ const MapView = ({
             );
 
             if (citySlot) {
-                // Reuse the click handler logic!
+
                 onCitySlotClick(null, citySlot);
             }
             setInitialMapAction(null);
@@ -303,12 +303,12 @@ const MapView = ({
         }
     };
 
+    // when we enter a city from the map, we want to go to the city view
     const handleEnterCity = (cityId) => {
-    setActiveCityId(cityId);
-
-    showCity(cityId);
-    closeModal('ownInactiveCity');
-};
+        showCity(cityId);
+        closeModal('ownInactiveCity');
+        closeModal('ownActiveCity');
+    };
 
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;

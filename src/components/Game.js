@@ -77,14 +77,20 @@ const Game = ({ onBackToWorlds }) => {
     }, [view, playerCity]);
 
 
-
+    // #comment Sets the active city.
     const switchCity = useCallback((cityId) => {
-    setActiveCityId(cityId);
-    const nextCity = playerCities[cityId];
-    if (nextCity && view === 'map') {
-        setPanToCoords({ x: nextCity.x, y: nextCity.y });
-    }
-}, [setActiveCityId, playerCities, view]);
+        setActiveCityId(cityId);
+    }, [setActiveCityId]);
+
+    // #comment Pans the map to the active city when it changes while in map view.
+    useEffect(() => {
+        if (view === 'map' && activeCityId) {
+            const nextCity = playerCities[activeCityId];
+            if (nextCity) {
+                setPanToCoords({ x: nextCity.x, y: nextCity.y });
+            }
+        }
+    }, [activeCityId, view, playerCities]);
 
 
     const cycleCity = useCallback((direction) => {
@@ -391,7 +397,7 @@ const Game = ({ onBackToWorlds }) => {
                 />
             )}
 
-            {/* Modals */}
+            {/* Global Modals */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} onActionClick={handleAction} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} openModal={openModal} />}

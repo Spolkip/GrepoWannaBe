@@ -66,21 +66,28 @@ export const GameProvider = ({ children, worldId }) => {
         const citiesColRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'cities');
         const unsubscribeCities = onSnapshot(citiesColRef, (snapshot) => {
             const citiesData = {};
+            let firstCityId = null;
             snapshot.forEach(doc => {
+                if (!firstCityId) firstCityId = doc.id;
                 citiesData[doc.id] = { id: doc.id, ...doc.data() };
             });
             setPlayerCities(citiesData);
             const hasCities = !snapshot.empty;
             setPlayerHasCities(hasCities);
 
-            if (hasCities && !activeCityId) {
-                const firstCityId = snapshot.docs[0].id;
-                console.log("GameContext: Setting initial active city ID:", firstCityId);
-                setActiveCityId(firstCityId);
-            } else if (!hasCities) {
-                console.log("GameContext: No cities found, setting activeCityId to null.");
-                setActiveCityId(null);
-            }
+            // #comment Use functional update to avoid dependency on activeCityId
+            setActiveCityId(currentId => {
+                if (hasCities && !currentId) {
+                    console.log("GameContext: Setting initial active city ID:", firstCityId);
+                    return firstCityId;
+                }
+                if (!hasCities) {
+                    console.log("GameContext: No cities found, setting activeCityId to null.");
+                    return null;
+                }
+                return currentId;
+            });
+
             setLoading(false);
         });
 
@@ -109,7 +116,7 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeVillages();
             unsubscribeRuins();
         };
-    }, [currentUser, worldId, activeCityId]);
+    }, [currentUser, worldId]);
 
     const activeCity = playerCities[activeCityId] || null;
 

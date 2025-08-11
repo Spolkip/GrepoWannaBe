@@ -1,29 +1,25 @@
 Will do: 
-- add a system message to send as different sender to add all the invite, apply, diplomat stuff
-- add a placeholder on profile's image, add actual points and defense and attack points and also battle points also make the Alliance reference better adding there the name of the player as well with bbcodes
 - add everywhere to have the text editor
-- add counters and more stats to troops
-- make manager for troops and research spells, puzzles and buildings with a lot of options
-- add more spells and make them work
 - add a warning when you cancel a building
 - add queues on hover to say info
-- seperate attack from defence report
 - add shortcuts for buildings
 - make the village plunder every 20 mins
 - make it so on your active city to only have, center on map, enter city or celect city
 - make it so it shows reinforced troops 
 - make it so you can withdraw reinforced troops
+- make manager for troops and research spells, puzzles and buildings with a lot of options
+- add more spells and make them work
+- add counters and more stats to troops
 
-Hard todo:
-- add buildings to build when the island is full of an alliance
-
-Ez todo:
+Todo after above:
 - put special buildings on cityscape
 - add icons to back to world selection and logout
 -  add animation on open tooltip for spells when press on the god
 - make settings better
 - add more research and make them to actually work
 - add notification icons to show when something is completed
+- add a placeholder on profile's image
+- add buildings to build when the island is full of an alliance
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 
