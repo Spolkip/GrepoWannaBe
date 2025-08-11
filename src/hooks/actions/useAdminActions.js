@@ -1,4 +1,3 @@
-// src/hooks/actions/useAdminActions.js
 import { collection, doc, query, where, limit, getDocs, setDoc as firestoreSetDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useGame } from '../../contexts/GameContext';
@@ -47,7 +46,7 @@ export const useAdminActions = ({
                 return;
             }
             setMessage('Finding a suitable location for your new city...');
-            
+
             const citySlotsRef = collection(db, 'worlds', worldId, 'citySlots');
             const q = query(citySlotsRef, where('ownerId', '==', null), limit(10));
             let selectedSlot = null;
@@ -81,10 +80,10 @@ export const useAdminActions = ({
                     }
 
                     const existingCityNames = Object.values(playerCities).map(c => c.cityName);
-                    
+
                     const baseName = `${userProfile.username}'s Colony`;
                     let finalCityName = baseName;
-                    
+
                     if (existingCityNames.includes(finalCityName)) {
                         let count = 2;
                         let newName;
@@ -131,7 +130,7 @@ export const useAdminActions = ({
                         healQueue: [],
                         lastUpdated: Date.now(),
                     };
-                    
+
                     transaction.set(newCityDocRef, newCityData);
                 });
                 setMessage(`New city founded successfully!`);
@@ -141,7 +140,7 @@ export const useAdminActions = ({
             }
             return;
         }
-        
+
         setIsInstantBuild(instantBuild);
         setIsInstantResearch(instantResearch);
         setIsInstantUnits(instantUnits);

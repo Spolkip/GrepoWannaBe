@@ -38,7 +38,7 @@ import unitConfig from '../gameData/units.json';
 const Game = ({ onBackToWorlds }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity, playerGameData } = useGame();
     const { currentUser, userProfile } = useAuth();
-    const { acceptAllianceInvitation, declineAllianceInvitation } = useAlliance();
+    const { acceptAllianceInvitation, declineAllianceInvitation, sendAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [panToCoords, setPanToCoords] = useState(null);
@@ -391,14 +391,19 @@ const Game = ({ onBackToWorlds }) => {
                 />
             )}
 
-            {}
+            {/* Modals */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} onActionClick={handleAction} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} openModal={openModal} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
             {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} onActionClick={handleAction} />}
             {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} cityState={gameState} />}
-            {modalState.isProfileModalOpen && <ProfileView onClose={() => closeModal('profile')} viewUserId={modalState.viewingProfileId} onGoToCity={handleGoToCityFromProfile} onInviteToAlliance={() => {}} onOpenAllianceProfile={handleOpenAllianceProfile} />}
+            {modalState.isProfileModalOpen && <ProfileView
+                onClose={() => closeModal('profile')}
+                viewUserId={modalState.viewingProfileId}
+                onGoToCity={handleGoToCityFromProfile}
+                onInviteToAlliance={(targetUserId) => sendAllianceInvitation(targetUserId).catch(err => alert(err.message))}
+                onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isLeaderboardOpen && <Leaderboard onClose={() => closeModal('leaderboard')} onOpenProfile={handleOpenProfile} onOpenAllianceProfile={handleOpenAllianceProfile} />}
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}

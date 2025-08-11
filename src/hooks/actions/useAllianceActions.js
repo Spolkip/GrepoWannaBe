@@ -1,7 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc } from "firebase/firestore";
 import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
 
@@ -14,7 +14,7 @@ const calculateMaxMembers = (alliance) => {
 
 export const useAllianceActions = (playerAlliance) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, playerCities } = useGame();
+    const { worldId} = useGame();
 
     const createAlliance = async (name, tag) => {
         if (!currentUser || !worldId || !userProfile) return;

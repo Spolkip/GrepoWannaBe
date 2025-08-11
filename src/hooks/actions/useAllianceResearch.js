@@ -1,7 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, collection,serverTimestamp} from "firebase/firestore";
 import allianceResearch from '../../gameData/allianceResearch.json';
 
 export const useAllianceResearchActions = (playerAlliance) => {

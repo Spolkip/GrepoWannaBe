@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from '../firebase/config';
-import { useAuth } from './AuthContext';
 import { useGame } from './GameContext';
 import AllianceContext from './AllianceContext';
 import { useAllianceActions } from '../hooks/actions/useAllianceActions';
@@ -11,7 +10,6 @@ import { useAllianceManagementActions } from '../hooks/actions/useAllianceManage
 import { useAllianceResearchActions } from '../hooks/actions/useAllianceResearch';
 
 export const AllianceProvider = ({ children }) => {
-    const { currentUser } = useAuth();
     const { worldId, playerGameData } = useGame();
     const [playerAlliance, setPlayerAlliance] = useState(null);
 
