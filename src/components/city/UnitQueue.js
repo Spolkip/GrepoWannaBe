@@ -1,6 +1,7 @@
 // src/components/city/UnitQueue.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import unitConfig from '../../gameData/units.json';
+import './UnitQueue.css'; // Import the new CSS
 
 // Dynamically import all unit images
 const unitImages = {};
@@ -18,8 +19,9 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const UnitQueueItem = ({ item, onCancel, isFirst, isLast }) => {
+const UnitQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave }) => {
     const [timeLeft, setTimeLeft] = useState(0);
+    const itemRef = useRef(null);
 
     useEffect(() => {
         if (!isFirst) return;
@@ -48,7 +50,13 @@ const UnitQueueItem = ({ item, onCancel, isFirst, isLast }) => {
     const imageSrc = unitImages[unit.image];
 
     return (
-        <div className="relative w-16 h-16 bg-gray-700 border-2 border-gray-600 rounded-md flex-shrink-0" title={`${item.amount}x ${unit.name}`}>
+        <div 
+            ref={itemRef}
+            className="relative w-16 h-16 bg-gray-700 border-2 border-gray-600 rounded-md flex-shrink-0" 
+            title={`${item.amount}x ${unit.name}`}
+            onMouseEnter={() => onHover(item, itemRef.current)}
+            onMouseLeave={onLeave}
+        >
             <img src={imageSrc} alt={unit.name} className="w-full h-full object-contain p-1" />
             <span className="absolute bottom-0 right-1 text-white bg-black bg-opacity-75 px-1.5 py-0.5 text-xs font-bold rounded-tl-md rounded-br-md">
                 {item.amount}
@@ -72,6 +80,60 @@ const UnitQueueItem = ({ item, onCancel, isFirst, isLast }) => {
 };
 
 const UnitQueue = ({ unitQueue, onCancel, title = "In Training" }) => {
+    const [hoveredItem, setHoveredItem] = useState(null);
+    const [tooltipStyle, setTooltipStyle] = useState({ display: 'none' });
+    const tooltipTimeoutRef = useRef(null);
+    const queueContainerRef = useRef(null);
+
+    // #comment handle mouse enter to show tooltip and calculate its position
+    const handleMouseEnter = (item, element) => {
+        clearTimeout(tooltipTimeoutRef.current);
+        if (element && queueContainerRef.current) {
+            const queueRect = queueContainerRef.current.getBoundingClientRect();
+            const itemRect = element.getBoundingClientRect();
+
+            setTooltipStyle({
+                position: 'absolute',
+                bottom: `${queueRect.height}px`, // Position above the queue container
+                left: `${itemRect.left - queueRect.left + (itemRect.width / 2)}px`,
+                transform: 'translateX(-50%)',
+                marginBottom: '8px',
+            });
+            setHoveredItem(item);
+        }
+    };
+
+    // #comment handle mouse leave to hide tooltip
+    const handleMouseLeave = () => {
+        tooltipTimeoutRef.current = setTimeout(() => {
+            setHoveredItem(null);
+        }, 200);
+    };
+    
+    // #comment Get the completion time of the last item in the queue
+    const totalCompletionTime = unitQueue && unitQueue.length > 0 
+        ? unitQueue[unitQueue.length - 1].endTime 
+        : null;
+
+    const renderTooltip = () => {
+        if (!hoveredItem) return null;
+        const unit = unitConfig[hoveredItem.unitId];
+        const totalCompletionTimeString = totalCompletionTime ? new Date(totalCompletionTime).toLocaleTimeString() : 'Queued';
+
+        return (
+            <div className="unit-queue-tooltip" style={tooltipStyle}>
+                <h3 className="unit-tooltip-title">{hoveredItem.amount}x {unit.name}</h3>
+                <dl className="unit-tooltip-info">
+                    <dt>Time per unit:</dt>
+                    <dd>{formatTime(unit.cost.time)}</dd>
+                    <dt>Queue Completion:</dt>
+                    <dd>{totalCompletionTimeString}</dd>
+                </dl>
+
+            </div>
+        );
+    };
+
     if (!unitQueue || unitQueue.length === 0) {
         return (
             <div className="mt-auto pt-4">
@@ -83,19 +145,22 @@ const UnitQueue = ({ unitQueue, onCancel, title = "In Training" }) => {
         );
     }
     return (
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-4 relative" ref={queueContainerRef}>
             <h4 className="text-lg font-semibold text-yellow-400 mb-2">{title} ({unitQueue.length}/5)</h4>
             <div className="flex space-x-3 bg-gray-900 p-2 rounded-lg overflow-x-auto h-24 items-center">
                 {unitQueue.map((item, index) => (
                     <UnitQueueItem 
-                        key={item.id || `${item.unitId}-${index}`} // Use item.id if available, fallback to old key
+                        key={item.id || `${item.unitId}-${index}`}
                         item={item} 
                         onCancel={onCancel} 
                         isFirst={index === 0}
                         isLast={index === unitQueue.length - 1}
+                        onHover={handleMouseEnter}
+                        onLeave={handleMouseLeave}
                     />
                 ))}
             </div>
+            {renderTooltip()}
         </div>
     );
 };

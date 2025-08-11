@@ -7,7 +7,6 @@ import CityViewContent from './city/CityViewContent';
 import DivinePowers from './city/DivinePowers';
 import { useCityState } from '../hooks/useCityState';
 import { useGame } from '../contexts/GameContext';
-import { useCityModalManager } from '../hooks/useCityModalManager';
 import { useCityActions } from '../hooks/useCityActions';
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
@@ -32,7 +31,11 @@ const CityView = ({
     quests,
     handleOpenEvents,
     onSwitchCity,
-    battlePoints
+    battlePoints,
+    cityModalState,
+    openCityModal,
+    closeCityModal,
+    setCityModalState,
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame();
@@ -49,12 +52,10 @@ const CityView = ({
         getMaxWorkerSlots, getMarketCapacity,
     } = useCityState(worldId, isInstantBuild, isInstantResearch, isInstantUnits);
 
-    const { modalState, openModal: openCityModal, closeModal, setModalState } = useCityModalManager();
-
     const actions = useCityActions({
         cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
         getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
-        setMessage, openModal: openCityModal, closeModal, setModalState,
+        setMessage, openModal: openCityModal, closeModal: closeCityModal, setModalState: setCityModalState,
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
     });
 
@@ -159,9 +160,9 @@ const CityView = ({
                 handleHealTroops={actions.handleHealTroops}
                 handleCancelHeal={actions.handleCancelHeal}
                 availablePopulation={availablePopulation}
-                modalState={modalState}
+                modalState={cityModalState}
                 openModal={openCityModal}
-                closeModal={closeModal}
+                closeModal={closeCityModal}
                 setMessage={setMessage}
                 onAddWorker={actions.handleAddWorker}
                 onRemoveWorker={actions.handleRemoveWorker}
@@ -172,13 +173,13 @@ const CityView = ({
                 handleDemolishSpecialBuilding={actions.handleDemolishSpecialBuilding}
                 handleSpawnGodTown={actions.handleSpawnGodTown}
             />
-            {modalState.isDivinePowersOpen && (
+            {cityModalState.isDivinePowersOpen && (
                 <DivinePowers
                     godName={cityGameState.god}
                     playerReligion={cityGameState.playerInfo.religion}
                     favor={cityGameState.worship[cityGameState.god] || 0}
                     onCastSpell={actions.handleCastSpell}
-                    onClose={() => closeModal('isDivinePowersOpen')}
+                    onClose={() => closeCityModal('isDivinePowersOpen')}
                 />
             )}
         </div>

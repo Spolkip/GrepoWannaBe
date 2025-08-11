@@ -5,6 +5,7 @@ Will do:
 - make it so on your active city to only have, center on map, enter city or celect city
 - make it so it shows reinforced troops and can withdraw troops
 - make manager for troops and research spells, puzzles and buildings with a lot of options
+- fix academy
 
 Todo after above:
 - put special buildings on cityscape

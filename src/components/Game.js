@@ -16,6 +16,7 @@ import { useMapEvents } from '../hooks/useMapEvents';
 import { useQuestTracker } from '../hooks/useQuestTracker';
 import { useMapActions } from '../hooks/useMapActions';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
+import { useCityModalManager } from '../hooks/useCityModalManager';
 
 
 import ReportsView from './ReportsView';
@@ -55,6 +56,7 @@ const Game = ({ onBackToWorlds }) => {
     useMovementProcessor(worldId);
 
     const { modalState, openModal, closeModal } = useModalState();
+    const { modalState: cityModalState, openModal: openCityModal, closeModal: closeCityModal, setModalState: setCityModalState } = useCityModalManager();
     const { unreadReportsCount, setUnreadReportsCount, unreadMessagesCount, setUnreadMessagesCount } = useMapState();
 
     const showMap = () => setView('map');
@@ -112,6 +114,7 @@ const Game = ({ onBackToWorlds }) => {
     }, [playerCities, activeCityId, switchCity]);
 
     useKeyboardControls({
+        view,
         toggleView,
         openAlliance: () => openModal('alliance'),
         openQuests: () => openModal('quests'),
@@ -123,6 +126,13 @@ const Game = ({ onBackToWorlds }) => {
         openSettings: () => openModal('settings'),
         cycleCityLeft: () => cycleCity('left'),
         cycleCityRight: () => cycleCity('right'),
+        // Building shortcuts
+        openSenate: () => openCityModal('isSenateViewOpen'),
+        openBarracks: () => openCityModal('isBarracksMenuOpen'),
+        openShipyard: () => openCityModal('isShipyardMenuOpen'),
+        openAcademy: () => openCityModal('isAcademyMenuOpen'),
+        openMarket: () => openCityModal('isMarketMenuOpen'),
+        openTemple: () => openCityModal('isTempleMenuOpen'),
     });
 
     useEffect(() => {
@@ -362,6 +372,10 @@ const Game = ({ onBackToWorlds }) => {
                     handleOpenEvents={handleOpenEvents}
                     onSwitchCity={switchCity}
                     battlePoints={playerGameData?.battlePoints || 0}
+                    cityModalState={cityModalState}
+                    openCityModal={openCityModal}
+                    closeCityModal={closeCityModal}
+                    setCityModalState={setCityModalState}
                 />
             )}
             {view === 'map' && (

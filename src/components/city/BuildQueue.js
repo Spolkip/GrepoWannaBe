@@ -1,5 +1,5 @@
 // src/components/city/BuildQueue.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 
@@ -20,7 +20,7 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const QueueItem = ({ item, isFirst, onCancel, isLast }) => {
+const QueueItem = ({ item, isFirst, onCancel, isLast, onHover, onLeave, hoveredItem }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
@@ -57,7 +57,12 @@ const QueueItem = ({ item, isFirst, onCancel, isLast }) => {
 
 
     return (
-        <div className={`relative w-16 h-16 bg-gray-700 border-2 rounded-md flex-shrink-0 ${isDemolition ? 'border-red-500' : 'border-gray-600'}`} title={title}>
+        <div 
+            className={`relative w-16 h-16 bg-gray-700 border-2 rounded-md flex-shrink-0 ${isDemolition ? 'border-red-500' : 'border-gray-600'}`} 
+            title={title}
+            onMouseEnter={() => onHover(item.id)}
+            onMouseLeave={onLeave}
+        >
             <img src={imageSrc} alt={building.name} className="w-full h-full object-contain p-1" />
              <span className={`absolute top-0 right-0 text-black text-xs font-bold px-1 rounded-bl-md z-10 ${isDemolition ? 'bg-red-500 text-white' : 'bg-yellow-500'}`}>
                 {levelText}
@@ -76,13 +81,36 @@ const QueueItem = ({ item, isFirst, onCancel, isLast }) => {
                     &times;
                 </button>
             )}
+            {hoveredItem === item.id && (
+                 <div className="unit-tooltip" style={{ top: '50%', left: '100%', transform: 'translate(10px, -50%)', zIndex: 100, width: '200px', pointerEvents: 'none' }}>
+                    <div className="tooltip-header"><h3 className="tooltip-title">{building.name}</h3></div>
+                    <div className="tooltip-body" style={{ padding: '0.5rem' }}>
+                        <p className="tooltip-description" style={{ fontSize: '0.75rem' }}>{building.description}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 const BuildQueue = ({ buildQueue, onCancel }) => {
+    const [hoveredItem, setHoveredItem] = useState(null);
+    const tooltipTimeoutRef = useRef(null);
     const queueCapacity = 5;
     const emptySlots = Array(Math.max(0, queueCapacity - (buildQueue?.length || 0))).fill(null);
+
+    // #comment handle mouse enter to show tooltip
+    const handleMouseEnter = (itemId) => {
+        clearTimeout(tooltipTimeoutRef.current);
+        setHoveredItem(itemId);
+    };
+
+    // #comment handle mouse leave to hide tooltip
+    const handleMouseLeave = () => {
+        tooltipTimeoutRef.current = setTimeout(() => {
+            setHoveredItem(null);
+        }, 200);
+    };
 
     return (
         <div className="bg-gray-900 p-2 rounded-lg mb-4 flex items-center gap-3 border border-gray-700">
@@ -91,7 +119,16 @@ const BuildQueue = ({ buildQueue, onCancel }) => {
             </div>
             <div className="flex-grow flex items-center gap-3">
                 {buildQueue && buildQueue.map((item, index) => (
-                    <QueueItem key={item.id || `${item.buildingId}-${index}`} item={item} isFirst={index === 0} isLast={index === buildQueue.length - 1} onCancel={() => onCancel(item)} />
+                    <QueueItem 
+                        key={item.id || `${item.buildingId}-${index}`} 
+                        item={item} 
+                        isFirst={index === 0} 
+                        isLast={index === buildQueue.length - 1} 
+                        onCancel={() => onCancel(item)} 
+                        onHover={handleMouseEnter}
+                        onLeave={handleMouseLeave}
+                        hoveredItem={hoveredItem}
+                    />
                 ))}
                 {emptySlots.map((_, index) => (
                     <div key={`empty-${index}`} className="w-16 h-16 bg-gray-800 border-2 border-dashed border-gray-600 rounded-md flex items-center justify-center flex-shrink-0">

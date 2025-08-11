@@ -12,11 +12,12 @@ export const useKeyboardControls = (controls) => {
             const isTyping = activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable;
             if (isTyping) return;
 
+            // #comment General controls, available in both views
             switch (e.key.toLowerCase()) {
                 case 'm':
                     controls.toggleView?.();
                     break;
-                case 'a':
+                case 'g': // Remapped from 'a'
                     controls.openAlliance?.();
                     break;
                 case 'q':
@@ -38,7 +39,7 @@ export const useKeyboardControls = (controls) => {
                 case 'p':
                     controls.openProfile?.();
                     break;
-                case 's':
+                case 'o': // Remapped from 's'
                     controls.openSettings?.();
                     break;
                 case 'arrowleft':
@@ -49,6 +50,32 @@ export const useKeyboardControls = (controls) => {
                     break;
                 default:
                     break;
+            }
+
+            // #comment City-specific controls
+            if (controls.view === 'city') {
+                 switch (e.key.toLowerCase()) {
+                    case 's':
+                        controls.openSenate?.();
+                        break;
+                    case 'b':
+                        controls.openBarracks?.();
+                        break;
+                    case 'h': // 'h' for Shipyard
+                        controls.openShipyard?.();
+                        break;
+                    case 'u': // 'u' for University/Academy
+                        controls.openAcademy?.();
+                        break;
+                    case 'k': // 'k' for Market
+                        controls.openMarket?.();
+                        break;
+                    case 't':
+                        controls.openTemple?.();
+                        break;
+                    default:
+                        break;
+                }
             }
         };
 

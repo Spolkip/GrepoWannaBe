@@ -1,5 +1,5 @@
 // src/components/city/ResearchQueue.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import researchConfig from '../../gameData/research.json';
 
 const formatTime = (seconds) => {
@@ -10,7 +10,7 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const ResearchQueueItem = ({ item, onCancel, isFirst, isLast }) => {
+const ResearchQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave, hoveredItem }) => {
     const [timeLeft, setTimeLeft] = useState(0);
 
     useEffect(() => {
@@ -34,7 +34,11 @@ const ResearchQueueItem = ({ item, onCancel, isFirst, isLast }) => {
     const research = researchConfig[item.researchId];
 
     return (
-        <div className="flex justify-between items-center bg-gray-600 p-2 rounded">
+        <div 
+            className="flex justify-between items-center bg-gray-600 p-2 rounded relative"
+            onMouseEnter={() => onHover(item.researchId)}
+            onMouseLeave={onLeave}
+        >
             <span className="font-semibold">{research.name}</span>
             <div className="flex items-center gap-4">
                 {isFirst && <span className="font-mono text-yellow-300">{formatTime(timeLeft)}</span>}
@@ -48,11 +52,38 @@ const ResearchQueueItem = ({ item, onCancel, isFirst, isLast }) => {
                     </button>
                 )}
             </div>
+            {hoveredItem === item.researchId && (
+                <div className="unit-tooltip" style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '5px', zIndex: 100, width: '250px', pointerEvents: 'none' }}>
+                    <div className="tooltip-header"><h3 className="tooltip-title">{research.name}</h3></div>
+                    <div className="tooltip-body" style={{ padding: '0.5rem' }}>
+                        <p className="tooltip-description" style={{ fontSize: '0.75rem' }}>{research.description}</p>
+                        <div className="tooltip-stats" style={{ border: 'none', padding: 0, marginTop: '8px' }}>
+                            <div className="stat-row" style={{ fontSize: '0.7rem' }}><span>Cost:</span><span>{research.cost.wood}W, {research.cost.stone}S, {research.cost.silver}Ag, {research.cost.points || 0}RP</span></div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 const ResearchQueue = ({ researchQueue, onCancel }) => {
+    const [hoveredItem, setHoveredItem] = useState(null);
+    const tooltipTimeoutRef = useRef(null);
+
+    // #comment handle mouse enter to show tooltip
+    const handleMouseEnter = (itemId) => {
+        clearTimeout(tooltipTimeoutRef.current);
+        setHoveredItem(itemId);
+    };
+
+    // #comment handle mouse leave to hide tooltip
+    const handleMouseLeave = () => {
+        tooltipTimeoutRef.current = setTimeout(() => {
+            setHoveredItem(null);
+        }, 200);
+    };
+
     if (!researchQueue || researchQueue.length === 0) {
         return (
             <div className="bg-gray-900 p-3 rounded-lg mb-4">
@@ -72,6 +103,9 @@ const ResearchQueue = ({ researchQueue, onCancel }) => {
                         onCancel={() => onCancel(index)} 
                         isFirst={index === 0}
                         isLast={index === researchQueue.length - 1}
+                        onHover={handleMouseEnter}
+                        onLeave={handleMouseLeave}
+                        hoveredItem={hoveredItem}
                     />
                 ))}
             </div>
