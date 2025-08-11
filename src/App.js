@@ -1,7 +1,8 @@
+// src/App.js
 import React, { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { GameProvider, useGame } from './contexts/GameContext';
-import { AllianceProvider } from './contexts/AllianceProvider';
+import { AllianceProvider } from './contexts/AllianceContext';
 import AuthScreen from './components/AuthScreen';
 import Game from './components/Game';
 import WorldSelectionScreen from './components/WorldSelectionScreen';
@@ -27,7 +28,7 @@ const GameController = ({ onBackToWorlds }) => {
     if (playerHasCities) {
         return <Game onBackToWorlds={onBackToWorlds} />;
     }
-
+    
     return <CityFounding onCityFounded={() => {}} />;
 };
 
@@ -53,7 +54,7 @@ function App() {
             </GameProvider>
         );
     }
-
+    
     return <WorldSelectionScreen onWorldSelected={setSelectedWorldId} />;
 }
 

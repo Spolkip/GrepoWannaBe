@@ -1,8 +1,8 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
-import { sendSystemMessage } from '../util/sendSystemMessage';
+import { doc, runTransaction, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDoc } from "firebase/firestore";
+import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
 
 const calculateMaxMembers = (alliance) => {
@@ -12,7 +12,7 @@ const calculateMaxMembers = (alliance) => {
     return baseMax + researchBonus;
 };
 
-export const useAllianceManagementActions = (playerAlliance) => {
+export const useAllianceResearchActions = (playerAlliance) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId } = useGame();
 

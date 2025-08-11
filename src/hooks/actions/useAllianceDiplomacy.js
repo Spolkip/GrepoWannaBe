@@ -1,8 +1,8 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove } from "firebase/firestore";
-import { sendSystemMessage } from '../util/sendSystemMessage';
+import { doc, runTransaction, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
+import { sendSystemMessage } from '../../utils/sendSystemMessage';
 
 export const useAllianceDiplomacyActions = (playerAlliance) => {
     const { currentUser } = useAuth();

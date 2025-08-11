@@ -22,7 +22,6 @@ import { useMapActions } from '../hooks/useMapActions';
 import { useCityState } from '../hooks/useCityState';
 import { useMapState } from '../hooks/useMapState';
 import { useMapClickHandler } from '../hooks/useMapClickHandler';
-import { calculateDistance } from '../utils/travel';
 
 
 import buildingConfig from '../gameData/buildings.json';

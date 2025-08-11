@@ -4,11 +4,11 @@ import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 import { useGame } from './GameContext';
 import AllianceContext from './AllianceContext';
-import { useAllianceActions } from '../hooks/actions/useAllianceResearchs';
+import { useAllianceActions } from '../hooks/actions/useAllianceActions';
 import { useAllianceBankActions } from '../hooks/actions/useAllianceBank';
 import { useAllianceDiplomacyActions } from '../hooks/actions/useAllianceDiplomacy';
 import { useAllianceManagementActions } from '../hooks/actions/useAllianceManagement';
-import { useAllianceResearchActions } from '../hooks/actions/useAllianceActions';
+import { useAllianceResearchActions } from '../hooks/actions/useAllianceResearch';
 
 export const AllianceProvider = ({ children }) => {
     const { currentUser } = useAuth();

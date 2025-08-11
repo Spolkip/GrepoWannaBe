@@ -1,7 +1,6 @@
 // src/hooks/actions/useAdminActions.js
-import { collection, doc, query, where, limit, getDocs, writeBatch, setDoc as firestoreSetDoc, runTransaction } from 'firebase/firestore';
+import { collection, doc, query, where, limit, getDocs, setDoc as firestoreSetDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { v4 as uuidv4 } from 'uuid';
 import { useGame } from '../../contexts/GameContext';
 import { generateGodTowns } from '../../utils/worldGeneration';
 import researchConfig from '../../gameData/research.json';
