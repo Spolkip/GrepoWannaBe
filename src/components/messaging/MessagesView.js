@@ -20,11 +20,11 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null); // Ref for the message container
 
-    // #comment Autocomplete states
+    // Autocomplete states
     const [allPlayers, setAllPlayers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
 
-    // #comment Fetch all players for autocomplete
+    // Fetch all players for autocomplete
     useEffect(() => {
         const fetchPlayers = async () => {
             const usersRef = collection(db, 'users');
@@ -127,12 +127,25 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         setIsComposing(false);
     };
 
+    const getOtherParticipant = (convo) => {
+        if (!convo || !convo.participants || !convo.participantUsernames) return 'Unknown';
+        const otherId = convo.participants.find(p => p !== currentUser.uid);
+        return convo.participantUsernames[otherId] || 'Unknown';
+    };
+
+    const isSystemChat = selectedConversation ? getOtherParticipant(selectedConversation) === 'System' : false;
+
     const handleSendMessage = async () => {
+        if (isSystemChat) return;
         if (newMessage.trim() === '' || (!selectedConversation && !newRecipient)) return;
 
         let conversationId = selectedConversation?.id;
 
         if (isComposing) {
+            if (newRecipient.toLowerCase() === 'system') {
+                alert("You cannot send messages to the System.");
+                return;
+            }
             const recipientQuery = query(collection(db, 'users'), where('username', '==', newRecipient));
             const recipientSnapshot = await getDocs(recipientQuery);
             if (recipientSnapshot.empty) {
@@ -198,11 +211,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             const newConvo = await getDoc(convoRef);
             setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
         }
-    };
-
-    const getOtherParticipant = (convo) => {
-        const otherId = convo.participants.find(p => p !== currentUser.uid);
-        return convo.participantUsernames[otherId] || 'Unknown';
     };
 
     const handleContentClick = (e) => {
@@ -313,19 +321,21 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                     ))}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                <div className="p-4 border-t-2 border-[#8B4513]">
-                                    <div className="flex">
-                                        <input
-                                            type="text"
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                            className="flex-grow papyrus-input"
-                                            placeholder="Write your message..."
-                                        />
-                                        <button onClick={handleSendMessage} className="papyrus-btn ml-2">Send</button>
+                                {!isSystemChat && (
+                                    <div className="p-4 border-t-2 border-[#8B4513]">
+                                        <div className="flex">
+                                            <input
+                                                type="text"
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                                className="flex-grow papyrus-input"
+                                                placeholder="Write your message..."
+                                            />
+                                            <button onClick={handleSendMessage} className="papyrus-btn ml-2">Send</button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </>
                         ) : (
                             <div className="flex items-center justify-center h-full">
