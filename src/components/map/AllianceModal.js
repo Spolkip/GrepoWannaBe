@@ -20,17 +20,17 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
     const [activeTab, setActiveTab] = useState(playerAlliance ? 'overview' : 'suggestions');
     const [isCreating, setIsCreating] = useState(false);
 
-    // #comment Draggable state and handlers
-    const [position, setPosition] = useState({ 
-        x: (window.innerWidth - 1000) / 2, // Center horizontally
-        y: (window.innerHeight * 0.1) / 2  // Position near the top
+
+    const [position, setPosition] = useState({
+        x: (window.innerWidth - 1000) / 2,
+        y: (window.innerHeight * 0.1) / 2
     });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef(null);
 
     const handleMouseDown = (e) => {
-        // Draggable only by the header or its direct children
+
         if (e.target.classList.contains('alliance-modal-header') || e.target.parentElement.classList.contains('alliance-modal-header')) {
             setIsDragging(true);
             setDragStart({
@@ -73,7 +73,7 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
 
     const handleCloseCreate = () => {
         setIsCreating(false);
-        onClose(); // Close the main alliance modal too after creation
+        onClose();
     };
 
     if (isCreating) {
@@ -114,14 +114,14 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
     };
 
     return (
-        <div 
-            className="alliance-modal" 
+        <div
+            className="alliance-modal"
             ref={modalRef}
-            style={{ 
-                position: 'fixed', 
-                top: `${position.y}px`, 
+            style={{
+                position: 'fixed',
+                top: `${position.y}px`,
                 left: `${position.x}px`,
-                zIndex: 50 
+                zIndex: 50
             }}
             onClick={e => e.stopPropagation()}
         >
@@ -132,7 +132,7 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
                 </div>
                 <button onClick={onClose} className="close-button">&times;</button>
             </div>
-            
+
             <div className="alliance-modal-tabs">
                 <button onClick={() => setActiveTab('overview')} className={activeTab === 'overview' ? 'active' : ''}>Overview</button>
                 <button onClick={() => setActiveTab('members')} className={activeTab === 'members' ? 'active' : ''}>Members</button>
@@ -148,7 +148,7 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
                     </>
                 )}
             </div>
-            
+
             <div className="alliance-modal-content">
                 {renderTabContent()}
             </div>
