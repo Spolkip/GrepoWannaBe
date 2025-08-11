@@ -1,4 +1,3 @@
-// src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -71,16 +70,31 @@ const ReportsView = ({ onClose, onActionClick }) => {
         }
     };
 
-
+    // #comment handle share report and generate bbcode
     const handleShareReport = async (report) => {
         setMessage('');
         try {
-            // Create a copy of the report in a public collection
             const sharedReportRef = doc(db, 'worlds', worldId, 'shared_reports', report.id);
             await setDoc(sharedReportRef, report);
 
+            let bbCode = `[report]${report.id}[/report]`;
 
-            const bbCode = `[report]${report.id}[/report]`;
+            if (report.type === 'attack' || report.type === 'attack_village' || report.type === 'attack_ruin' || report.type === 'attack_god_town') {
+                const attacker = report.attacker || {};
+                const defender = report.defender || {};
+                const defenderName = defender.username || defender.villageName || defender.ruinName || 'The Gods';
+                const defenderCityName = defender.cityName || defender.villageName || defender.ruinName || 'City of the Gods';
+                bbCode = `[attack attacker="${attacker.username}" attacker_city="${attacker.cityName}" defender="${defenderName}" defender_city="${defenderCityName}"][/attack]`;
+            } else if (report.type === 'trade') {
+                const originPlayer = report.originPlayer || {};
+                const targetPlayer = report.targetPlayer || {};
+                bbCode = `[trade from_player="${originPlayer.username}" from_city="${report.originCityName}" to_player="${targetPlayer.username}" to_city="${report.targetCityName}"][/trade]`;
+            } else if (report.type === 'scout' && report.scoutSucceeded) {
+                const attacker = report.attacker || {};
+                const defender = report.defender || {};
+                bbCode = `[scout attacker="${attacker.username}" attacker_city="${attacker.cityName}" attacker_alliance="${attacker.allianceName || 'N/A'}" defender="${defender.username}" defender_city="${defender.cityName}" defender_alliance="${defender.allianceName || 'N/A'}"][/scout]`;
+            }
+
             navigator.clipboard.writeText(bbCode);
 
             setMessage('Report shared! BBCode copied to clipboard.');
@@ -321,23 +335,38 @@ const ReportsView = ({ onClose, onActionClick }) => {
                     <div className="space-y-3">
                         {report.scoutSucceeded ? (
                             <>
-                                <p className="font-bold text-green-600 text-lg">Scout Successful!</p>
+                                <div className="flex items-center justify-between w-full mb-4">
+                                    <div className="flex flex-col items-center w-1/3">
+                                        <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${attacker.cityId} owner=${attacker.ownerId} x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
+                                        <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
+                                        {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
+                                    </div>
+                                    <div className="w-1/3 text-center text-4xl">
+                                        <span>👁️</span>
+                                    </div>
+                                    <div className="flex flex-col items-center w-1/3">
+                                        <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName}[/city]`) }}></p>
+                                        <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
+                                        {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
+                                    </div>
+                                </div>
+                                <p className="font-bold text-green-600 text-lg text-center">Scout Successful!</p>
                                 {scoutedGod && (
-                                    <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex items-center justify-center gap-2 mt-2">
                                         <p><strong>Worshipped God:</strong> {scoutedGod.name}</p>
                                         <img src={getImageUrl(`gods/${scoutedGod.image}`)} alt={scoutedGod.name} className="w-8 h-8"/>
                                     </div>
                                 )}
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700">Resources:</h5>
-                                    <div className="flex flex-wrap gap-2">{renderResourceIcons(report.resources)}</div>
+                                    <h5 className="font-semibold text-yellow-700 text-center">Resources:</h5>
+                                    <div className="flex flex-wrap gap-2 justify-center">{renderResourceIcons(report.resources)}</div>
                                 </div>
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700">Units:</h5>
+                                    <h5 className="font-semibold text-yellow-700 text-center">Units:</h5>
                                     {renderTroopDisplay(report.units)}
                                 </div>
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700">Buildings:</h5>
+                                    <h5 className="font-semibold text-yellow-700 text-center">Buildings:</h5>
                                     {renderBuildingDisplay(report.buildings)}
                                 </div>
                             </>

@@ -7,7 +7,6 @@ Boring:
 - add more research and make them to actually work
 
 Will do: 
-- when you press on city name it opens the othercitymodal, when you press on alliance or player it opens their profiles
 - same bb codes for the scouts
 - add an option for returning troops to not show on reports
 - add an option for when all quests are done to not show image

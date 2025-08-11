@@ -1,8 +1,8 @@
 /* src/components/QuestsButton.css */
 .quests-button-container {
     position: absolute;
-    top: 780px;
-    left: 1rem;
+    top: 90px;
+    left: 12rem;
     z-index: 50;
     width: 80px;
     height: 80px;

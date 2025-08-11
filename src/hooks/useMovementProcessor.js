@@ -532,7 +532,7 @@ export const useMovementProcessor = (worldId) => {
                     const attackingSilver = movement.resources?.silver || 0;
                     const result = resolveScouting(targetCityState, attackingSilver);
 
-                     if (result.success) {
+                    if (result.success) {
                         const scoutReport = {
                             type: 'scout',
                             title: `Scout report of ${targetCityState.cityName}`,
@@ -540,6 +540,26 @@ export const useMovementProcessor = (worldId) => {
                             scoutSucceeded: true,
                             ...result,
                             targetOwnerUsername: movement.ownerUsername,
+                            attacker: {
+                                cityId: movement.originCityId,
+                                cityName: originCityState.cityName,
+                                ownerId: movement.originOwnerId,
+                                username: movement.originOwnerUsername,
+                                allianceId: originAllianceData ? originAllianceData.id : null,
+                                allianceName: originAllianceData ? originAllianceData.name : null,
+                                x: originCityState.x,
+                                y: originCityState.y
+                            },
+                            defender: {
+                                cityId: movement.targetCityId,
+                                cityName: targetCityState.cityName,
+                                ownerId: movement.targetOwnerId,
+                                username: movement.ownerUsername,
+                                allianceId: targetAllianceData ? targetAllianceData.id : null,
+                                allianceName: targetAllianceData ? targetAllianceData.name : null,
+                                x: targetCityState.x,
+                                y: targetCityState.y
+                            },
                             read: false,
                         };
                         batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), scoutReport);
@@ -610,7 +630,21 @@ export const useMovementProcessor = (worldId) => {
                         resources: movement.resources,
                         read: false,
                         originCityName: originCityState.cityName,
-                        targetCityName: targetCityState.cityName
+                        targetCityName: targetCityState.cityName,
+                        originPlayer: {
+                            username: movement.originOwnerUsername,
+                            id: movement.originOwnerId,
+                            cityId: movement.originCityId,
+                            x: originCityState.x,
+                            y: originCityState.y
+                        },
+                        targetPlayer: {
+                            username: movement.ownerUsername,
+                            id: movement.targetOwnerId,
+                            cityId: movement.targetCityId,
+                            x: targetCityState.x,
+                            y: targetCityState.y
+                        }
                     };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), tradeReport);
 
@@ -621,7 +655,21 @@ export const useMovementProcessor = (worldId) => {
                         resources: movement.resources,
                         read: false,
                         originCityName: originCityState.cityName,
-                        targetCityName: targetCityState.cityName
+                        targetCityName: targetCityState.cityName,
+                        originPlayer: {
+                            username: movement.originOwnerUsername,
+                            id: movement.originOwnerId,
+                            cityId: movement.originCityId,
+                            x: originCityState.x,
+                            y: originCityState.y
+                        },
+                        targetPlayer: {
+                            username: movement.ownerUsername,
+                            id: movement.targetOwnerId,
+                            cityId: movement.targetCityId,
+                            x: targetCityState.x,
+                            y: targetCityState.y
+                        }
                     };
                     batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
 
