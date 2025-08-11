@@ -152,8 +152,8 @@ const AllianceBank = () => {
                 {canManageBank && (
                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 md:col-span-2">
                         <h4 className="font-bold text-lg mb-2">Distribute Resources</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <div className="md:col-span-1 autocomplete-suggestions-container">
+                        <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+                            <div className="md:col-span-2 autocomplete-suggestions-container">
                                 <label>Member</label>
                                 <input
                                     type="text"
@@ -173,31 +173,33 @@ const AllianceBank = () => {
                                     </ul>
                                 )}
                             </div>
-                            <div>
-                                <label>Wood</label>
-                                <div className="flex items-center gap-1">
-                                    <input type="number" name="wood" value={distribution.wood} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300" />
-                                    <button onClick={() => setDistributionPercentage('wood', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5">25%</button>
-                                    <button onClick={() => setDistributionPercentage('wood', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5">50%</button>
-                                    <button onClick={() => setDistributionPercentage('wood', 1)} className="btn btn-secondary text-xs px-1 py-0.5">Max</button>
+                            <div className="md:col-span-5 grid grid-cols-3 gap-x-4">
+                                <div>
+                                    <label>Wood</label>
+                                    <input type="number" name="wood" value={distribution.wood} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300 mb-1" />
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => setDistributionPercentage('wood', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">25%</button>
+                                        <button onClick={() => setDistributionPercentage('wood', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">50%</button>
+                                        <button onClick={() => setDistributionPercentage('wood', 1)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">Max</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label>Stone</label>
-                                <div className="flex items-center gap-1">
-                                    <input type="number" name="stone" value={distribution.stone} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300" />
-                                    <button onClick={() => setDistributionPercentage('stone', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5">25%</button>
-                                    <button onClick={() => setDistributionPercentage('stone', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5">50%</button>
-                                    <button onClick={() => setDistributionPercentage('stone', 1)} className="btn btn-secondary text-xs px-1 py-0.5">Max</button>
+                                <div>
+                                    <label>Stone</label>
+                                    <input type="number" name="stone" value={distribution.stone} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300 mb-1" />
+                                     <div className="flex items-center gap-1">
+                                        <button onClick={() => setDistributionPercentage('stone', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">25%</button>
+                                        <button onClick={() => setDistributionPercentage('stone', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">50%</button>
+                                        <button onClick={() => setDistributionPercentage('stone', 1)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">Max</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label>Silver</label>
-                                <div className="flex items-center gap-1">
-                                    <input type="number" name="silver" value={distribution.silver} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300" />
-                                    <button onClick={() => setDistributionPercentage('silver', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5">25%</button>
-                                    <button onClick={() => setDistributionPercentage('silver', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5">50%</button>
-                                    <button onClick={() => setDistributionPercentage('silver', 1)} className="btn btn-secondary text-xs px-1 py-0.5">Max</button>
+                                <div>
+                                    <label>Silver</label>
+                                    <input type="number" name="silver" value={distribution.silver} onChange={handleDistributionChange} className="w-full p-1 rounded border border-amber-300 mb-1" />
+                                     <div className="flex items-center gap-1">
+                                        <button onClick={() => setDistributionPercentage('silver', 0.25)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">25%</button>
+                                        <button onClick={() => setDistributionPercentage('silver', 0.50)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">50%</button>
+                                        <button onClick={() => setDistributionPercentage('silver', 1)} className="btn btn-secondary text-xs px-1 py-0.5 flex-1">Max</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

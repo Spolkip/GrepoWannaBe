@@ -267,17 +267,19 @@ const AllianceDiplomacy = () => {
                 <h3 className="text-xl font-bold mb-4 border-b border-amber-300 pb-2">Treaties</h3>
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-bold mb-2 text-gray-900">Propose a Treaty</h4>
-                    <div className="space-y-3 autocomplete-suggestions-container">
-                        <input type="text" value={treatyTargetTag} onChange={(e) => handleInputChange(e.target.value, setTreatyTargetTag, 'treatyTargetTag')} placeholder="Target Alliance Tag" className="w-full p-2 rounded border border-amber-300" autoComplete="off" />
-                        {suggestions.length > 0 && activeSuggestionInput === 'treatyTargetTag' && (
-                            <ul className="autocomplete-suggestions-list light">
-                                {suggestions.map(tag => (
-                                    <li key={tag} onClick={() => handleSuggestionClick(tag)}>
-                                        {tag}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                    <div className="space-y-3">
+                        <div className="autocomplete-suggestions-container">
+                            <input type="text" value={treatyTargetTag} onChange={(e) => handleInputChange(e.target.value, setTreatyTargetTag, 'treatyTargetTag')} placeholder="Target Alliance Tag" className="w-full p-2 rounded border border-amber-300" autoComplete="off" />
+                            {suggestions.length > 0 && activeSuggestionInput === 'treatyTargetTag' && (
+                                <ul className="autocomplete-suggestions-list light">
+                                    {suggestions.map(tag => (
+                                        <li key={tag} onClick={() => handleSuggestionClick(tag)}>
+                                            {tag}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                         
                         <div className="border p-2 rounded">
                             <h5 className="font-semibold">You Offer:</h5>
