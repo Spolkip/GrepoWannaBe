@@ -248,11 +248,8 @@ const TopBar = ({
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
 
     const handleCitySelect = (cityId) => {
-    if (onSwitchCity) {
-        onSwitchCity(cityId);
-    }
+    onSwitchCity(cityId); // Just switch the active city, don't change view
     setIsCityListOpen(false);
-    // Removed the showCity call that was forcing the city view
 };
 
     // #comment Handlers to show/hide tooltips with a small delay

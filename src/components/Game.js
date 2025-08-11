@@ -78,13 +78,14 @@ const Game = ({ onBackToWorlds }) => {
 
     // #comment Handles switching the active city and panning the map if in map view.
     // #comment Simplified to always set pan coordinates, which only affects MapView.
-    const switchCity = useCallback((cityId) => {
+   const switchCity = useCallback((cityId) => {
     setActiveCityId(cityId);
     const nextCity = playerCities[cityId];
-    if (nextCity && view === 'map') {  // Only pan if we're on the map view
+    if (nextCity && view === 'map') {
         setPanToCoords({ x: nextCity.x, y: nextCity.y });
     }
-}, [setActiveCityId, playerCities, view]);  // Added view to dependencies
+    // No view change here - we'll stay in whatever view we're currently in
+}, [setActiveCityId, playerCities, view]);
 
     // #comment Handles cycling through cities using arrow keys.
     const cycleCity = useCallback((direction) => {

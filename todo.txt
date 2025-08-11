@@ -1,3 +1,6 @@
+Hard todo:
+- make it so when you switch cities it doesnt necessarly puts you inside the city
+
 Ez todo:
 Boring:
 - put special buildings on cityscape
@@ -5,8 +8,8 @@ Boring:
  add animation on open tooltip for spells when press on the god
  - make settings better
 - add more research and make them to actually work
+
 Will do: 
-- make it so when you switch cities it doesnt necessarly puts you inside the city
 - add autocomplete on distribute resources on bank and names
 - make size of alliance windows fixed
 - add battle points

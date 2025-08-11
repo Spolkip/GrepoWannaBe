@@ -284,7 +284,7 @@ const MapView = ({
 
     const handleEnterCity = (cityId) => {
     setActiveCityId(cityId);
-    // Only show city if explicitly requested (like from a button)
+    // Only enter city view if explicitly requested
     showCity(cityId);
     closeModal('ownInactiveCity');
 };
