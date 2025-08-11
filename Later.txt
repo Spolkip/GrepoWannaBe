@@ -1,12 +1,9 @@
 Later:
-- if the city has the the whole island to be able to contruct a building that give buffs to the guild
 - add heroes that can do skills on battle and also give buffs
 - make it so you can conquer other cities
 - be able to surrender if you have one city and you are about to lose it 
 
 Maybe: 
-
-- fix population and resource max
 - add presets for the workers
 - add cities inside the island
 
@@ -14,8 +11,6 @@ Bugs:
 Hard to fix:
 - storage says the limit on resources but in the background it keeps stacking
 - When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
-
-Ez to fix:
 
 Later fixes: 
 - Agrotika xoria icons are Wrong

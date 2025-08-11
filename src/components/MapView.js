@@ -57,7 +57,7 @@ const MapView = ({
     setInitialMapAction
 }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
     const { playerAlliance } = useAlliance();
 
     const viewportRef = useRef(null);
