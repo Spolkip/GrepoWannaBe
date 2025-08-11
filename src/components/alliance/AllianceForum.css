@@ -1,11 +1,11 @@
 .forum-container {
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
-    background-color: #F5DEB3; /* wheat */
+    background-color: #F5DEB3;
     border: 8px solid;
     border-image-slice: 1;
-    border-image-source: linear-gradient(to right, #8B4513, #CD853F); /* saddlebrown to peru */
+    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
     box-shadow: 0 0 20px rgba(0,0,0,0.6);
-    color: #4a2c2a; /* A dark, ink-like brown */
+    color: #4a2c2a;
     font-family: 'Inter', sans-serif;
 }
 
@@ -45,12 +45,12 @@
 }
 
 .forum-header {
-    background-color: #1e3a8a; /* A dark blue */
-    color: #f0e68c; /* khaki */
+    background-color: #1e3a8a;
+    color: #f0e68c;
     padding: 0.5rem 1rem;
     font-family: 'IM Fell English SC', serif;
     font-size: 1.25rem;
-    border-bottom: 2px solid #cd853f; /* peru */
+    border-bottom: 2px solid #cd853f;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
@@ -72,7 +72,7 @@
 
 .forum-table td {
     padding: 0.75rem;
-    border-bottom: 1px solid #d2b48c; /* tan */
+    border-bottom: 1px solid #d2b48c;
 }
 
 .forum-table tr:hover td {
@@ -115,7 +115,7 @@
 .post-content {
     white-space: pre-wrap;
     margin-top: 0.5rem;
-    word-break: break-word; /* To wrap long words */
+    word-break: break-word;
 }
 
 .bbcode-quote {
@@ -134,6 +134,18 @@
 }
 
 .bbcode-player:hover {
+    text-decoration: underline;
+}
+
+.bbcode-alliance,
+.bbcode-city {
+    font-weight: bold;
+    color: #1e3a8a;
+    cursor: pointer;
+}
+
+.bbcode-alliance:hover,
+.bbcode-city:hover {
     text-decoration: underline;
 }
 

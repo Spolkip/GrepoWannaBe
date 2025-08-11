@@ -286,19 +286,17 @@ const Game = ({ onBackToWorlds }) => {
         switch (type) {
             case 'city_link':
                 if (data.ownerId === currentUser.uid) {
-                    const city = playerCities[data.cityId];
+                    const city = Object.values(playerCities).find(c => c.slotId === data.actionId);
                     if (city) {
-                        closeModal('reports');
-                        if (data.cityId === activeCityId) {
+                        if (city.id === activeCityId) {
                             openModal('ownActiveCity', city);
                         } else {
                             openModal('ownInactiveCity', city);
                         }
                     }
                 } else {
-                    setInitialMapAction({ type: 'open_city_modal', coords: data.coords });
+                    setInitialMapAction({ type: 'open_city_modal', coords: { x: data.actionCoordsX, y: data.actionCoordsY } });
                     setView('map');
-                    closeModal('reports');
                 }
                 break;
             case 'profile':
@@ -312,7 +310,6 @@ const Game = ({ onBackToWorlds }) => {
                 setPanToCoords({ x: parseFloat(data.x), y: parseFloat(data.y) });
                 break;
             case 'go_to_city_and_open_modal':
-                closeModal('reports');
                 setInitialMapAction({ type: 'open_city_modal', coords: data });
                 setView('map');
                 break;

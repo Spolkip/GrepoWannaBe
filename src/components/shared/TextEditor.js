@@ -4,7 +4,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import './TextEditor.css';
 
-// #comment Input component for BBCode mentions with autocomplete
+
 const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
     const [inputValue, setInputValue] = useState('');
     const [suggestions, setSuggestions] = useState([]);
@@ -23,22 +23,20 @@ const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
 
     // #comment Filter suggestions based on user input for players, cities, and alliances
     useEffect(() => {
-        if (type === 'player' || type === 'city' || type === 'alliance') {
-            if (inputValue.length > 0) {
-                const filtered = data.filter(item => item.toLowerCase().startsWith(inputValue.toLowerCase()));
-                setSuggestions(filtered.slice(0, 5)); // Limit to 5 suggestions
-            } else {
-                setSuggestions([]);
-            }
+        if (inputValue.length > 0) {
+            const filtered = data.filter(item => item.name.toLowerCase().startsWith(inputValue.toLowerCase()));
+            setSuggestions(filtered.slice(0, 5));
+        } else {
+            setSuggestions([]);
         }
     }, [inputValue, data, type]);
 
-    // #comment Focus the input field when the popup opens
+
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
-    // #comment Close the popup if the user clicks outside of it
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -49,16 +47,18 @@ const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    const handleSubmit = (value) => {
-        if (value.trim()) {
-            onSelect(value.trim());
+    const handleSubmit = (item) => { // item is now an object
+        if (item && item.name) {
+            onSelect(item); // Pass the whole object
         }
     };
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            handleSubmit(inputValue);
+            if (suggestions.length > 0) {
+                handleSubmit(suggestions[0]);
+            }
         } else if (e.key === 'Escape') {
             onClose();
         }
@@ -75,11 +75,11 @@ const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
                 placeholder={`Enter ${type} name...`}
                 className="mention-input"
             />
-            {(type === 'player' || type === 'city' || type === 'alliance') && suggestions.length > 0 && (
+            {suggestions.length > 0 && (
                 <ul className="mention-suggestions">
                     {suggestions.map(item => (
-                        <li key={item} onClick={() => handleSubmit(item)}>
-                            {item}
+                        <li key={item.id} onClick={() => handleSubmit(item)}>
+                            {item.name}
                         </li>
                     ))}
                 </ul>
@@ -88,7 +88,7 @@ const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
     );
 };
 
-// #comment The main text editor component
+
 const TextEditor = ({ value, onChange }) => {
     const { worldId } = useGame();
     const textareaRef = useRef(null);
@@ -99,27 +99,33 @@ const TextEditor = ({ value, onChange }) => {
     const [cities, setCities] = useState([]);
     const [alliances, setAlliances] = useState([]);
 
-    // #comment Fetch players, cities, and alliances for autocomplete when the component mounts
+
     useEffect(() => {
         if (!worldId) return;
 
         const fetchPlayers = async () => {
             const usersRef = collection(db, 'users');
             const snapshot = await getDocs(usersRef);
-            setPlayers(snapshot.docs.map(doc => doc.data().username));
+            setPlayers(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().username })));
         };
 
         const fetchCities = async () => {
             const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
             const q = query(citiesRef, where("ownerId", "!=", null));
             const snapshot = await getDocs(q);
-            setCities(snapshot.docs.map(doc => doc.data().cityName));
+            setCities(snapshot.docs.map(doc => ({
+                id: doc.id,
+                name: doc.data().cityName,
+                ownerId: doc.data().ownerId,
+                x: doc.data().x,
+                y: doc.data().y
+            })));
         };
 
         const fetchAlliances = async () => {
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
             const snapshot = await getDocs(alliancesRef);
-            setAlliances(snapshot.docs.map(doc => doc.data().name));
+            setAlliances(snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
         };
 
         fetchPlayers();
@@ -127,26 +133,41 @@ const TextEditor = ({ value, onChange }) => {
         fetchAlliances();
     }, [worldId]);
 
-    const applyFormat = (tag, param = '') => {
+    const applyFormat = (tag, param = '', data = {}) => {
         const textarea = textareaRef.current;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         let selectedText = value.substring(start, end);
-        
-        // #comment If no text is selected, use the parameter as the content
-        if (!selectedText && param) {
-            selectedText = param;
-        }
 
-        let openTag = `[${tag}${param && tag !== 'url' ? `=${param}` : ''}]`;
-        if (tag === 'url' && param) {
-            openTag = `[url=${selectedText}]`;
-            selectedText = param; // The param becomes the display text
-        }
-
+        let openTag = '';
         const closeTag = `[/${tag}]`;
+
+        switch (tag) {
+            case 'player':
+                openTag = `[player id=${data.id}]`;
+                selectedText = selectedText || data.name;
+                break;
+            case 'alliance':
+                openTag = `[alliance id=${data.id}]`;
+                selectedText = selectedText || data.name;
+                break;
+            case 'city':
+                openTag = `[city id=${data.id} owner=${data.ownerId} x=${data.x} y=${data.y}]`;
+                selectedText = selectedText || data.name;
+                break;
+            case 'url':
+                openTag = `[url=${selectedText || 'https://'}]`;
+                selectedText = param;
+                break;
+            default:
+                openTag = `[${tag}${param ? `=${param}` : ''}]`;
+                if (!selectedText && param) {
+                    selectedText = param;
+                }
+                break;
+        }
+
         const newText = `${value.substring(0, start)}${openTag}${selectedText}${closeTag}${value.substring(end)}`;
-        
         onChange(newText);
 
         setTimeout(() => {
@@ -155,7 +176,7 @@ const TextEditor = ({ value, onChange }) => {
             textarea.setSelectionRange(newCursorPos, newCursorPos);
         }, 0);
     };
-    
+
     const handleColorClick = (color) => {
         applyFormat('color', color);
         setShowColors(false);
@@ -169,11 +190,11 @@ const TextEditor = ({ value, onChange }) => {
         });
     };
 
-    const handleMentionSelect = (name) => {
-        applyFormat(mentionState.type, name);
+    const handleMentionSelect = (item) => {
+        applyFormat(mentionState.type, '', item);
         setMentionState({ visible: false, type: null, buttonRef: null });
     };
-    
+
     const colors = ['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
 
     return (

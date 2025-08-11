@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
 import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { parseBBCode } from '../../utils/bbcodeParser';
 import SharedReportView from '../SharedReportView';
-import ReactDOM from 'react-dom';
 import './MessagesView.css';
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
@@ -19,6 +19,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [isComposing, setIsComposing] = useState(false);
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null); // Ref for the message container
+    const rootsRef = useRef(new Map()); // #comment Ref to store the roots for shared reports
 
     // #comment Autocomplete states
     const [allPlayers, setAllPlayers] = useState([]);
@@ -110,16 +111,28 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     }, [messages]);
 
 
+    // #comment This effect now uses createRoot to render shared reports and manages the roots in a ref to prevent race conditions.
     useEffect(() => {
-        if (messageContainerRef.current) {
-            const placeholders = messageContainerRef.current.querySelectorAll('.shared-report-placeholder');
-            placeholders.forEach(placeholder => {
-                const reportId = placeholder.dataset.reportId;
-                if (reportId) {
-                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />, placeholder);
-                }
-            });
-        }
+        const container = messageContainerRef.current;
+        if (!container) return;
+
+        const placeholders = container.querySelectorAll('.shared-report-placeholder');
+        const currentRoots = rootsRef.current;
+
+        placeholders.forEach(placeholder => {
+            const reportId = placeholder.dataset.reportId;
+            if (reportId && !currentRoots.has(placeholder)) {
+                const root = createRoot(placeholder);
+                currentRoots.set(placeholder, root);
+                root.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />);
+            }
+        });
+
+        // #comment Cleanup function to unmount roots when the component unmounts.
+        return () => {
+            currentRoots.forEach(root => root.unmount());
+            currentRoots.clear();
+        };
     }, [messages, worldId, onActionClick]);
 
     const handleSelectConversation = async (convo) => {

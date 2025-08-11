@@ -1,6 +1,5 @@
-// src/components/alliance/AllianceForum.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { db } from '../../firebase/config';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,7 +47,8 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     const [editingForum, setEditingForum] = useState(null);
     const postsEndRef = useRef(null);
-    const postContainerRef = useRef(null); // Ref for the post container
+    const postContainerRef = useRef(null);
+    const rootsRef = useRef(new Map()); // #comment Ref to store the roots for shared reports
 
     const isLeader = currentUser?.uid === playerAlliance?.leader?.uid;
 
@@ -110,16 +110,28 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     }, [posts]);
 
 
+    // #comment This effect now uses createRoot to render shared reports and manages the roots in a ref to prevent race conditions.
     useEffect(() => {
-        if (postContainerRef.current) {
-            const placeholders = postContainerRef.current.querySelectorAll('.shared-report-placeholder');
-            placeholders.forEach(placeholder => {
-                const reportId = placeholder.dataset.reportId;
-                if (reportId) {
-                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />, placeholder);
-                }
-            });
-        }
+        const container = postContainerRef.current;
+        if (!container) return;
+
+        const placeholders = container.querySelectorAll('.shared-report-placeholder');
+        const currentRoots = rootsRef.current;
+
+        placeholders.forEach(placeholder => {
+            const reportId = placeholder.dataset.reportId;
+            if (reportId && !currentRoots.has(placeholder)) {
+                const root = createRoot(placeholder);
+                currentRoots.set(placeholder, root);
+                root.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />);
+            }
+        });
+        
+        // #comment Cleanup function to unmount roots when the component unmounts.
+        return () => {
+            currentRoots.forEach(root => root.unmount());
+            currentRoots.clear();
+        };
     }, [posts, worldId, onActionClick]);
 
 
@@ -451,7 +463,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                             ) : (
                                 <>
                                     <button onClick={() => setSelectedForum(forum)} className={`forum-tab ${selectedForum?.id === forum.id ? 'active' : ''}`}>
-                                        {forum.name} {forum.isSecret && '�'}
+                                        {forum.name} {forum.isSecret && '🔒'}
                                     </button>
                                     {isLeader && (
                                         <div className="absolute top-0 right-0 flex opacity-0 group-hover:opacity-100 transition-opacity">
