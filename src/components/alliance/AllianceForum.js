@@ -1,6 +1,5 @@
-// src/components/alliance/AllianceForum.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import { db } from '../../firebase/config';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, setDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,10 +7,10 @@ import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 import TextEditor from '../shared/TextEditor';
 import { parseBBCode } from '../../utils/bbcodeParser';
-import SharedReportView from '../SharedReportView';
+import SharedReportView from '../SharedReportView'; // Import the component
 import './AllianceForum.css';
 
-
+// #comment a simple confirmation modal
 const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70">
         <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center border border-gray-600 text-white">
@@ -28,15 +27,15 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId } = useGame();
     const { playerAlliance } = useAlliance();
-
-
+    
+    // state management for forums, threads, and posts
     const [forums, setForums] = useState([]);
     const [selectedForum, setSelectedForum] = useState(null);
     const [threads, setThreads] = useState([]);
     const [selectedThread, setSelectedThread] = useState(null);
     const [posts, setPosts] = useState([]);
 
-
+    // state for UI toggles and form inputs
     const [newForumName, setNewForumName] = useState('');
     const [isNewForumSecret, setIsNewForumSecret] = useState(false);
     const [newThreadTitle, setNewThreadTitle] = useState('');
@@ -48,8 +47,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     const [editingForum, setEditingForum] = useState(null);
     const postsEndRef = useRef(null);
-    const postContainerRef = useRef(null);
-    const rootsRef = useRef(new Map()); // #comment Ref to store the roots for shared reports
+    const postContainerRef = useRef(null); // Ref for the post container
 
     const isLeader = currentUser?.uid === playerAlliance?.leader?.uid;
 
@@ -63,7 +61,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
 
     const canViewSecretForums = memberRankData?.permissions?.viewSecretForums || isLeader;
 
-
+    // fetch forum categories (tabs)
     useEffect(() => {
         if (!worldId || !playerAlliance) return;
         const forumsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums');
@@ -79,7 +77,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
         return () => unsubscribe();
     }, [worldId, playerAlliance, selectedForum]);
 
-
+    // fetch threads for the selected forum
     useEffect(() => {
         if (!selectedForum) return;
         const threadsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums', selectedForum.id, 'threads');
@@ -91,7 +89,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
         return () => unsubscribe();
     }, [selectedForum, worldId, playerAlliance]);
 
-
+    // fetch posts for the selected thread
     useEffect(() => {
         if (!selectedThread) {
             setPosts([]);
@@ -109,47 +107,21 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     useEffect(() => {
         postsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [posts]);
-
-
-
+    
+    // #comment Effect to render React components from BBCode placeholders
     useEffect(() => {
-        const container = postContainerRef.current;
-        if (!container) return;
-
-        const placeholders = new Set(container.querySelectorAll('.shared-report-placeholder'));
-        const currentRoots = rootsRef.current;
-
-        // #comment Unmount roots for placeholders that no longer exist
-        currentRoots.forEach((root, placeholder) => {
-            if (!placeholders.has(placeholder)) {
-                // #comment Defer unmount to avoid race conditions
-                setTimeout(() => root.unmount(), 0);
-                currentRoots.delete(placeholder);
-            }
-        });
-
-        // #comment Create roots for new placeholders
-        placeholders.forEach(placeholder => {
-            if (!currentRoots.has(placeholder)) {
+        if (postContainerRef.current) {
+            const placeholders = postContainerRef.current.querySelectorAll('.shared-report-placeholder');
+            placeholders.forEach(placeholder => {
                 const reportId = placeholder.dataset.reportId;
                 if (reportId) {
-                    const root = createRoot(placeholder);
-                    currentRoots.set(placeholder, root);
-                    root.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />);
+                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} />, placeholder);
                 }
-            }
-        });
+            });
+        }
+    }, [posts, worldId]);
 
-        // #comment The cleanup function for when the entire AllianceForum component unmounts
-        return () => {
-            setTimeout(() => {
-                rootsRef.current.forEach(root => root.unmount());
-                rootsRef.current.clear();
-            }, 0);
-        };
-    }, [posts, worldId, onActionClick]);
-
-
+    // handle creation of a new forum tab
     const handleCreateForum = async (e) => {
         e.preventDefault();
         if (!newForumName.trim() || !isLeader) return;
@@ -171,7 +143,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
 
         const threadsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'forums', selectedForum.id, 'threads');
         const newThreadRef = doc(threadsRef);
-
+        
         await setDoc(newThreadRef, {
             title: newThreadTitle,
             creatorId: currentUser.uid,
@@ -232,13 +204,13 @@ const AllianceForum = ({ onClose, onActionClick }) => {
         });
     };
 
-
+    // handle starting to edit a post
     const handleStartEdit = (post) => {
         setEditingPostId(post.id);
         setEditingPostContent(post.content);
     };
 
-
+    // handle canceling an edit
     const handleCancelEdit = () => {
         setEditingPostId(null);
         setEditingPostContent('');
@@ -306,17 +278,13 @@ const AllianceForum = ({ onClose, onActionClick }) => {
 
     const handleContentClick = (e) => {
         const target = e.target;
-        if (target.classList.contains('bbcode-action') && onActionClick) {
-            const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
-            if (actionType === 'city_link') {
-                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
-            } else {
-                const data = actionId || { x: actionCoordsX, y: actionCoordsY };
-                if (actionType && data) {
-                    onActionClick(actionType, data);
-                }
+        if (target.classList.contains('bbcode-action')) {
+            const actionType = target.dataset.actionType;
+            const actionId = target.dataset.actionId;
+            if (actionType && actionId && onActionClick) {
+                onActionClick(actionType, actionId);
+                onClose();
             }
-            onClose();
         }
     };
 
@@ -425,7 +393,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
             </div>
         );
     };
-
+    
     if (!playerAlliance) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -440,7 +408,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             {confirmAction && (
-                <ConfirmationModal
+                <ConfirmationModal 
                     message={confirmAction.message}
                     onConfirm={confirmAction.onConfirm}
                     onCancel={() => setConfirmAction(null)}
