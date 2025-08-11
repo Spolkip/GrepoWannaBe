@@ -7,6 +7,7 @@ import { db } from '../../firebase/config';
 import { useCityState } from '../../hooks/useCityState';
 import unitConfig from '../../gameData/units.json';
 import './ProfileView.css';
+import TextEditor from '../shared/TextEditor';
 
 const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
@@ -57,7 +58,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                 const citiesList = citiesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCities(citiesList);
 
-                // Calculate total points, attack, and defense from all cities
+
                 let calculatedPoints = 0;
                 let calculatedAttack = 0;
                 let calculatedDefense = 0;
@@ -111,13 +112,13 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
     }
 
     const displayProfile = isOwnProfile ? ownUserProfile : profileData;
-    
+
     const getOcean = (x, y) => {
         if (x === undefined || y === undefined) return '?';
         return `${Math.floor(y / 10)}${Math.floor(x / 10)}`;
     };
 
-    // #comment Check if the current user has permission to invite players.
+
     const canInvite = (() => {
         if (!playerAlliance || isOwnProfile) {
             return false;
@@ -130,7 +131,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
-            <div className="profile-papyrus" onClick={e => e.stopPropagation()}>
+            <div className="profile-papyrus !h-auto max-h-[80vh]" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="profile-close-button">&times;</button>
                 <div className="profile-grid">
                     <div className="profile-left-column">
@@ -138,7 +139,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                             <div className="profile-box-header">{displayProfile?.username}</div>
                             <div className="player-info-content">
                                 {gameData?.alliance ? (
-                                    <button 
+                                    <button
                                         onClick={() => onOpenAllianceProfile(gameData.alliance)}
                                         className="text-blue-400 hover:underline font-bold"
                                     >
@@ -181,7 +182,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                                 <div className="profile-description-text">
                                     {isEditing ? (
                                         <form onSubmit={handleUpdateProfile} className="h-full flex flex-col">
-                                            <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} className="w-full flex-grow bg-white/50 border border-yellow-800/50 p-1" />
+                                            <TextEditor value={newDescription} onChange={setNewDescription} />
                                             <input type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} placeholder="Image URL" className="w-full mt-2 bg-white/50 border border-yellow-800/50 p-1" />
                                             <div className="flex justify-end gap-2 mt-2">
                                                 <button type="button" onClick={() => setIsEditing(false)} className="btn-cancel">Cancel</button>

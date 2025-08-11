@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
+import TextEditor from '../shared/TextEditor';
 
 const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
     const { updateAllianceSettings } = useAlliance();
@@ -47,24 +48,14 @@ const AllianceSettings = ({ alliance, onClose, updateSettings, isLeader }) => {
                         disabled={!isLeader}
                     />
                 </div>
-                
+
                 <div className="form-group">
                     <label>Alliance Description (Public)</label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="settings-input settings-textarea"
-                        disabled={!isLeader}
-                    />
+                    <TextEditor value={description} onChange={setDescription} disabled={!isLeader} />
                 </div>
                  <div className="form-group">
                     <label>Alliance Description (Private)</label>
-                    <textarea
-                        value={privateDescription}
-                        onChange={(e) => setPrivateDescription(e.target.value)}
-                        className="settings-input settings-textarea"
-                        disabled={!isLeader}
-                    />
+                    <TextEditor value={privateDescription} onChange={setPrivateDescription} disabled={!isLeader} />
                 </div>
             </div>
 

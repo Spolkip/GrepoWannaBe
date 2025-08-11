@@ -3,6 +3,7 @@ import { useAlliance } from '../../contexts/AllianceContext';
 import { db } from '../../firebase/config';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
+import TextEditor from '../shared/TextEditor';
 
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
@@ -70,7 +71,7 @@ const AllianceDiplomacy = () => {
         fetchAllianceCities();
     }, [worldId, playerAlliance]);
 
-    // #comment A unified handler for all autocomplete inputs
+
     const handleInputChange = (value, fieldSetter, fieldName) => {
         fieldSetter(value);
         setActiveSuggestionInput(fieldName);
@@ -79,7 +80,7 @@ const AllianceDiplomacy = () => {
         if (fieldName === 'demandCity') {
             sourceData = allCities.map(c => c.name);
         } else {
-            // All other autocomplete fields are for alliance tags
+
             sourceData = allAlliances;
         }
 
@@ -198,7 +199,7 @@ const AllianceDiplomacy = () => {
                 <div className="bg-amber-50 p-4 rounded-lg mb-6 border border-amber-200">
                     <h4 className="font-bold mb-2 text-gray-900">Make a Declaration</h4>
                     <div className="flex gap-2 autocomplete-suggestions-container">
-                        <input 
+                        <input
                             type="text"
                             value={targetTag}
                             onChange={(e) => handleInputChange(e.target.value, setTargetTag, 'targetTag')}
@@ -236,7 +237,7 @@ const AllianceDiplomacy = () => {
                             )) : <li className="text-amber-800 italic">None</li>}
                         </ul>
                     </div>
-                    
+
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <h4 className="font-bold mb-2 text-gray-900">Allies</h4>
                         <ul className="space-y-2">
@@ -248,7 +249,7 @@ const AllianceDiplomacy = () => {
                             )) : <li className="text-amber-800 italic">None</li>}
                         </ul>
                     </div>
-                    
+
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                         <h4 className="font-bold mb-2 text-gray-900">Enemies</h4>
                         <ul className="space-y-2">
@@ -280,7 +281,7 @@ const AllianceDiplomacy = () => {
                                 </ul>
                             )}
                         </div>
-                        
+
                         <div className="border p-2 rounded">
                             <h5 className="font-semibold">You Offer:</h5>
                             <select value={offerType} onChange={(e) => setOfferType(e.target.value)}>
@@ -401,7 +402,7 @@ const AllianceDiplomacy = () => {
                                 <input type="number" value={occurrences} onChange={(e) => setOccurrences(parseInt(e.target.value) || 1)} placeholder="Occurrences" />
                             )}
                         </div>
-                        <textarea value={treatyMessage} onChange={(e) => setTreatyMessage(e.target.value)} placeholder="Message (optional)" className="w-full p-2 rounded border border-amber-300" rows="2"></textarea>
+                        <TextEditor value={treatyMessage} onChange={setTreatyMessage} />
                         <button onClick={handleProposeTreaty} className="btn btn-confirm w-full">Propose Treaty</button>
                     </div>
                 </div>

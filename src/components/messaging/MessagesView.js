@@ -7,6 +7,7 @@ import { parseBBCode } from '../../utils/bbcodeParser';
 import SharedReportView from '../SharedReportView';
 import ReactDOM from 'react-dom';
 import './MessagesView.css';
+import TextEditor from '../shared/TextEditor';
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
@@ -324,14 +325,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                 {!isSystemChat && (
                                     <div className="p-4 border-t-2 border-[#8B4513]">
                                         <div className="flex">
-                                            <input
-                                                type="text"
-                                                value={newMessage}
-                                                onChange={(e) => setNewMessage(e.target.value)}
-                                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                                                className="flex-grow papyrus-input"
-                                                placeholder="Write your message..."
-                                            />
+                                            <TextEditor value={newMessage} onChange={setNewMessage} />
                                             <button onClick={handleSendMessage} className="papyrus-btn ml-2">Send</button>
                                         </div>
                                     </div>
