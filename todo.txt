@@ -1,3 +1,6 @@
+Hard todo:
+- add buildings to build when the island is full of an alliance
+
 Ez todo:
 Boring:
 - put special buildings on cityscape
@@ -7,8 +10,6 @@ Boring:
 - add more research and make them to actually work
 
 Will do: 
-- same bb codes for the scouts
-- add an option for returning troops to not show on reports
 - add an option for when all quests are done to not show image
 - add notification icons to show when something is completed
 - on player name on forum thread to show it with bbcode
@@ -18,15 +19,14 @@ Will do:
 - add counters and more stats to troops
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - add more spells and make them work
-- fix the click area of tooltips
-- add buildings to build when the island is full of an alliance
 - add a warning when you cancel a building
-- add to demolish per level and also add it on queue with time
 - add queues on hover to say info
 - seperate attack from defence report
 - add shortcuts for buildings
 - make the village plunder every 20 mins
 - make it so on your active city to only have, center on map, enter city or celect city
+- make it so it shows reinforced troops 
+- make it so you can withdraw reinforced troops
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 

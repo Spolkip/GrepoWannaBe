@@ -31,7 +31,7 @@ imageContexts.forEach(context => {
 
 const ReportsView = ({ onClose, onActionClick }) => {
     const { currentUser } = useAuth();
-    const { worldId } = useGame(); // Get worldId from context
+    const { worldId, gameSettings } = useGame(); // Get worldId from context
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
     const [activeTab, setActiveTab] = useState('Combat');
@@ -70,7 +70,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
         }
     };
 
-    // #comment handle share report and generate bbcode
+
     const handleShareReport = async (report) => {
         setMessage('');
         try {
@@ -444,7 +444,12 @@ const ReportsView = ({ onClose, onActionClick }) => {
         }
     };
 
-    const filteredReports = reports.filter(report => tabs[activeTab]?.includes(report.type));
+    const filteredReports = reports.filter(report => {
+        if (gameSettings.hideReturningReports && report.type === 'return') {
+            return false;
+        }
+        return tabs[activeTab]?.includes(report.type);
+    });
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">

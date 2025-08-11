@@ -1,4 +1,3 @@
-// src/components/shared/SettingsModal.js
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -40,7 +39,7 @@ const SettingsModal = ({ onClose }) => {
     };
 
     const handleSave = () => {
-        // Settings are saved on change, so this just closes the modal
+
         onClose();
     };
 
@@ -53,7 +52,7 @@ const SettingsModal = ({ onClose }) => {
 
         const batch = writeBatch(db);
 
-        // 1. Create a ruin where the city used to be
+
         const ruinId = uuidv4();
         const ruinDocRef = doc(db, 'worlds', worldId, 'ruins', ruinId);
         const newRuinData = {
@@ -72,7 +71,7 @@ const SettingsModal = ({ onClose }) => {
         };
         batch.set(ruinDocRef, newRuinData);
 
-        // 2. Clear the city slot owner
+
         const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', playerCity.slotId);
         batch.update(citySlotRef, {
             ownerId: null,
@@ -85,7 +84,7 @@ const SettingsModal = ({ onClose }) => {
 
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
 
-        // 3. Delete all documents in subcollections
+
         const deleteSubcollection = async (subcollectionPath) => {
             const collectionRef = collection(gameDocRef, subcollectionPath);
             const q = query(collectionRef);
@@ -99,11 +98,11 @@ const SettingsModal = ({ onClose }) => {
         await deleteSubcollection('conqueredVillages');
         await deleteSubcollection('conqueredRuins');
         await deleteSubcollection('quests');
-        
-        // 4. Delete the top-level game document
+
+
         batch.delete(gameDocRef);
 
-        // 5. Commit all changes
+
         try {
             await batch.commit();
             setConfirmAction(null);
@@ -112,7 +111,7 @@ const SettingsModal = ({ onClose }) => {
             console.error("Error resetting game:", error);
             setConfirmAction({
                 message: `Failed to reset game: ${error.message}`,
-                onConfirm: () => setConfirmAction(null), // Just close on OK
+                onConfirm: () => setConfirmAction(null),
                 onCancel: () => setConfirmAction(null),
                 confirmText: 'OK',
                 cancelText: null
@@ -124,7 +123,7 @@ const SettingsModal = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             {confirmAction && (
-                <ConfirmationModal 
+                <ConfirmationModal
                     message={confirmAction.message}
                     onConfirm={confirmAction.onConfirm}
                     onCancel={confirmAction.onCancel}
@@ -137,7 +136,7 @@ const SettingsModal = ({ onClose }) => {
                     <h2 className="text-2xl font-bold text-center text-yellow-400">Game Settings</h2>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
-                
+
                 <div className="settings-tabs mb-4 flex border-b border-gray-600">
                     <button onClick={() => setActiveTab('gameplay')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'gameplay' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Gameplay</button>
                     <button onClick={() => setActiveTab('display')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'display' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Display</button>
@@ -171,7 +170,7 @@ const SettingsModal = ({ onClose }) => {
                                     className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
                                 />
                             </div>
-                            
+
                             <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
                                 <label htmlFor="animations" className="text-lg font-semibold">Enable Animations</label>
                                 <input
@@ -215,6 +214,17 @@ const SettingsModal = ({ onClose }) => {
                                     className="w-1/2"
                                 />
                             </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="hideCompletedQuestsIcon" className="text-lg font-semibold">Hide Quest Icon When Done</label>
+                                <input
+                                    type="checkbox"
+                                    id="hideCompletedQuestsIcon"
+                                    name="hideCompletedQuestsIcon"
+                                    checked={gameSettings.hideCompletedQuestsIcon || false}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
                         </>
                     )}
 
@@ -249,6 +259,17 @@ const SettingsModal = ({ onClose }) => {
                                     id="unitCompleteNotifications"
                                     name="unitCompleteNotifications"
                                     checked={gameSettings.unitCompleteNotifications}
+                                    onChange={handleChange}
+                                    className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                                <label htmlFor="hideReturningReports" className="text-lg font-semibold">Hide Returning Troop Reports</label>
+                                <input
+                                    type="checkbox"
+                                    id="hideReturningReports"
+                                    name="hideReturningReports"
+                                    checked={gameSettings.hideReturningReports || false}
                                     onChange={handleChange}
                                     className="w-6 h-6 rounded text-blue-600 bg-gray-600 border-gray-500 focus:ring-blue-500"
                                 />

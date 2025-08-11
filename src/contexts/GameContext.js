@@ -1,4 +1,3 @@
-// src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { doc, onSnapshot, collection, writeBatch, updateDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -10,7 +9,7 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children, worldId }) => {
     const { currentUser } = useAuth();
-    const [playerGameData, setPlayerGameData] = useState(null); // For top-level game data (like alliance)
+    const [playerGameData, setPlayerGameData] = useState(null);
     const [playerCities, setPlayerCities] = useState({});
     const [activeCityId, setActiveCityId] = useState(null);
     const [worldState, setWorldState] = useState(null);
@@ -23,6 +22,8 @@ export const GameProvider = ({ children, worldId }) => {
         confirmActions: true,
         showGrid: true,
         showVisuals: true,
+        hideReturningReports: false,
+        hideCompletedQuestsIcon: false,
     });
 
     useEffect(() => {
@@ -38,7 +39,7 @@ export const GameProvider = ({ children, worldId }) => {
             setWorldState(docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null);
         });
 
-        // #comment This listener is for the top-level game document which contains alliance and battle points.
+
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribeGameData = onSnapshot(gameDocRef, (docSnap) => {
             console.log("GameContext: gameDocRef snapshot triggered.");
@@ -46,11 +47,11 @@ export const GameProvider = ({ children, worldId }) => {
                 console.log("GameContext: Game document exists.");
                 const data = docSnap.data();
                 console.log("GameContext: Fetched game data:", data);
-                // #comment Backwards compatibility: ensure battlePoints field exists for older players.
+
                 if (data.battlePoints === undefined) {
                     console.log("GameContext: 'battlePoints' is undefined. Updating document...");
-                    // If the field is missing, update the document to add it.
-                    // The onSnapshot listener will then re-run with the correct data.
+
+
                     updateDoc(gameDocRef, { battlePoints: 0 });
                 } else {
                     console.log("GameContext: Setting playerGameData with battlePoints:", data.battlePoints);
@@ -82,7 +83,7 @@ export const GameProvider = ({ children, worldId }) => {
             }
             setLoading(false);
         });
-        
+
         const conqueredVillagesRef = collection(db, `users/${currentUser.uid}/games`, worldId, 'conqueredVillages');
         const unsubscribeVillages = onSnapshot(conqueredVillagesRef, (snapshot) => {
             const villagesData = {};
@@ -111,18 +112,18 @@ export const GameProvider = ({ children, worldId }) => {
     }, [currentUser, worldId, activeCityId]);
 
     const activeCity = playerCities[activeCityId] || null;
-    // #comment Legacy properties for components that haven't been updated for multi-city yet.
-    const gameState = activeCity; 
+
+    const gameState = activeCity;
     const playerCity = activeCity;
 
-    // #comment Counts the number of cities a player owns on a specific island.
-    // #comment This is used to determine resource bonuses from villages.
+
+
     const countCitiesOnIsland = useCallback((islandId) => {
         if (!islandId || !playerCities) return 0;
         return Object.values(playerCities).filter(city => city.islandId === islandId).length;
     }, [playerCities]);
-    
-    // #comment Function to handle renaming a city
+
+
     const renameCity = useCallback(async (cityId, newName) => {
         if (!currentUser || !worldId || !cityId || !newName.trim()) {
             throw new Error("Invalid parameters for renaming city.");
@@ -142,14 +143,14 @@ export const GameProvider = ({ children, worldId }) => {
         batch.update(citySlotRef, { cityName: newName.trim() });
 
         await batch.commit();
-        // The onSnapshot listener will update the local state automatically.
+
 
     }, [currentUser, worldId, playerCities]);
 
-    const value = { 
+    const value = {
         worldId,
         worldState,
-        playerGameData, // Export the top-level player data
+        playerGameData,
         playerCities,
         activeCityId,
         setActiveCityId,
@@ -160,9 +161,9 @@ export const GameProvider = ({ children, worldId }) => {
         conqueredRuins,
         gameSettings,
         setGameSettings,
-        countCitiesOnIsland, // #comment Make the function available through the context
-        renameCity, // #comment Expose the rename function
-        // #comment Legacy support
+        countCitiesOnIsland,
+        renameCity,
+
         gameState,
         playerCity,
         setGameState: (newState) => {
