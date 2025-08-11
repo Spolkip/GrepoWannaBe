@@ -1,18 +1,4 @@
-Hard todo:
-- add buildings to build when the island is full of an alliance
-
-Ez todo:
-Boring:
-- put special buildings on cityscape
-- add icons to back to world selection and logout
--  add animation on open tooltip for spells when press on the god
-- make settings better
-- add more research and make them to actually work
-- add notification icons to show when something is completed
-
 Will do: 
-
-- on player name on forum thread to show it with bbcode
 - add a system message to send as different sender to add all the invite, apply, diplomat stuff
 - add a placeholder on profile's image, add actual points and defense and attack points and also battle points also make the Alliance reference better adding there the name of the player as well with bbcodes
 - add everywhere to have the text editor
@@ -28,6 +14,16 @@ Will do:
 - make it so it shows reinforced troops 
 - make it so you can withdraw reinforced troops
 
+Hard todo:
+- add buildings to build when the island is full of an alliance
+
+Ez todo:
+- put special buildings on cityscape
+- add icons to back to world selection and logout
+-  add animation on open tooltip for spells when press on the god
+- make settings better
+- add more research and make them to actually work
+- add notification icons to show when something is completed
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 
 
