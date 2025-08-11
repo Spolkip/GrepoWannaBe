@@ -14,7 +14,7 @@ import MapModals from './map/MapModals';
 import SideInfoPanel from './SideInfoPanel';
 import DivinePowers from './city/DivinePowers';
 import QuestsButton from './QuestsButton';
-import MapOverlay from './map/MapOverlay'; // #comment Import the new overlay component
+import MapOverlay from './map/MapOverlay';
 
 // Custom Hooks
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -52,7 +52,7 @@ const MapView = ({
     centerOnCity,
     onGodTownClick,
     handleOpenEvents,
-    onCityChange
+    onSwitchCity
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
@@ -68,9 +68,8 @@ const MapView = ({
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
-    const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 }); // #comment State for mouse coordinates
+    const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 });
 
-    // #comment Effect to track mouse coordinates on the map
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
@@ -352,7 +351,7 @@ const MapView = ({
                         isUnderAttack={isUnderAttack}
                         incomingAttackCount={incomingAttackCount}
                         onRenameCity={onRenameCity}
-                        onCityChange={onCityChange}
+                        onSwitchCity={onSwitchCity}
                     />
                     <SidebarNav
                         onToggleView={handleGoToActiveCity}
@@ -374,7 +373,6 @@ const MapView = ({
                     />
                     <SideInfoPanel gameState={gameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
 
-                    {/* #comment Add the MapOverlay component */}
                     <MapOverlay
                         mouseCoords={mouseCoords}
                         pan={pan}

@@ -31,7 +31,7 @@ const CityView = ({
     onRenameCity,
     quests,
     handleOpenEvents,
-    onCityChange
+    onSwitchCity
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame();
@@ -121,7 +121,7 @@ const CityView = ({
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={onRenameCity}
                     getWarehouseCapacity={getWarehouseCapacity}
-                    onCityChange={onCityChange}
+                    onSwitchCity={onSwitchCity}
                 />
                 <CityViewContent
                     cityGameState={cityGameState}
