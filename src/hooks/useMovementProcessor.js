@@ -28,7 +28,7 @@ export const useMovementProcessor = (worldId) => {
             getDoc(originCityRef),
             targetCityRef ? getDoc(targetCityRef) : Promise.resolve(null)
         ]);
-        
+
         const originGameRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
         const targetGameRef = movement.targetOwnerId ? doc(db, `users/${movement.targetOwnerId}/games`, worldId) : null;
 
@@ -39,7 +39,7 @@ export const useMovementProcessor = (worldId) => {
 
         const originGameData = originGameSnap.exists() ? originGameSnap.data() : {};
         const targetGameData = targetGameSnap?.exists() ? targetGameSnap.data() : {};
-        
+
         const originAlliancePromise = originGameData.alliance ? getDoc(doc(db, 'worlds', worldId, 'alliances', originGameData.alliance)) : Promise.resolve(null);
         const targetAlliancePromise = targetGameData.alliance ? getDoc(doc(db, 'worlds', worldId, 'alliances', targetGameData.alliance)) : Promise.resolve(null);
 
@@ -226,9 +226,10 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${villageData.name}`,
                         timestamp: serverTimestamp(),
                         outcome: reportOutcome,
-                        attacker: { 
-                            cityName: originCityState.cityName, 
-                            units: movement.units, 
+                        attacker: {
+                            cityId: movement.originCityId,
+                            cityName: originCityState.cityName,
+                            units: movement.units,
                             losses: result.attackerLosses,
                             ownerId: movement.originOwnerId,
                             username: movement.originOwnerUsername || 'Unknown Player',
@@ -337,6 +338,7 @@ export const useMovementProcessor = (worldId) => {
                         timestamp: serverTimestamp(),
                         outcome: result,
                         attacker: {
+                            cityId: movement.originCityId,
                             cityName: originCityState.cityName,
                             units: movement.units,
                             losses: result.attackerLosses,
@@ -447,6 +449,7 @@ export const useMovementProcessor = (worldId) => {
                         timestamp: serverTimestamp(),
                         outcome: result,
                         attacker: {
+                            cityId: movement.originCityId,
                             cityName: originCityState.cityName,
                             units: movement.units,
                             losses: result.attackerLosses,
@@ -459,6 +462,7 @@ export const useMovementProcessor = (worldId) => {
                         },
                         defender: hasSurvivingLandOrMythic
                             ? {
+                                cityId: movement.targetCityId,
                                 cityName: targetCityState.cityName,
                                 units: targetCityState.units,
                                 losses: result.defenderLosses,
@@ -483,6 +487,7 @@ export const useMovementProcessor = (worldId) => {
                         read: false,
                         outcome: { ...result, attackerWon: !result.attackerWon },
                         defender: {
+                            cityId: movement.targetCityId,
                             cityName: targetCityState.cityName,
                             units: targetCityState.units,
                             losses: result.defenderLosses,

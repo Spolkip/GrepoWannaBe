@@ -1,3 +1,4 @@
+// src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -99,14 +100,13 @@ const ReportsView = ({ onClose, onActionClick }) => {
     const handleContentClick = (e) => {
         const target = e.target;
         if (target.classList.contains('bbcode-action') && onActionClick) {
-            let { actionType, actionId, actionCoordsX, actionCoordsY } = target.dataset;
-            const isFromReportOutcome = target.closest('.report-outcome-container');
+            let { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
 
-            if (isFromReportOutcome && actionType === 'go_to_city') {
-                actionType = 'go_to_city_and_open_modal';
+            if (actionType === 'city_link') {
+                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
+            } else {
+                onActionClick(actionType, actionId || { x: actionCoordsX, y: actionCoordsY });
             }
-
-            onActionClick(actionType, actionId || { x: actionCoordsX, y: actionCoordsY });
         }
     };
 
@@ -231,7 +231,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                         </p>
                         <div className="flex items-center justify-between w-full mb-4">
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${attacker.cityId} owner=${attacker.ownerId} x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
                                 {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
                             </div>
@@ -239,7 +239,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
                                 {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
                             </div>

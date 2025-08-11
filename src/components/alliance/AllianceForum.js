@@ -1,3 +1,4 @@
+// src/components/alliance/AllianceForum.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { db } from '../../firebase/config';
@@ -279,12 +280,16 @@ const AllianceForum = ({ onClose, onActionClick }) => {
     const handleContentClick = (e) => {
         const target = e.target;
         if (target.classList.contains('bbcode-action') && onActionClick) {
-            const { actionType, actionId, actionCoordsX, actionCoordsY } = target.dataset;
-            const data = actionId || { x: actionCoordsX, y: actionCoordsY };
-            if (actionType && data) {
-                onActionClick(actionType, data);
-                onClose();
+            const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
+            if (actionType === 'city_link') {
+                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
+            } else {
+                const data = actionId || { x: actionCoordsX, y: actionCoordsY };
+                if (actionType && data) {
+                    onActionClick(actionType, data);
+                }
             }
+            onClose();
         }
     };
 
@@ -446,7 +451,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                             ) : (
                                 <>
                                     <button onClick={() => setSelectedForum(forum)} className={`forum-tab ${selectedForum?.id === forum.id ? 'active' : ''}`}>
-                                        {forum.name} {forum.isSecret && '🔒'}
+                                        {forum.name} {forum.isSecret && '�'}
                                     </button>
                                     {isLeader && (
                                         <div className="absolute top-0 right-0 flex opacity-0 group-hover:opacity-100 transition-opacity">

@@ -276,7 +276,7 @@ const Game = ({ onBackToWorlds }) => {
         openModal('eventTrigger');
     };
 
-    // #comment This function handles actions triggered from various UI components like reports and messages
+
     const handleAction = (type, data) => {
         closeModal('reports');
         if (viewingReportId) setViewingReportId(null);
@@ -284,6 +284,23 @@ const Game = ({ onBackToWorlds }) => {
         closeModal('messages');
 
         switch (type) {
+            case 'city_link':
+                if (data.ownerId === currentUser.uid) {
+                    const city = playerCities[data.cityId];
+                    if (city) {
+                        closeModal('reports');
+                        if (data.cityId === activeCityId) {
+                            openModal('ownActiveCity', city);
+                        } else {
+                            openModal('ownInactiveCity', city);
+                        }
+                    }
+                } else {
+                    setInitialMapAction({ type: 'open_city_modal', coords: data.coords });
+                    setView('map');
+                    closeModal('reports');
+                }
+                break;
             case 'profile':
                 handleOpenProfile(data);
                 break;

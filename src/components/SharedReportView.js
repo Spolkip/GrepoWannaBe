@@ -1,3 +1,4 @@
+// src/components/SharedReportView.js
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -26,7 +27,7 @@ imageContexts.forEach(context => {
     });
 });
 
-const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded }) => {
+const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded, onActionClick }) => {
     const gameContext = useGame();
     const worldId = propWorldId || gameContext?.worldId;
     const [report, setReport] = useState(null);
@@ -58,6 +59,21 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
         fetchReport();
     }, [worldId, reportId]);
 
+    const handleContentClick = (e) => {
+        if (!onActionClick) return;
+        const target = e.target;
+        if (target.classList.contains('bbcode-action')) {
+            const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
+            if (actionType === 'city_link') {
+                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
+            } else {
+                const data = actionId || { x: actionCoordsX, y: actionCoordsY };
+                if (actionType && data) {
+                    onActionClick(actionType, data);
+                }
+            }
+        }
+    };
 
     const renderUnitList = (units) => {
         if (!units || Object.keys(units).length === 0) return 'None';
@@ -143,7 +159,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                         </p>
                         <div className="flex items-center justify-between w-full mb-4">
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${attacker.cityId} owner=${attacker.ownerId} x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
                                 {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
                             </div>
@@ -151,7 +167,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
                                 {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
                             </div>
@@ -255,7 +271,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
         if (error) return <div className="text-xs text-red-500">{error}</div>;
         if (!report) return null;
         return (
-            <div className="p-2 border border-yellow-800/50 my-2">
+            <div className="p-2 border border-yellow-800/50 my-2" onClick={handleContentClick}>
                 <h4 className="font-bold text-center text-sm mb-2">{report.title}</h4>
                 {renderReportOutcome(report)}
             </div>
@@ -269,7 +285,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                     <h2 className="font-title text-3xl">Shared Report</h2>
                     <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
-                <div className="p-4 overflow-y-auto">
+                <div className="p-4 overflow-y-auto" onClick={handleContentClick}>
                     {loading && <p>Loading report...</p>}
                     {error && <p className="text-red-500 text-center">{error}</p>}
                     {report && (
