@@ -1,8 +1,4 @@
 Will do: 
-- add queues on hover to say info
-- add shortcuts for buildings
-- make the village plunder every 20 mins
-- make it so on your active city to only have, center on map, enter city or celect city
 - make it so it shows reinforced troops and can withdraw troops
 - make manager for troops and research spells, puzzles and buildings with a lot of options
 - fix academy
@@ -10,8 +6,6 @@ Will do:
 Todo after above:
 - put special buildings on cityscape
 - add icons to back to world selection and logout
-- add animation on open tooltip for spells when press on the god
-- make settings better
 - add more research and make them to actually work
 - add notification icons to show when something is completed
 - add a placeholder on profile's image

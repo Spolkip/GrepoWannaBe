@@ -4,12 +4,19 @@ import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 import './OtherCityModal.css'; // Reuse styles
 
-const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity }) => {
+const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
         if (onGoTo) {
             onGoTo(city.x, city.y);
+        }
+        onClose();
+    };
+
+    const handleSelect = () => {
+        if (onSelectCity) {
+            onSelectCity(city.id);
         }
         onClose();
     };
@@ -26,8 +33,11 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity }) 
                         <TroopDisplay units={city.units} unitsData={unitsData} title="Garrison" />
                     </div>
                     <div className="action-buttons-grid">
-                        <button onClick={() => onEnterCity(city.id)} className="action-btn col-span-2">
+                        <button onClick={() => onEnterCity(city.id)} className="action-btn">
                             Enter City
+                        </button>
+                        <button onClick={handleSelect} className="action-btn">
+                            Select City
                         </button>
                         <button onClick={() => onAction('reinforce', city)} className="action-btn reinforce-btn">
                             Reinforce

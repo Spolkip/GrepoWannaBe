@@ -28,6 +28,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     const [timeSinceCollection, setTimeSinceCollection] = useState(Infinity);
     const [activeTab, setActiveTab] = useState('demand');
     const [tradeAmount, setTradeAmount] = useState(0);
+    const [plunderTimeLeft, setPlunderTimeLeft] = useState(0); // State for plunder cooldown
 
     const resourceImages = {
         wood: woodImage,
@@ -149,6 +150,23 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
         }
     }, [village]);
 
+    // #comment New useEffect for plunder cooldown
+    useEffect(() => {
+        if (village && village.lastPlundered) {
+            const updateTimer = () => {
+                const lastPlunderedTime = village.lastPlundered.toDate().getTime();
+                const cooldownEndTime = lastPlunderedTime + 20 * 60 * 1000; // 20 minutes
+                const remaining = Math.max(0, cooldownEndTime - Date.now());
+                setPlunderTimeLeft(remaining / 1000);
+            };
+            updateTimer();
+            const interval = setInterval(updateTimer, 1000);
+            return () => clearInterval(interval);
+        } else {
+            setPlunderTimeLeft(0);
+        }
+    }, [village]);
+
     const getUpgradeCost = (level) => ({
         wood: Math.floor(200 * Math.pow(1.6, level - 1)),
         stone: Math.floor(200 * Math.pow(1.6, level - 1)),
@@ -235,6 +253,10 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
 
     const handlePlunder = async () => {
         if (isProcessing) return;
+        if (plunderTimeLeft > 0) {
+            setMessage(`You must wait before plundering again.`);
+            return;
+        }
         setIsProcessing(true);
         setMessage('');
 
@@ -284,7 +306,11 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 } else {
                     // Successful plunder, no revolt
                     const newHappiness = Math.max(0, currentHappiness - 40);
-                    transaction.update(playerVillageRef, { happiness: newHappiness, happinessLastUpdated: serverTimestamp() });
+                    transaction.update(playerVillageRef, { 
+                        happiness: newHappiness, 
+                        happinessLastUpdated: serverTimestamp(),
+                        lastPlundered: serverTimestamp() // Set plunder cooldown
+                    });
                     
                     const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: cityData.cityName }, defender: { villageName: baseData.name }, read: false };
                     transaction.set(doc(reportsRef), report);
@@ -390,6 +416,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
     const cost = getUpgradeCost(village.level + 1);
     const canAffordUpgrade = gameState && gameState.resources.wood >= cost.wood && gameState.resources.stone >= cost.stone && gameState.resources.silver >= cost.silver;
     const maxTradeAmount = baseVillageData && gameState ? Math.min(gameState.resources[baseVillageData.demands] || 0, Math.floor((baseVillageData.resources?.[baseVillageData.supplies] || 0) * (baseVillageData.tradeRatio || 1)), marketCapacity || 0) : 0;
+    const plunderCooldownEndTime = village.lastPlundered ? new Date(village.lastPlundered.toDate().getTime() + 20 * 60 * 1000) : null;
     
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" onClick={onClose}>
@@ -446,7 +473,11 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                             <div className="bg-gray-900 p-4 rounded-lg">
                                 <p className="mb-2">Current Happiness: <span className="font-bold text-green-400">{Math.floor(village.happiness !== undefined ? village.happiness : 100)}%</span></p>
                                 <p className="text-xs text-gray-500 mb-4">Plundering a village with 40% or less happiness will cause it to revolt, and you will lose control of it.</p>
-                                <button onClick={handlePlunder} disabled={isProcessing} className="btn btn-danger w-full text-lg py-2">{isProcessing ? 'Plundering...' : 'Launch Plunder Raid (-40 Happiness)'}</button>
+                                <button onClick={handlePlunder} disabled={isProcessing || plunderTimeLeft > 0} className="btn btn-danger w-full text-lg py-2">
+                                    {isProcessing ? 'Plundering...' : (plunderTimeLeft > 0 ? 
+                                        <Countdown arrivalTime={plunderCooldownEndTime} /> 
+                                        : 'Launch Plunder Raid (-40 Happiness)')}
+                                </button>
                             </div>
                         </div>
                     )}

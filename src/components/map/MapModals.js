@@ -1,3 +1,4 @@
+// src/components/map/MapModals.js
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import OwnInactiveCityModal from './OwnInactiveCityModal';
@@ -26,7 +27,8 @@ const MapModals = ({
     onCastSpell,
     onActionClick,
     marketCapacity,
-    onEnterCity
+    onEnterCity,
+    onSwitchCity
 }) => {
     return (
         <>
@@ -51,6 +53,7 @@ const MapModals = ({
                     onAction={handleActionClick}
                     onGoTo={goToCoordinates}
                     onEnterCity={onEnterCity}
+                    onSelectCity={onSwitchCity}
                 />
             )}
             {/* Add the new modal render logic */}

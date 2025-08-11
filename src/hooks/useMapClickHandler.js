@@ -1,3 +1,4 @@
+// src/hooks/useMapClickHandler.js
 import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
 import { useGame } from '../contexts/GameContext';
@@ -37,7 +38,7 @@ export const useMapClickHandler = ({
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
             if (city) {
                 if (city.id === activeCityId) {
-                    showCity(city.id);
+                    openModal('ownActiveCity', city);
                 } else {
                     const distance = calculateDistance(playerCity, slotData);
                     setTravelTimeInfo({ distance });
