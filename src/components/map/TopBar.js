@@ -248,11 +248,12 @@ const TopBar = ({
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
 
     const handleCitySelect = (cityId) => {
-        if (onSwitchCity) {
-            onSwitchCity(cityId);
-        }
-        setIsCityListOpen(false);
-    };
+    if (onSwitchCity) {
+        onSwitchCity(cityId);
+    }
+    setIsCityListOpen(false);
+    // Removed the showCity call that was forcing the city view
+};
 
     // #comment Handlers to show/hide tooltips with a small delay
     const handleMouseEnter = (tooltip) => {

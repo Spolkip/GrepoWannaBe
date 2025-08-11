@@ -283,10 +283,11 @@ const MapView = ({
     };
 
     const handleEnterCity = (cityId) => {
-        setActiveCityId(cityId);
-        showCity(cityId);
-        closeModal('ownInactiveCity');
-    };
+    setActiveCityId(cityId);
+    // Only show city if explicitly requested (like from a button)
+    showCity(cityId);
+    closeModal('ownInactiveCity');
+};
 
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
