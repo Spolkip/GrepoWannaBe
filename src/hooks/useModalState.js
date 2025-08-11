@@ -21,7 +21,9 @@ export const useModalState = () => {
         isRecruitmentPanelOpen: false,
         isTradesPanelOpen: false,
         isOwnInactiveCityModalOpen: false,
-        isOwnActiveCityModalOpen: false, // Added this
+        isOwnActiveCityModalOpen: false,
+        isWithdrawModalOpen: false, // Added this
+        withdrawCity: null, // Added this
         isEventTriggerOpen: false,
         viewingProfileId: null,
         viewingAllianceId: null,
@@ -32,7 +34,7 @@ export const useModalState = () => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: data };
                 case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: true, selectedCity: data };
-                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: true, selectedCity: data }; // Added this
+                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: true, selectedCity: data };
                 case 'village': return { ...prevState, selectedVillage: data };
                 case 'action': return { ...prevState, actionDetails: data };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: true };
@@ -49,6 +51,7 @@ export const useModalState = () => {
                 case 'settings': return { ...prevState, isSettingsModalOpen: true };
                 case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: true };
                 case 'trades': return { ...prevState, isTradesPanelOpen: true };
+                case 'withdraw': return { ...prevState, isWithdrawModalOpen: true, withdrawCity: data }; // Added this
                 case 'eventTrigger': return { ...prevState, isEventTriggerOpen: true };
                 default: return prevState;
             }
@@ -60,7 +63,7 @@ export const useModalState = () => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: null };
                 case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: false, selectedCity: null };
-                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: false, selectedCity: null }; // Added this
+                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: false, selectedCity: null };
                 case 'village': return { ...prevState, selectedVillage: null };
                 case 'action': return { ...prevState, actionDetails: null };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: false };
@@ -77,6 +80,7 @@ export const useModalState = () => {
                 case 'settings': return { ...prevState, isSettingsModalOpen: false };
                 case 'recruitment': return { ...prevState, isRecruitmentPanelOpen: false };
                 case 'trades': return { ...prevState, isTradesPanelOpen: false };
+                case 'withdraw': return { ...prevState, isWithdrawModalOpen: false, withdrawCity: null }; // Added this
                 case 'eventTrigger': return { ...prevState, isEventTriggerOpen: false };
                 default: return prevState;
             }

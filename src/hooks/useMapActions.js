@@ -286,6 +286,79 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             setMessage(`Could not cancel movement: ${error.message}`);
         }
     }, [worldId, setMessage]);
+    
+    // #comment Handles withdrawing reinforced troops from a city
+    const handleWithdrawTroops = useCallback(async (city, withdrawAmounts) => {
+        if (!city || !withdrawAmounts || Object.keys(withdrawAmounts).length === 0) return;
+    
+        try {
+            await runTransaction(db, async (transaction) => {
+                for (const reinforcementId in withdrawAmounts) {
+                    const unitsToWithdraw = withdrawAmounts[reinforcementId];
+                    if (Object.values(unitsToWithdraw).every(count => count === 0)) continue;
+    
+                    const reinforcementRef = doc(db, `users/${city.ownerId}/games`, worldId, 'cities', city.id, 'reinforcements', reinforcementId);
+                    const reinforcementDoc = await transaction.get(reinforcementRef);
+    
+                    if (!reinforcementDoc.exists()) {
+                        throw new Error(`Reinforcement group ${reinforcementId} not found.`);
+                    }
+    
+                    const reinforcementData = reinforcementDoc.data();
+                    const originCityRef = doc(db, `users/${reinforcementData.originOwnerId}/games`, worldId, 'cities', reinforcementData.originCityId);
+                    const originCityDoc = await transaction.get(originCityRef);
+    
+                    if (!originCityDoc.exists()) {
+                        throw new Error(`Origin city for reinforcement ${reinforcementId} not found.`);
+                    }
+    
+                    const originCityData = originCityDoc.data();
+                    const distance = calculateDistance(city, originCityData);
+                    const slowestSpeed = Math.min(...Object.keys(unitsToWithdraw).map(id => unitConfig[id].speed));
+                    const travelSeconds = calculateTravelTime(distance, slowestSpeed, 'return', worldState, ['land', 'naval']);
+                    const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
+    
+                    const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
+                    const movementData = {
+                        type: 'return',
+                        originCityId: city.id,
+                        originCoords: { x: city.x, y: city.y },
+                        originOwnerId: city.ownerId,
+                        targetCityId: reinforcementData.originCityId,
+                        targetCoords: { x: originCityData.x, y: originCityData.y },
+                        targetOwnerId: reinforcementData.originOwnerId,
+                        units: unitsToWithdraw,
+                        departureTime: serverTimestamp(),
+                        arrivalTime,
+                        status: 'returning',
+                        involvedParties: [city.ownerId, reinforcementData.originOwnerId],
+                    };
+                    transaction.set(newMovementRef, movementData);
+    
+                    const remainingUnits = { ...reinforcementData.units };
+                    let hasRemaining = false;
+                    for (const unitId in unitsToWithdraw) {
+                        remainingUnits[unitId] -= unitsToWithdraw[unitId];
+                        if (remainingUnits[unitId] <= 0) {
+                            delete remainingUnits[unitId];
+                        } else {
+                            hasRemaining = true;
+                        }
+                    }
+    
+                    if (hasRemaining) {
+                        transaction.update(reinforcementRef, { units: remainingUnits });
+                    } else {
+                        transaction.delete(reinforcementRef);
+                    }
+                }
+            });
+            setMessage("Troops are returning.");
+        } catch (error) {
+            console.error("Error withdrawing troops:", error);
+            setMessage(`Failed to withdraw troops: ${error.message}`);
+        }
+    }, [worldId, worldState, setMessage]);
 
     const handleCreateDummyCity = useCallback(async (citySlotId, slotData) => {
         if (!userProfile?.is_admin) {
@@ -351,6 +424,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         handleActionClick,
         handleSendMovement,
         handleCancelMovement,
-        handleCreateDummyCity
+        handleCreateDummyCity,
+        handleWithdrawTroops,
     };
 };

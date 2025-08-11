@@ -596,11 +596,17 @@ export const useMovementProcessor = (worldId) => {
                         batch.delete(movementDoc.ref);
                         break;
                     }
-                    const newTargetUnits = { ...targetCityState.units };
-                    for (const unitId in movement.units) {
-                        newTargetUnits[unitId] = (newTargetUnits[unitId] || 0) + movement.units[unitId];
-                    }
-                    batch.update(targetCityRef, { units: newTargetUnits });
+                    
+                    const reinforcementRef = doc(collection(db, `users/${movement.targetOwnerId}/games`, worldId, 'cities', movement.targetCityId, 'reinforcements'));
+                    
+                    batch.set(reinforcementRef, {
+                        units: movement.units,
+                        originCityId: movement.originCityId,
+                        originOwnerId: movement.originOwnerId,
+                        originCityName: movement.originCityName,
+                        originOwnerUsername: movement.originOwnerUsername,
+                        arrival: serverTimestamp()
+                    });
 
                     const reinforceReport = { 
                         type: 'reinforce', 
