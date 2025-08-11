@@ -602,10 +602,35 @@ export const useMovementProcessor = (worldId) => {
                     }
                     batch.update(targetCityRef, { units: newTargetUnits });
 
-                    const reinforceReport = { type: 'reinforce', title: `Reinforcement to ${targetCityState.cityName}`, timestamp: serverTimestamp(), units: movement.units, read: false };
+                    const reinforceReport = { 
+                        type: 'reinforce', 
+                        title: `Reinforcement to ${targetCityState.cityName}`, 
+                        timestamp: serverTimestamp(), 
+                        units: movement.units, 
+                        read: false,
+                        originCityName: originCityState.cityName,
+                        targetCityName: targetCityState.cityName,
+                        originPlayer: {
+                            username: movement.originOwnerUsername,
+                            id: movement.originOwnerId,
+                            cityId: movement.originCityId,
+                            x: originCityState.x,
+                            y: originCityState.y
+                        },
+                        targetPlayer: {
+                            username: movement.ownerUsername,
+                            id: movement.targetOwnerId,
+                            cityId: movement.targetCityId,
+                            x: targetCityState.x,
+                            y: targetCityState.y
+                        }
+                    };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), reinforceReport);
 
-                    const arrivalReport = { type: 'reinforce', title: `Reinforcements from ${originCityState.cityName}`, timestamp: serverTimestamp(), units: movement.units, read: false };
+                    const arrivalReport = { 
+                        ...reinforceReport,
+                        title: `Reinforcements from ${originCityState.cityName}`,
+                    };
                     batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
 
                     batch.delete(movementDoc.ref);

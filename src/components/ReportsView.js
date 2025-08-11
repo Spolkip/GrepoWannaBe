@@ -415,21 +415,25 @@ const ReportsView = ({ onClose, onActionClick }) => {
                     </div>
                 );
             case 'reinforce':
+                const originReinforcePlayer = report.originPlayer || {};
+                const targetReinforcePlayer = report.targetPlayer || {};
                 return (
                     <div className="space-y-1">
                         <p className="font-bold text-blue-600">Reinforcement Arrived</p>
-                        <p><strong>From:</strong> {report.originCityName}</p>
-                        <p><strong>To:</strong> {report.targetCityName}</p>
+                        <p><strong>From:</strong> <span dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${originReinforcePlayer.cityId} owner=${originReinforcePlayer.id} x=${originReinforcePlayer.x} y=${originReinforcePlayer.y}]${report.originCityName}[/city]`) }}></span></p>
+                        <p><strong>To:</strong> <span dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${targetReinforcePlayer.cityId} owner=${targetReinforcePlayer.id} x=${targetReinforcePlayer.x} y=${targetReinforcePlayer.y}]${report.targetCityName}[/city]`) }}></span></p>
                         <p><strong>Units:</strong></p>
                         {renderTroopDisplay(report.units)}
                     </div>
                 );
             case 'trade':
+                const originPlayer = report.originPlayer || {};
+                const targetPlayer = report.targetPlayer || {};
                 return (
                     <div className="space-y-1">
                         <p className="font-bold text-yellow-600">Trade Complete</p>
-                        <p><strong>From:</strong> {report.originCityName}</p>
-                        <p><strong>To:</strong> {report.targetCityName}</p>
+                        <p><strong>From:</strong> <span dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${originPlayer.cityId} owner=${originPlayer.id} x=${originPlayer.x} y=${originPlayer.y}]${report.originCityName}[/city]`) }}></span></p>
+                        <p><strong>To:</strong> <span dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${targetPlayer.cityId} owner=${targetPlayer.id} x=${targetPlayer.x} y=${targetPlayer.y}]${report.targetCityName}[/city]`) }}></span></p>
                         <div className="flex flex-wrap gap-2 mt-2">
                             <strong>Resources:</strong> {renderResourceIcons(report.resources)}
                         </div>
