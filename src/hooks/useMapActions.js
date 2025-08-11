@@ -1,4 +1,3 @@
-// src/hooks/useMapActions.js
 import { useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -74,7 +73,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const batch = writeBatch(db);
         const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
 
-        // #comment If targetCity.ownerId is undefined, it's our own city. Assign the current user's ID.
+
         const finalTargetOwnerId = targetCity.ownerId || currentUser.uid;
         const isOwnCityTarget = finalTargetOwnerId === currentUser.uid;
         let targetCityDocId = null;
@@ -188,6 +187,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 originCoords: { x: playerCity.x, y: playerCity.y },
                 originOwnerId: currentUser.uid,
                 originCityName: playerCity.cityName,
+                originOwnerUsername: userProfile.username,
                 targetCityId: targetCityDocId,
                 targetSlotId: isOwnCityTarget ? targetCity.slotId : targetCity.id,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
@@ -226,7 +226,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 updatedResources[resource] -= resources[resource];
             }
         }
-        
+
         batch.update(gameDocRef, {
             units: updatedUnits,
             resources: updatedResources,
@@ -249,30 +249,30 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             setMessage(`Failed to send movement: ${error.message}`);
         }
     }, [currentUser, userProfile, worldId, gameState, playerCity, setGameState, setMessage, worldState]);
-    
+
     const handleCancelMovement = useCallback(async (movementId) => {
         const movementRef = doc(db, 'worlds', worldId, 'movements', movementId);
-    
+
         try {
             await runTransaction(db, async (transaction) => {
                 const movementDoc = await transaction.get(movementRef);
-    
+
                 if (!movementDoc.exists()) {
                     throw new Error("Movement data not found.");
                 }
-    
+
                 const movementData = movementDoc.data();
-                
+
                 const cancellableUntil = movementData.cancellableUntil.toDate();
                 if (new Date() > cancellableUntil) {
                     throw new Error("The grace period to cancel this movement has passed.");
                 }
-    
+
                 const now = Date.now();
                 const departureTime = movementData.departureTime.toDate().getTime();
                 const elapsedTime = now - departureTime;
                 const returnArrivalTime = new Date(now + elapsedTime);
-    
+
                 transaction.update(movementRef, {
                     status: 'returning',
                     arrivalTime: returnArrivalTime,

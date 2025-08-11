@@ -1,17 +1,16 @@
-// src/components/ReportsView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { useGame } from '../contexts/GameContext'; // Import useGame
+import { useGame } from '../contexts/GameContext';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
-import { parseBBCode } from '../utils/bbcodeParser'; // Import the parser
-import './ReportsView.css'; // Import the new CSS
+import { parseBBCode } from '../utils/bbcodeParser';
+import './ReportsView.css';
 
-// (Image import logic remains the same)
+
 const images = {};
 const imageContexts = [
     require.context('../images', false, /\.(png|jpe?g|svg)$/),
@@ -71,7 +70,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
         }
     };
 
-    // #comment Handle sharing a report
+
     const handleShareReport = async (report) => {
         setMessage('');
         try {
@@ -79,10 +78,10 @@ const ReportsView = ({ onClose, onActionClick }) => {
             const sharedReportRef = doc(db, 'worlds', worldId, 'shared_reports', report.id);
             await setDoc(sharedReportRef, report);
 
-            // Copy the BBCode to the clipboard
+
             const bbCode = `[report]${report.id}[/report]`;
             navigator.clipboard.writeText(bbCode);
-            
+
             setMessage('Report shared! BBCode copied to clipboard.');
             setTimeout(() => setMessage(''), 3000);
         } catch (error) {
@@ -219,6 +218,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                             <div className="flex flex-col items-center w-1/3">
                                 <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
+                                {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
                             </div>
                             <div className="w-1/3 text-center">
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
@@ -226,6 +226,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                             <div className="flex flex-col items-center w-1/3">
                                 <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
                                 <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
+                                {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
