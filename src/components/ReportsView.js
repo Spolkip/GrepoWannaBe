@@ -266,32 +266,17 @@ const ReportsView = ({ onClose }) => {
                     </div>
                 );
             case 'attack_ruin':
+                const ruinBattlePoints = outcome.attackerBattlePoints || 0;
                 return (
                     <div className="flex flex-col items-center">
                         <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-600' : 'text-red-600'}`}>
                             {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
                         </p>
-                        <div className="flex items-center justify-between w-full mb-4">
-                            <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
-                                <p className="text-sm text-gray-500">{report.originOwnerUsername || 'You'}</p>
-                            </div>
-                            <div className="w-1/3 text-center">
-                                <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
-                            </div>
-                            <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.ruinName || 'Ancient Ruins'}</p>
-                                <p className="text-sm text-gray-500">Ancient Guardians</p>
-                            </div>
-                        </div>
-                        <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
+                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
                                 {renderTroopDisplay(attacker.units)}
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
-                                {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
-                                    <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
-                                )}
                             </div>
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Guardian Units</h4>
@@ -299,6 +284,12 @@ const ReportsView = ({ onClose }) => {
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                             </div>
                         </div>
+                        {ruinBattlePoints > 0 && (
+                            <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
+                                <p>⚔️ {ruinBattlePoints.toLocaleString()}</p>
+                            </div>
+                        )}
                         {report.reward && (
                             <div className="w-full p-3 bg-green-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-green-700 mb-2">Research Unlocked!</h4>
@@ -314,8 +305,6 @@ const ReportsView = ({ onClose }) => {
                         {report.scoutSucceeded ? (
                             <>
                                 <p className="font-bold text-green-600 text-lg">Scout Successful!</p>
-                                <p><strong>Target City:</strong> {report.targetCityName}</p>
-                                <p><strong>Owner:</strong> {report.targetOwnerUsername || 'Unknown'}</p>
                                 {scoutedGod && (
                                     <div className="flex items-center gap-2 mt-2">
                                         <p><strong>Worshipped God:</strong> {scoutedGod.name}</p>

@@ -195,12 +195,17 @@ export const useMovementProcessor = (worldId) => {
                             happinessLastUpdated: serverTimestamp()
                         }, { merge: true });
                     }
+                    
+                    // #comment Create a version of the outcome without battle points for the report
+                    const reportOutcome = { ...result };
+                    delete reportOutcome.attackerBattlePoints;
+                    delete reportOutcome.defenderBattlePoints;
 
                     const attackerReport = {
                         type: 'attack_village',
                         title: `Attack on ${villageData.name}`,
                         timestamp: serverTimestamp(),
-                        outcome: result,
+                        outcome: reportOutcome,
                         attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
                         defender: { villageName: villageData.name, troops: villageTroops, losses: result.defenderLosses },
                         read: false,
@@ -261,6 +266,16 @@ export const useMovementProcessor = (worldId) => {
                     }
                     
                     const result = resolveCombat(movement.units, ruinData.troops, {}, true);
+
+                    // #comment Update attacker's battle points
+                    if (result.attackerBattlePoints > 0) {
+                        const attackerGameRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
+                        const attackerGameDoc = await getDoc(attackerGameRef);
+                        if (attackerGameDoc.exists()) {
+                            const currentPoints = attackerGameDoc.data().battlePoints || 0;
+                            batch.update(attackerGameRef, { battlePoints: currentPoints + result.attackerBattlePoints });
+                        }
+                    }
 
                     if (result.attackerWon) {
                         const newCityState = { ...originCityState };

@@ -1,6 +1,3 @@
-Hard todo:
-- make it so when you switch cities it doesnt necessarly puts you inside the city
-
 Ez todo:
 Boring:
 - put special buildings on cityscape

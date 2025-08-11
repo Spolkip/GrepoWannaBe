@@ -1,6 +1,6 @@
 // src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { doc, onSnapshot, collection, writeBatch } from "firebase/firestore";
+import { doc, onSnapshot, collection, writeBatch, updateDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
 
@@ -41,9 +41,23 @@ export const GameProvider = ({ children, worldId }) => {
         // #comment This listener is for the top-level game document which contains alliance and battle points.
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribeGameData = onSnapshot(gameDocRef, (docSnap) => {
+            console.log("GameContext: gameDocRef snapshot triggered.");
             if (docSnap.exists()) {
-                setPlayerGameData(docSnap.data());
+                console.log("GameContext: Game document exists.");
+                const data = docSnap.data();
+                console.log("GameContext: Fetched game data:", data);
+                // #comment Backwards compatibility: ensure battlePoints field exists for older players.
+                if (data.battlePoints === undefined) {
+                    console.log("GameContext: 'battlePoints' is undefined. Updating document...");
+                    // If the field is missing, update the document to add it.
+                    // The onSnapshot listener will then re-run with the correct data.
+                    updateDoc(gameDocRef, { battlePoints: 0 });
+                } else {
+                    console.log("GameContext: Setting playerGameData with battlePoints:", data.battlePoints);
+                    setPlayerGameData(data);
+                }
             } else {
+                console.log("GameContext: Game document does not exist.");
                 setPlayerGameData(null);
             }
         });
@@ -59,8 +73,11 @@ export const GameProvider = ({ children, worldId }) => {
             setPlayerHasCities(hasCities);
 
             if (hasCities && !activeCityId) {
-                setActiveCityId(snapshot.docs[0].id);
+                const firstCityId = snapshot.docs[0].id;
+                console.log("GameContext: Setting initial active city ID:", firstCityId);
+                setActiveCityId(firstCityId);
             } else if (!hasCities) {
+                console.log("GameContext: No cities found, setting activeCityId to null.");
                 setActiveCityId(null);
             }
             setLoading(false);
@@ -91,7 +108,7 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeVillages();
             unsubscribeRuins();
         };
-    }, [currentUser, worldId]);
+    }, [currentUser, worldId, activeCityId]);
 
     const activeCity = playerCities[activeCityId] || null;
     // #comment Legacy properties for components that haven't been updated for multi-city yet.
