@@ -38,7 +38,7 @@ export const GameProvider = ({ children, worldId }) => {
             setWorldState(docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null);
         });
 
-        // #comment This listener is for the top-level game document which contains the alliance tag.
+        // #comment This listener is for the top-level game document which contains alliance and battle points.
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribeGameData = onSnapshot(gameDocRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -91,7 +91,7 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeVillages();
             unsubscribeRuins();
         };
-    }, [currentUser, worldId, activeCityId]);
+    }, [currentUser, worldId]);
 
     const activeCity = playerCities[activeCityId] || null;
     // #comment Legacy properties for components that haven't been updated for multi-city yet.

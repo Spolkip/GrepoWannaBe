@@ -116,7 +116,8 @@ const TopBar = ({
     onOpenQuests,
     hasUnclaimedQuests,
     getWarehouseCapacity,
-    onSwitchCity
+    onSwitchCity,
+    battlePoints
 }) => {
     const { playerCities, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
@@ -248,8 +249,11 @@ const TopBar = ({
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
 
     const handleCitySelect = (cityId) => {
-    onSwitchCity(cityId); // Just switch the active city, don't change view
+    if (onSwitchCity) {
+        onSwitchCity(cityId);
+    }
     setIsCityListOpen(false);
+    // Removed the showCity call that was forcing the city view
 };
 
     // #comment Handlers to show/hide tooltips with a small delay
@@ -334,6 +338,10 @@ const TopBar = ({
                         )}
                     </div>
                 )}
+                 <div className="resource-display" title="Battle Points">
+                    <span className="text-xl mr-2">⚔️</span>
+                    <span className="font-bold text-red-800">{battlePoints.toLocaleString()}</span>
+                </div>
             </div>
 
             {/* Center Section */}

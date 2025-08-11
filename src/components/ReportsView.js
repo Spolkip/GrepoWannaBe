@@ -208,6 +208,7 @@ const ReportsView = ({ onClose }) => {
             case 'attack_god_town':
             case 'attack':
             case 'attack_village':
+                const battlePointsGained = report.title.startsWith('Attack') ? outcome.attackerBattlePoints : outcome.defenderBattlePoints;
                 return (
                     <div className="flex flex-col items-center">
                         <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-600' : 'text-red-600'}`}>
@@ -253,6 +254,12 @@ const ReportsView = ({ onClose }) => {
                                 <div className="flex justify-center">
                                     {renderResourceIcons(outcome.plunder)}
                                 </div>
+                            </div>
+                        )}
+                        {battlePointsGained > 0 && (
+                            <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
+                                <p>⚔️ {battlePointsGained.toLocaleString()}</p>
                             </div>
                         )}
                         <p className="text-gray-500 mt-4 italic">{outcome.message || 'No battle points received.'}</p>

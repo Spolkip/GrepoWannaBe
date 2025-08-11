@@ -11,7 +11,6 @@ Boring:
 
 Will do: 
 - add autocomplete on distribute resources on bank and names
-- make size of alliance windows fixed
 - add battle points
 - add bbcodes on reports to be able to press on city name, player and alliance
 - when you press on city name it opens the othercitymodal, when you press on alliance or player it opens their profiles
@@ -33,6 +32,8 @@ Will do:
 - add queues on hover to say info
 - seperate attack from defence report
 - add shortcuts for buildings
+- make the village plunder every 20 mins
+- make it so on your active city to only have, center on map, enter city or celect city
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 

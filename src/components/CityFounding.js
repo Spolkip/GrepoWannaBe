@@ -109,11 +109,12 @@ const CityFounding = ({ onCityFounded }) => {
                 cityName: finalCityName
             });
 
-            // #comment Set the top-level game document with initial data, including the citySlotIds array
+            // #comment Set the top-level game document with initial data, including battle points
             batch.set(gameDocRef, {
                 worldName: worldState.name,
                 joinedAt: serverTimestamp(),
-                citySlotIds: [selectedSlot.id]
+                citySlotIds: [selectedSlot.id],
+                battlePoints: 0
             });
 
             const initialBuildings = {};

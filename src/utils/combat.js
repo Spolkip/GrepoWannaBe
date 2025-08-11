@@ -281,12 +281,22 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         }
     }
 
+    // #comment Calculate battle points for both sides
+    const attackerBattlePoints = Object.entries(totalDefenderLosses).reduce((sum, [unitId, count]) => {
+        return sum + (unitConfig[unitId]?.cost.population || 0) * count;
+    }, 0);
+    const defenderBattlePoints = Object.entries(totalAttackerLosses).reduce((sum, [unitId, count]) => {
+        return sum + (unitConfig[unitId]?.cost.population || 0) * count;
+    }, 0);
+
     return {
         attackerWon,
         attackerLosses: totalAttackerLosses,
         defenderLosses: totalDefenderLosses,
         plunder,
         wounded,
+        attackerBattlePoints,
+        defenderBattlePoints,
     };
 }
 export function resolveVillageRetaliation(playerUnits) {

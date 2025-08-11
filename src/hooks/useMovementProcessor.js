@@ -1,7 +1,7 @@
 // src/hooks/useMovementProcessor.js
 import { useEffect, useCallback } from 'react';
 import { db } from '../firebase/config';
-import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import { useCityState } from './useCityState';
 import unitConfig from '../gameData/units.json';
@@ -337,6 +337,25 @@ export const useMovementProcessor = (worldId) => {
                         movement.attackFormation?.front,
                         movement.attackFormation?.mid
                     );
+
+                    // #comment Update battle points for both players
+                    await runTransaction(db, async (transaction) => {
+                        const attackerGameRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
+                        const defenderGameRef = doc(db, `users/${movement.targetOwnerId}/games`, worldId);
+
+                        const attackerGameDoc = await transaction.get(attackerGameRef);
+                        const defenderGameDoc = await transaction.get(defenderGameRef);
+
+                        if (attackerGameDoc.exists() && result.attackerBattlePoints > 0) {
+                            const currentPoints = attackerGameDoc.data().battlePoints || 0;
+                            transaction.update(attackerGameRef, { battlePoints: currentPoints + result.attackerBattlePoints });
+                        }
+                        if (defenderGameDoc.exists() && result.defenderBattlePoints > 0) {
+                            const currentPoints = defenderGameDoc.data().battlePoints || 0;
+                            transaction.update(defenderGameRef, { battlePoints: currentPoints + result.defenderBattlePoints });
+                        }
+                    });
+
 
                     const newDefenderUnits = { ...targetCityState.units };
                     for (const unitId in result.defenderLosses) {

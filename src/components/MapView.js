@@ -52,7 +52,8 @@ const MapView = ({
     centerOnCity,
     onGodTownClick,
     handleOpenEvents,
-    onSwitchCity
+    onSwitchCity,
+    battlePoints
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
@@ -284,7 +285,7 @@ const MapView = ({
 
     const handleEnterCity = (cityId) => {
     setActiveCityId(cityId);
-    // Only enter city view if explicitly requested
+    // Only show city if explicitly requested (like from a button)
     showCity(cityId);
     closeModal('ownInactiveCity');
 };
@@ -353,6 +354,7 @@ const MapView = ({
                         incomingAttackCount={incomingAttackCount}
                         onRenameCity={onRenameCity}
                         onSwitchCity={onSwitchCity}
+                        battlePoints={battlePoints}
                     />
                     <SidebarNav
                         onToggleView={handleGoToActiveCity}

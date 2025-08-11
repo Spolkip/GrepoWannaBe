@@ -37,7 +37,7 @@ import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} f
 import unitConfig from '../gameData/units.json';
 
 const Game = ({ onBackToWorlds }) => {
-    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity } = useGame();
+    const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity, playerGameData } = useGame();
     const { currentUser, userProfile } = useAuth();
     const { acceptAllianceInvitation, sendAllianceInvitation, declineAllianceInvitation } = useAlliance();
     const [view, setView] = useState('city');
@@ -78,14 +78,13 @@ const Game = ({ onBackToWorlds }) => {
 
     // #comment Handles switching the active city and panning the map if in map view.
     // #comment Simplified to always set pan coordinates, which only affects MapView.
-   const switchCity = useCallback((cityId) => {
+    const switchCity = useCallback((cityId) => {
     setActiveCityId(cityId);
     const nextCity = playerCities[cityId];
-    if (nextCity && view === 'map') {
+    if (nextCity && view === 'map') {  // Only pan if we're on the map view
         setPanToCoords({ x: nextCity.x, y: nextCity.y });
     }
-    // No view change here - we'll stay in whatever view we're currently in
-}, [setActiveCityId, playerCities, view]);
+}, [setActiveCityId, playerCities, view]);  // Added view to dependencies
 
     // #comment Handles cycling through cities using arrow keys.
     const cycleCity = useCallback((direction) => {
@@ -321,6 +320,7 @@ const Game = ({ onBackToWorlds }) => {
                     quests={quests}
                     handleOpenEvents={handleOpenEvents}
                     onSwitchCity={switchCity}
+                    battlePoints={playerGameData?.battlePoints || 0}
                 />
             )}
             {view === 'map' && (
@@ -350,6 +350,7 @@ const Game = ({ onBackToWorlds }) => {
                     onGodTownClick={handleGodTownClick}
                     handleOpenEvents={handleOpenEvents}
                     onSwitchCity={switchCity}
+                    battlePoints={playerGameData?.battlePoints || 0}
                 />
             )}
             
