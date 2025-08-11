@@ -1,11 +1,10 @@
-// src/components/messaging/MessagesView.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../../firebase/config';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { parseBBCode } from '../../utils/bbcodeParser';
-import SharedReportView from '../SharedReportView'; // Import the component
+import SharedReportView from '../SharedReportView';
 import ReactDOM from 'react-dom';
 import './MessagesView.css';
 
@@ -32,7 +31,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             const snapshot = await getDocs(usersRef);
             const players = snapshot.docs
                 .map(doc => doc.data().username)
-                .filter(username => username !== userProfile.username); // Exclude self
+                .filter(username => username !== userProfile.username);
             setAllPlayers(players);
         };
         fetchPlayers();
@@ -40,7 +39,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
 
     const handleCompose = useCallback(async (recipientId = null, recipientUsername = null) => {
         if (recipientId && recipientUsername) {
-            // #comment Check if a conversation already exists
+
             const convoQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
                 where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
@@ -69,7 +68,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
 
         const unsubscribe = onSnapshot(conversationsQuery, (snapshot) => {
             const convos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // #comment Sort conversations by the most recent message
+
             convos.sort((a, b) => (b.lastMessage?.timestamp?.toDate() || 0) - (a.lastMessage?.timestamp?.toDate() || 0));
             setConversations(convos);
         });
@@ -95,7 +94,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                 setMessages(msgs);
             });
 
-            // #comment Mark conversation as read
+
             const convoRef = doc(db, 'worlds', worldId, 'conversations', selectedConversation.id);
             updateDoc(convoRef, {
                 readBy: arrayUnion(currentUser.uid)
@@ -110,18 +109,18 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // #comment Effect to render React components from BBCode placeholders
+
     useEffect(() => {
         if (messageContainerRef.current) {
             const placeholders = messageContainerRef.current.querySelectorAll('.shared-report-placeholder');
             placeholders.forEach(placeholder => {
                 const reportId = placeholder.dataset.reportId;
                 if (reportId) {
-                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} />, placeholder);
+                    ReactDOM.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />, placeholder);
                 }
             });
         }
-    }, [messages, worldId]);
+    }, [messages, worldId, onActionClick]);
 
     const handleSelectConversation = async (convo) => {
         setSelectedConversation(convo);
@@ -132,7 +131,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         if (newMessage.trim() === '' || (!selectedConversation && !newRecipient)) return;
 
         let conversationId = selectedConversation?.id;
-        
+
         if (isComposing) {
             const recipientQuery = query(collection(db, 'users'), where('username', '==', newRecipient));
             const recipientSnapshot = await getDocs(recipientQuery);
@@ -142,7 +141,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             }
             const recipientData = recipientSnapshot.docs[0].data();
             const recipientId = recipientSnapshot.docs[0].id;
-            
+
             if (recipientId === currentUser.uid) {
                 alert("You cannot send a message to yourself.");
                 return;
@@ -208,17 +207,22 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
 
     const handleContentClick = (e) => {
         const target = e.target;
-        if (target.classList.contains('bbcode-action')) {
-            const actionType = target.dataset.actionType;
-            const actionId = target.dataset.actionId;
-            if (actionType && actionId && onActionClick) {
-                onActionClick(actionType, actionId);
-                onClose();
+        if (target.classList.contains('bbcode-action') && onActionClick) {
+            const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
+
+            if (actionType === 'city_link') {
+                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
+            } else {
+                const data = actionId || { x: actionCoordsX, y: actionCoordsY };
+                if (actionType && data) {
+                    onActionClick(actionType, data);
+                }
             }
+            onClose();
         }
     };
-    
-    // #comment Handle input change for autocomplete
+
+
     const handleRecipientChange = (e) => {
         const value = e.target.value;
         setNewRecipient(value);
@@ -232,7 +236,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         }
     };
 
-    // #comment Handle clicking a suggestion
+
     const handleSuggestionClick = (username) => {
         setNewRecipient(username);
         setSuggestions([]);
@@ -268,7 +272,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                             )})}
                         </ul>
                     </div>
-                    
+
                     <div className="w-2/3 flex flex-col">
                         {selectedConversation || isComposing ? (
                             <>

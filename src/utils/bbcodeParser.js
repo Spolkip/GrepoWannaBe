@@ -37,11 +37,6 @@ export const parseBBCode = (text) => {
     html = html.replace(/\[url\](.*?)\[\/url\]/gs, '<a href="$1" target="_blank">$1</a>');
     html = html.replace(/\[url=(.*?)\](.*?)\[\/url\]/gs, '<a href="$1" target="_blank">$2</a>');
 
-    // #comment Handle simple name-based BBCode from the text editor
-    html = html.replace(/\[player=([^\]]+)\](.*?)\[\/player\]/gs, '<span class="bbcode-player">$2</span>');
-    html = html.replace(/\[alliance=([^\]]+)\](.*?)\[\/alliance\]/gs, '<span class="bbcode-alliance">$2</span>');
-    html = html.replace(/\[city=([^\]]+)\](.*?)\[\/city\]/gs, '<span class="bbcode-city">$2</span>');
-
     // [action=type,id=someId]Click Me[/action]
     html = html.replace(/\[action=([^,\]]+),allianceId=([^\]]+)\](.*?)\[\/action\]/gs, (match, type, id, text) => {
         return `<span class="bbcode-action" data-action-type="${type}" data-action-id="${id}">${text}</span>`;

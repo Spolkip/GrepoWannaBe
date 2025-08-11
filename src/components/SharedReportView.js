@@ -7,7 +7,8 @@ import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
-import './ReportsView.css'; // Reuse styles from ReportsView
+import { parseBBCode } from '../utils/bbcodeParser';
+import './ReportsView.css';
 
 const images = {};
 const imageContexts = [
@@ -26,7 +27,7 @@ imageContexts.forEach(context => {
     });
 });
 
-const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded }) => {
+const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded, onActionClick }) => {
     const gameContext = useGame();
     const worldId = propWorldId || gameContext?.worldId;
     const [report, setReport] = useState(null);
@@ -58,7 +59,22 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
         fetchReport();
     }, [worldId, reportId]);
 
-    // Reusing rendering logic from ReportsView.js
+    const handleContentClick = (e) => {
+        if (!onActionClick) return;
+        const target = e.target;
+        if (target.classList.contains('bbcode-action')) {
+            const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
+            if (actionType === 'city_link') {
+                onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
+            } else {
+                const data = actionId || { x: actionCoordsX, y: actionCoordsY };
+                if (actionType && data) {
+                    onActionClick(actionType, data);
+                }
+            }
+        }
+    };
+
     const renderUnitList = (units) => {
         if (!units || Object.keys(units).length === 0) return 'None';
         return Object.entries(units)
@@ -106,7 +122,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
             );
         });
     };
-    
+
     const renderBuildingDisplay = (buildings) => {
         if (!buildings || Object.keys(buildings).length === 0) return null;
         return (
@@ -143,13 +159,17 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                         </p>
                         <div className="flex items-center justify-between w-full mb-4">
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${attacker.cityId} owner=${attacker.ownerId} x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
+                                <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
+                                {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
                             </div>
                             <div className="w-1/3 text-center">
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.cityName || defender.villageName || 'Unknown'}</p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
+                                <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
+                                {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
@@ -163,8 +183,14 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                             </div>
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Defender Units</h4>
-                                {renderTroopDisplay(defender.units || defender.troops)}
-                                <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                                {outcome.message ? (
+                                    <p className="text-gray-500 italic">Unknown</p>
+                                ) : (
+                                    <>
+                                        {renderTroopDisplay(defender.units || defender.troops)}
+                                        <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses)}</p>
+                                    </>
+                                )}
                             </div>
                         </div>
                         {outcome.attackerWon && outcome.plunder && (
@@ -175,6 +201,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                                 </div>
                             </div>
                         )}
+                        {outcome.message && <p className="text-gray-500 mt-4 italic">{outcome.message}</p>}
                     </div>
                 );
             case 'attack_ruin':
@@ -244,7 +271,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
         if (error) return <div className="text-xs text-red-500">{error}</div>;
         if (!report) return null;
         return (
-            <div className="p-2 border border-yellow-800/50 my-2">
+            <div className="p-2 border border-yellow-800/50 my-2" onClick={handleContentClick}>
                 <h4 className="font-bold text-center text-sm mb-2">{report.title}</h4>
                 {renderReportOutcome(report)}
             </div>
@@ -258,7 +285,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded 
                     <h2 className="font-title text-3xl">Shared Report</h2>
                     <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
-                <div className="p-4 overflow-y-auto">
+                <div className="p-4 overflow-y-auto" onClick={handleContentClick}>
                     {loading && <p>Loading report...</p>}
                     {error && <p className="text-red-500 text-center">{error}</p>}
                     {report && (
