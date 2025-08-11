@@ -1,16 +1,16 @@
-// src/hooks/useMapClickHandler.js
 import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
 import { useGame } from '../contexts/GameContext';
 
-/**
- * #comment Encapsulates click handling logic for map objects.
- */
+
+
+
 export const useMapClickHandler = ({
     playerCity,
     currentUser,
     isPlacingDummyCity,
     handleCreateDummyCity,
+    showCity,
     setTravelTimeInfo,
     openModal,
     closeModal,
@@ -36,10 +36,13 @@ export const useMapClickHandler = ({
         if (slotData.ownerId === currentUser.uid) {
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
             if (city) {
-                // #comment Always open the modal for any of the player's cities, regardless of whether it's active.
-                const distance = calculateDistance(playerCity, slotData);
-                setTravelTimeInfo({ distance });
-                openModal('ownInactiveCity', city);
+                if (city.id === activeCityId) {
+                    showCity(city.id);
+                } else {
+                    const distance = calculateDistance(playerCity, slotData);
+                    setTravelTimeInfo({ distance });
+                    openModal('ownInactiveCity', city);
+                }
             } else {
                 console.error("Clicked on own city slot, but no matching city found.", slotData);
                 setMessage("Could not find data for your city.");
@@ -53,7 +56,7 @@ export const useMapClickHandler = ({
             setMessage('This plot is empty. Future updates will allow colonization!');
         }
     };
-    
+
     const onVillageClick = (e, villageData) => {
         if (!playerCity) {
             setMessage("Your city data is still loading. Please wait a moment.");

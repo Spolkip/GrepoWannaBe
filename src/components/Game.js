@@ -44,6 +44,7 @@ const Game = ({ onBackToWorlds }) => {
     const [panToCoords, setPanToCoords] = useState(null);
     const [viewingReportId, setViewingReportId] = useState(null);
     const [selectedGodTownId, setSelectedGodTownId] = useState(null);
+    const [initialMapAction, setInitialMapAction] = useState(null);
 
 
     const [movements, setMovements] = useState([]);
@@ -243,7 +244,7 @@ const Game = ({ onBackToWorlds }) => {
     }, [movements, playerCities, conqueredVillages]);
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...villages, ...ruins }), [playerCities, villages, ruins]);
-    
+
     const handleOpenProfile = (userId) => openModal('profile', { userId });
     const handleOpenAllianceProfile = (allianceId) => openModal('allianceProfile', { allianceId });
 
@@ -275,6 +276,7 @@ const Game = ({ onBackToWorlds }) => {
         openModal('eventTrigger');
     };
 
+    // #comment This function handles actions triggered from various UI components like reports and messages
     const handleAction = (type, data) => {
         closeModal('reports');
         if (viewingReportId) setViewingReportId(null);
@@ -291,6 +293,11 @@ const Game = ({ onBackToWorlds }) => {
             case 'go_to_city':
                 setView('map');
                 setPanToCoords({ x: parseFloat(data.x), y: parseFloat(data.y) });
+                break;
+            case 'go_to_city_and_open_modal':
+                closeModal('reports');
+                setInitialMapAction({ type: 'open_city_modal', coords: data });
+                setView('map');
                 break;
             case 'accept_invite':
                 acceptAllianceInvitation(data).catch(err => alert(err.message));
@@ -362,10 +369,12 @@ const Game = ({ onBackToWorlds }) => {
                     handleOpenEvents={handleOpenEvents}
                     onSwitchCity={switchCity}
                     battlePoints={playerGameData?.battlePoints || 0}
+                    initialMapAction={initialMapAction}
+                    setInitialMapAction={setInitialMapAction}
                 />
             )}
 
-            {/* Modals */}
+            {}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} onActionClick={handleAction} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} openModal={openModal} />}

@@ -1,6 +1,7 @@
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import OwnInactiveCityModal from './OwnInactiveCityModal';
+import OwnActiveCityModal from './OwnActiveCityModal'; // Import new modal
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
@@ -29,7 +30,7 @@ const MapModals = ({
 }) => {
     return (
         <>
-            {modalState.selectedCity && !modalState.isOwnInactiveCityModalOpen && (
+            {modalState.selectedCity && !modalState.isOwnInactiveCityModalOpen && !modalState.isOwnActiveCityModalOpen && (
                 <OtherCityModal
                     city={modalState.selectedCity}
                     playerCity={playerCity}
@@ -52,6 +53,15 @@ const MapModals = ({
                     onEnterCity={onEnterCity}
                 />
             )}
+            {/* Add the new modal render logic */}
+            {modalState.isOwnActiveCityModalOpen && modalState.selectedCity && (
+                <OwnActiveCityModal
+                    city={modalState.selectedCity}
+                    onClose={() => closeModal('ownActiveCity')}
+                    onGoTo={goToCoordinates}
+                    onEnterCity={onEnterCity}
+                />
+            )}
             {modalState.selectedVillage && (
                 <FarmingVillageModal
                     village={modalState.selectedVillage}
@@ -59,7 +69,7 @@ const MapModals = ({
                     onActionClick={handleActionClick}
                     playerCity={playerCity}
                     worldId={worldId}
-                    marketCapacity={marketCapacity} 
+                    marketCapacity={marketCapacity}
                 />
             )}
             {modalState.actionDetails && (

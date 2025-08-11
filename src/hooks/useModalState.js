@@ -1,4 +1,3 @@
-// src/hooks/useModalState.js
 import { useState } from 'react';
 
 export const useModalState = () => {
@@ -22,6 +21,7 @@ export const useModalState = () => {
         isRecruitmentPanelOpen: false,
         isTradesPanelOpen: false,
         isOwnInactiveCityModalOpen: false,
+        isOwnActiveCityModalOpen: false, // Added this
         isEventTriggerOpen: false,
         viewingProfileId: null,
         viewingAllianceId: null,
@@ -32,6 +32,7 @@ export const useModalState = () => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: data };
                 case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: true, selectedCity: data };
+                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: true, selectedCity: data }; // Added this
                 case 'village': return { ...prevState, selectedVillage: data };
                 case 'action': return { ...prevState, actionDetails: data };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: true };
@@ -59,6 +60,7 @@ export const useModalState = () => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: null };
                 case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: false, selectedCity: null };
+                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: false, selectedCity: null }; // Added this
                 case 'village': return { ...prevState, selectedVillage: null };
                 case 'action': return { ...prevState, actionDetails: null };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: false };

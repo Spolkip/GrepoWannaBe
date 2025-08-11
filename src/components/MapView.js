@@ -1,4 +1,3 @@
-// src/components/MapView.js
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -6,7 +5,7 @@ import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
 import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy } from 'firebase/firestore';
 
-// UI Components
+
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
 import MapGrid from './map/MapGrid';
@@ -16,15 +15,16 @@ import DivinePowers from './city/DivinePowers';
 import QuestsButton from './QuestsButton';
 import MapOverlay from './map/MapOverlay';
 
-// Custom Hooks
+
 import { useMapInteraction } from '../hooks/useMapInteraction';
 import { useMapData } from '../hooks/usemapdatapls';
 import { useMapActions } from '../hooks/useMapActions';
 import { useCityState } from '../hooks/useCityState';
 import { useMapState } from '../hooks/useMapState';
 import { useMapClickHandler } from '../hooks/useMapClickHandler';
+import { calculateDistance } from '../utils/travel';
 
-// Utilities
+
 import buildingConfig from '../gameData/buildings.json';
 
 const MapView = ({
@@ -53,7 +53,9 @@ const MapView = ({
     onGodTownClick,
     handleOpenEvents,
     onSwitchCity,
-    battlePoints
+    battlePoints,
+    initialMapAction,
+    setInitialMapAction
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
@@ -167,6 +169,25 @@ const MapView = ({
     const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
+
+    // #comment This effect handles opening a city modal when triggered from another view (like reports)
+    useEffect(() => {
+        if (initialMapAction?.type === 'open_city_modal') {
+            const { coords } = initialMapAction;
+            const targetX = parseFloat(coords.x);
+            const targetY = parseFloat(coords.y);
+
+            const citySlot = Object.values(combinedSlots).find(
+                slot => slot.x === targetX && slot.y === targetY
+            );
+
+            if (citySlot) {
+                // Reuse the click handler logic!
+                onCitySlotClick(null, citySlot);
+            }
+            setInitialMapAction(null);
+        }
+    }, [initialMapAction, setInitialMapAction, combinedSlots, onCitySlotClick]);
 
     const combinedSlotsForGrid = useMemo(() => {
         const newSlots = { ...visibleSlots };
@@ -285,7 +306,7 @@ const MapView = ({
 
     const handleEnterCity = (cityId) => {
     setActiveCityId(cityId);
-    // Only show city if explicitly requested (like from a button)
+
     showCity(cityId);
     closeModal('ownInactiveCity');
 };

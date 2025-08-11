@@ -95,6 +95,21 @@ const ReportsView = ({ onClose, onActionClick }) => {
         setSelectedReport(null);
     };
 
+    // #comment This function handles clicks inside the report content area
+    const handleContentClick = (e) => {
+        const target = e.target;
+        if (target.classList.contains('bbcode-action') && onActionClick) {
+            let { actionType, actionId, actionCoordsX, actionCoordsY } = target.dataset;
+            const isFromReportOutcome = target.closest('.report-outcome-container');
+
+            if (isFromReportOutcome && actionType === 'go_to_city') {
+                actionType = 'go_to_city_and_open_modal';
+            }
+
+            onActionClick(actionType, actionId || { x: actionCoordsX, y: actionCoordsY });
+        }
+    };
+
     const getReportTitleColor = (report) => {
         switch (report.type) {
             case 'attack':
@@ -448,13 +463,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                             )}
                         </ul>
                     </div>
-                    <div className="w-2/3 p-4 overflow-y-auto" onClick={(e) => {
-                        const target = e.target;
-                        if (target.classList.contains('bbcode-action') && onActionClick) {
-                            const { actionType, actionId, actionCoordsX, actionCoordsY } = target.dataset;
-                            onActionClick(actionType, actionId || { x: actionCoordsX, y: actionCoordsY });
-                        }
-                    }}>
+                    <div className="w-2/3 p-4 overflow-y-auto report-outcome-container" onClick={handleContentClick}>
                         {message && <p className="text-center text-green-500 mb-2">{message}</p>}
                         {selectedReport ? (
                             <div>
