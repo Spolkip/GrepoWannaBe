@@ -1,3 +1,4 @@
+// src/components/messaging/MessagesView.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { db } from '../../firebase/config';
@@ -111,27 +112,41 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     }, [messages]);
 
 
-    // #comment This effect now uses createRoot to render shared reports and manages the roots in a ref to prevent race conditions.
+
     useEffect(() => {
         const container = messageContainerRef.current;
         if (!container) return;
 
-        const placeholders = container.querySelectorAll('.shared-report-placeholder');
+        const placeholders = new Set(container.querySelectorAll('.shared-report-placeholder'));
         const currentRoots = rootsRef.current;
 
-        placeholders.forEach(placeholder => {
-            const reportId = placeholder.dataset.reportId;
-            if (reportId && !currentRoots.has(placeholder)) {
-                const root = createRoot(placeholder);
-                currentRoots.set(placeholder, root);
-                root.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />);
+        // #comment Unmount roots for placeholders that no longer exist
+        currentRoots.forEach((root, placeholder) => {
+            if (!placeholders.has(placeholder)) {
+                // #comment Defer unmount to avoid race conditions
+                setTimeout(() => root.unmount(), 0);
+                currentRoots.delete(placeholder);
             }
         });
 
-        // #comment Cleanup function to unmount roots when the component unmounts.
+        // #comment Create roots for new placeholders
+        placeholders.forEach(placeholder => {
+            if (!currentRoots.has(placeholder)) {
+                const reportId = placeholder.dataset.reportId;
+                if (reportId) {
+                    const root = createRoot(placeholder);
+                    currentRoots.set(placeholder, root);
+                    root.render(<SharedReportView reportId={reportId} worldId={worldId} onClose={() => {}} isEmbedded={true} onActionClick={onActionClick} />);
+                }
+            }
+        });
+
+        // #comment The cleanup function for when the entire MessagesView component unmounts
         return () => {
-            currentRoots.forEach(root => root.unmount());
-            currentRoots.clear();
+            setTimeout(() => {
+                rootsRef.current.forEach(root => root.unmount());
+                rootsRef.current.clear();
+            }, 0);
         };
     }, [messages, worldId, onActionClick]);
 
