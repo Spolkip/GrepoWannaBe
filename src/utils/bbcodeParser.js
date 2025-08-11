@@ -30,18 +30,6 @@ export const parseBBCode = (text) => {
     
     // [spoiler]spoiler text[/spoiler]
     html = html.replace(/\[spoiler\](.*?)\[\/spoiler\]/gs, '<details><summary>Spoiler</summary>$1</details>');
-
-    // [player]playername[/player]
-    html = html.replace(/\[player\](.*?)\[\/player\]/gs, '<span class="bbcode-player">$1</span>');
-    
-    // [alliance]alliance name[/alliance]
-    html = html.replace(/\[alliance\](.*?)\[\/alliance\]/gs, '<span class="bbcode-alliance">$1</span>');
-
-    // [city]city name[/city]
-    html = html.replace(/\[city\](.*?)\[\/city\]/gs, '<span class="bbcode-city">$1</span>');
-
-    // [island]island id[/island]
-    html = html.replace(/\[island\](.*?)\[\/island\]/gs, '<span class="bbcode-island">Island $1</span>');
     
     // [img]image url[/img]
     html = html.replace(/\[img\](.*?)\[\/img\]/gs, '<img src="$1" alt="User Image" style="max-width: 100%;" />');
@@ -57,6 +45,16 @@ export const parseBBCode = (text) => {
     
     // [report]reportId[/report] - This will now be a placeholder for React to render the component
     html = html.replace(/\[report\](.*?)\[\/report\]/gs, '<div class="shared-report-placeholder" data-report-id="$1"></div>');
+
+    // #comment New BBCode formats for reports
+    // [player id=userId]Player Name[/player]
+    html = html.replace(/\[player id=([^\]]+)\](.*?)\[\/player\]/gs, '<span class="bbcode-action" data-action-type="profile" data-action-id="$1">$2</span>');
+    
+    // [alliance id=allianceId]Alliance Name[/alliance]
+    html = html.replace(/\[alliance id=([^\]]+)\](.*?)\[\/alliance\]/gs, '<span class="bbcode-action" data-action-type="alliance_profile" data-action-id="$1">$2</span>');
+
+    // [city x=x y=y]City Name[/city]
+    html = html.replace(/\[city x=([\d.]+) y=([\d.]+)\](.*?)\[\/city\]/gs, '<span class="bbcode-action" data-action-type="go_to_city" data-action-coords-x="$1" data-action-coords-y="$2">$3</span>');
 
 
     return html;

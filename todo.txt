@@ -7,7 +7,6 @@ Boring:
 - add more research and make them to actually work
 
 Will do: 
-- add autocomplete on distribute resources on bank and names
 - add bbcodes on reports to be able to press on city name, player and alliance
 - when you press on city name it opens the othercitymodal, when you press on alliance or player it opens their profiles
 - same bb codes for the scouts

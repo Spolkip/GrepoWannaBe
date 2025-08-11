@@ -136,7 +136,7 @@ const AllianceMembers = () => {
 
     // #comment Helper function to format the last login time
     const formatLastSeen = (date) => {
-        if (!date) return 'Unknown';
+        if (!date || !(date instanceof Date)) return 'Unknown';
         const now = new Date();
         const diffSeconds = Math.round((now - date) / 1000);
         

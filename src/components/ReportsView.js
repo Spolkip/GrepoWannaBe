@@ -8,6 +8,7 @@ import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
+import { parseBBCode } from '../utils/bbcodeParser'; // Import the parser
 import './ReportsView.css'; // Import the new CSS
 
 // (Image import logic remains the same)
@@ -29,7 +30,7 @@ imageContexts.forEach(context => {
 });
 
 
-const ReportsView = ({ onClose }) => {
+const ReportsView = ({ onClose, onActionClick }) => {
     const { currentUser } = useAuth();
     const { worldId } = useGame(); // Get worldId from context
     const [reports, setReports] = useState([]);
@@ -216,15 +217,15 @@ const ReportsView = ({ onClose }) => {
                         </p>
                         <div className="flex items-center justify-between w-full mb-4">
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{attacker.cityName || 'Unknown City'}</p>
-                                <p className="text-sm text-gray-500">{report.originOwnerUsername || 'You'}</p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
+                                <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
                             </div>
                             <div className="w-1/3 text-center">
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg">{defender.cityName || defender.villageName || 'Unknown'}</p>
-                                <p className="text-sm text-gray-500">{report.type === 'attack_village' ? 'Neutral' : (report.ownerUsername || 'Opponent')}</p>
+                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
+                                <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
@@ -446,7 +447,13 @@ const ReportsView = ({ onClose }) => {
                             )}
                         </ul>
                     </div>
-                    <div className="w-2/3 p-4 overflow-y-auto">
+                    <div className="w-2/3 p-4 overflow-y-auto" onClick={(e) => {
+                        const target = e.target;
+                        if (target.classList.contains('bbcode-action') && onActionClick) {
+                            const { actionType, actionId, actionCoordsX, actionCoordsY } = target.dataset;
+                            onActionClick(actionType, actionId || { x: actionCoordsX, y: actionCoordsY });
+                        }
+                    }}>
                         {message && <p className="text-center text-green-500 mb-2">{message}</p>}
                         {selectedReport ? (
                             <div>

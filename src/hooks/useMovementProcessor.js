@@ -15,6 +15,7 @@ export const useMovementProcessor = (worldId) => {
     const processMovement = useCallback(async (movementDoc) => {
         console.log(`Processing movement ID: ${movementDoc.id}`);
         const movement = { id: movementDoc.id, ...movementDoc.data() };
+        console.log("Full movement data:", JSON.stringify(movement, null, 2)); // Added for debugging
         const batch = writeBatch(db);
 
         const originCityRef = doc(db, `users/${movement.originOwnerId}/games`, worldId, 'cities', movement.originCityId);
@@ -306,8 +307,20 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${ruinData.name}`,
                         timestamp: serverTimestamp(),
                         outcome: result,
-                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
-                        defender: { ruinName: ruinData.name, troops: ruinData.troops, losses: result.defenderLosses },
+                        attacker: { 
+                            cityName: originCityState.cityName, 
+                            units: movement.units, 
+                            losses: result.attackerLosses,
+                            ownerId: movement.originOwnerId,
+                            username: movement.originOwnerUsername || 'Unknown Player',
+                            x: originCityState.x,
+                            y: originCityState.y
+                        },
+                        defender: { 
+                            ruinName: ruinData.name, 
+                            troops: ruinData.troops, 
+                            losses: result.defenderLosses
+                        },
                         reward: result.attackerWon ? ruinData.researchReward : null,
                         read: false,
                     };
@@ -402,9 +415,25 @@ export const useMovementProcessor = (worldId) => {
                         title: `Attack on ${targetCityState.cityName}`,
                         timestamp: serverTimestamp(),
                         outcome: result,
-                        attacker: { cityName: originCityState.cityName, units: movement.units, losses: result.attackerLosses },
+                        attacker: { 
+                            cityName: originCityState.cityName, 
+                            units: movement.units, 
+                            losses: result.attackerLosses,
+                            ownerId: movement.originOwnerId,
+                            username: movement.originOwnerUsername || 'Unknown Player',
+                            x: originCityState.x,
+                            y: originCityState.y
+                        },
                         defender: hasSurvivingLandOrMythic
-                            ? { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses }
+                            ? { 
+                                cityName: targetCityState.cityName, 
+                                units: targetCityState.units, 
+                                losses: result.defenderLosses,
+                                ownerId: movement.targetOwnerId,
+                                username: movement.ownerUsername || 'Unknown Player',
+                                x: targetCityState.x,
+                                y: targetCityState.y
+                            }
                             : { cityName: targetCityState.cityName, units: {}, losses: {} },
                         read: false,
                     };
@@ -418,7 +447,15 @@ export const useMovementProcessor = (worldId) => {
                         title: `Defense against ${originCityState.cityName}`, 
                         read: false,
                         outcome: { ...result, attackerWon: !result.attackerWon },
-                        defender: { cityName: targetCityState.cityName, units: targetCityState.units, losses: result.defenderLosses }
+                        defender: { 
+                            cityName: targetCityState.cityName, 
+                            units: targetCityState.units, 
+                            losses: result.defenderLosses,
+                            ownerId: movement.targetOwnerId,
+                            username: movement.ownerUsername || 'Unknown Player',
+                            x: targetCityState.x,
+                            y: targetCityState.y
+                        }
                     };
 
                     batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });
