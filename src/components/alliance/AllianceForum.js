@@ -1,4 +1,3 @@
-// src/components/alliance/AllianceForum.js
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { db } from '../../firebase/config';
@@ -152,6 +151,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
             createdAt: serverTimestamp(),
             lastReplyAt: serverTimestamp(),
             lastReplyBy: userProfile.username,
+            lastReplyById: currentUser.uid,
             replyCount: 0,
         });
 
@@ -186,6 +186,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
         await updateDoc(threadRef, {
             lastReplyAt: serverTimestamp(),
             lastReplyBy: userProfile.username,
+            lastReplyById: currentUser.uid,
             replyCount: (selectedThread.replyCount || 0) + 1,
         });
 
@@ -324,7 +325,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                     <div ref={postContainerRef} className="space-y-4 mb-4 flex-grow overflow-y-auto p-2" onClick={handleContentClick}>
                         {posts.map(post => (
                             <div key={post.id} className="post-item">
-                                <p className="post-author">{post.authorUsername}</p>
+                                <p className="post-author" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${post.authorId}]${post.authorUsername}[/player]`) }} />
                                 {editingPostId === post.id ? (
                                     <form onSubmit={handleUpdatePost}>
                                         <TextEditor value={editingPostContent} onChange={setEditingPostContent} />
@@ -379,11 +380,11 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                             <tr key={thread.id} onClick={() => setSelectedThread(thread)}>
                                 <td>
                                     <p className="font-bold">{thread.title}</p>
-                                    <p className="text-xs">by {thread.creatorUsername} on {thread.createdAt?.toDate().toLocaleDateString()}</p>
+                                    <p className="text-xs" dangerouslySetInnerHTML={{ __html: `by ${parseBBCode(`[player id=${thread.creatorId}]${thread.creatorUsername}[/player]`)} on ${thread.createdAt?.toDate().toLocaleDateString()}` }} />
                                 </td>
                                 <td className="text-center">{thread.replyCount || 0}</td>
                                 <td>
-                                    <p className="font-bold text-sm">{thread.lastReplyBy}</p>
+                                    <p className="font-bold text-sm" dangerouslySetInnerHTML={{ __html: thread.lastReplyById ? parseBBCode(`[player id=${thread.lastReplyById}]${thread.lastReplyBy}[/player]`) : thread.lastReplyBy }} />
                                     <p className="text-xs">{thread.lastReplyAt?.toDate().toLocaleString()}</p>
                                 </td>
                             </tr>
@@ -451,7 +452,7 @@ const AllianceForum = ({ onClose, onActionClick }) => {
                             ) : (
                                 <>
                                     <button onClick={() => setSelectedForum(forum)} className={`forum-tab ${selectedForum?.id === forum.id ? 'active' : ''}`}>
-                                        {forum.name} {forum.isSecret && '�'}
+                                        {forum.name} {forum.isSecret && '🔒'}
                                     </button>
                                     {isLeader && (
                                         <div className="absolute top-0 right-0 flex opacity-0 group-hover:opacity-100 transition-opacity">
