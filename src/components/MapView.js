@@ -27,8 +27,8 @@ import { useMapClickHandler } from '../hooks/useMapClickHandler';
 // Utilities
 import buildingConfig from '../gameData/buildings.json';
 
-const MapView = ({ 
-    onEnterCityView, 
+const MapView = ({
+    showCity,
     openModal,
     closeModal,
     modalState,
@@ -51,7 +51,8 @@ const MapView = ({
     onRenameCity,
     centerOnCity,
     onGodTownClick,
-    handleOpenEvents
+    handleOpenEvents,
+    onCityChange
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, setActiveCityId } = useGame();
@@ -63,12 +64,12 @@ const MapView = ({
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, onEnterCityView, invalidateChunkCache);
+    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
     const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 }); // #comment State for mouse coordinates
-    
+
     // #comment Effect to track mouse coordinates on the map
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -91,11 +92,11 @@ const MapView = ({
 
     const fetchAllCityPoints = useCallback(async () => {
         if (!worldId) return;
-    
+
         const points = {};
         const usersRef = collection(db, 'users');
         const usersSnapshot = await getDocs(usersRef);
-    
+
         for (const userDoc of usersSnapshot.docs) {
             const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
             const citiesSnapshot = await getDocs(citiesRef);
@@ -115,13 +116,13 @@ const MapView = ({
 
         const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
         const q = query(reportsRef, orderBy('timestamp', 'desc'));
-        
+
         const snapshot = await getDocs(q);
         const latestScouts = {};
         snapshot.forEach(doc => {
             const report = doc.data();
             if (report.type === 'scout' && report.scoutSucceeded) {
-                const targetId = report.targetSlotId; 
+                const targetId = report.targetSlotId;
                 if (targetId && !latestScouts[targetId]) {
                     latestScouts[targetId] = report.units;
                 }
@@ -129,7 +130,7 @@ const MapView = ({
         });
         setScoutedCities(latestScouts);
     }, [currentUser, worldId]);
-    
+
     useEffect(() => {
         fetchAllCityPoints();
         fetchScoutedData();
@@ -143,7 +144,7 @@ const MapView = ({
     }, [panToCoords, goToCoordinates, setPanToCoords]);
 
     const { onCitySlotClick, onVillageClick, onRuinClick } = useMapClickHandler({
-        playerCity, currentUser, isPlacingDummyCity, handleCreateDummyCity,
+        playerCity, currentUser, isPlacingDummyCity, handleCreateDummyCity, showCity,
         setTravelTimeInfo, openModal, closeModal, setMessage, conqueredVillages,
         conqueredRuins, playerAlliance, activeCityId
     });
@@ -173,8 +174,8 @@ const MapView = ({
             const pCity = playerCities[cityId];
             if (pCity && pCity.slotId && newSlots[pCity.slotId]) {
                 const cityDataForMerge = { ...pCity };
-                delete cityDataForMerge.id; 
-                
+                delete cityDataForMerge.id;
+
                 newSlots[pCity.slotId] = {
                     ...newSlots[pCity.slotId],
                     ...cityDataForMerge,
@@ -276,7 +277,7 @@ const MapView = ({
 
     const handleGoToActiveCity = () => {
         if (activeCityId) {
-            onEnterCityView(activeCityId);
+            showCity(activeCityId);
         } else {
             setMessage("No active city to view.");
         }
@@ -284,7 +285,7 @@ const MapView = ({
 
     const handleEnterCity = (cityId) => {
         setActiveCityId(cityId);
-        onEnterCityView(cityId);
+        showCity(cityId);
         closeModal('ownInactiveCity');
     };
 
@@ -329,18 +330,18 @@ const MapView = ({
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
             {isUnderAttack && <div className="screen-glow-attack"></div>}
-            <QuestsButton 
+            <QuestsButton
                 onOpenQuests={() => openModal('quests')}
                 quests={quests}
             />
             <div className="flex-grow flex flex-row overflow-visible">
                 <div className="main-content flex-grow relative map-surface">
-                    <TopBar 
-                        view="map" 
-                        gameState={gameState} 
-                        availablePopulation={availablePopulation} 
-                        happiness={happiness} 
-                        worldState={worldState} 
+                    <TopBar
+                        view="map"
+                        gameState={gameState}
+                        availablePopulation={availablePopulation}
+                        happiness={happiness}
+                        worldState={worldState}
                         productionRates={productionRates}
                         getWarehouseCapacity={getWarehouseCapacity}
                         movements={movements}
@@ -351,29 +352,30 @@ const MapView = ({
                         isUnderAttack={isUnderAttack}
                         incomingAttackCount={incomingAttackCount}
                         onRenameCity={onRenameCity}
+                        onCityChange={onCityChange}
                     />
-                    <SidebarNav 
-                        onToggleView={handleGoToActiveCity} 
+                    <SidebarNav
+                        onToggleView={handleGoToActiveCity}
                         view="map"
-                        onOpenReports={() => openModal('reports')} 
-                        onOpenAlliance={handleOpenAlliance} 
-                        onOpenForum={() => openModal('allianceForum')} 
-                        onOpenMessages={() => openModal('messages')} 
-                        onOpenSettings={() => openModal('settings')} 
-                        onOpenProfile={() => openModal('profile')} 
-                        onOpenLeaderboard={() => openModal('leaderboard')} 
-                        onOpenQuests={() => openModal('quests')} 
-                        unreadReportsCount={unreadReportsCount} 
-                        unreadMessagesCount={unreadMessagesCount} 
-                        isAdmin={userProfile?.is_admin} 
-                        onToggleDummyCityPlacement={handleToggleDummyCityPlacement} 
+                        onOpenReports={() => openModal('reports')}
+                        onOpenAlliance={handleOpenAlliance}
+                        onOpenForum={() => openModal('allianceForum')}
+                        onOpenMessages={() => openModal('messages')}
+                        onOpenSettings={() => openModal('settings')}
+                        onOpenProfile={() => openModal('profile')}
+                        onOpenLeaderboard={() => openModal('leaderboard')}
+                        onOpenQuests={() => openModal('quests')}
+                        unreadReportsCount={unreadReportsCount}
+                        unreadMessagesCount={unreadMessagesCount}
+                        isAdmin={userProfile?.is_admin}
+                        onToggleDummyCityPlacement={handleToggleDummyCityPlacement}
                         isAllianceMember={!!playerAlliance}
                         handleOpenEvents={handleOpenEvents}
                     />
                     <SideInfoPanel gameState={gameState} className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20 flex flex-col gap-4" onOpenPowers={() => openModal('divinePowers')} />
-                    
+
                     {/* #comment Add the MapOverlay component */}
-                    <MapOverlay 
+                    <MapOverlay
                         mouseCoords={mouseCoords}
                         pan={pan}
                         zoom={zoom}
@@ -387,27 +389,27 @@ const MapView = ({
                         <div className="map-border bottom" style={{ opacity: borderOpacity.bottom }}></div>
                         <div className="map-border left" style={{ opacity: borderOpacity.left }}></div>
                         <div className="map-border right" style={{ opacity: borderOpacity.right }}></div>
-                        
+
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
-                                <MapGrid 
-                                    mapGrid={mapGrid} 
-                                    worldState={worldState} 
-                                    pan={pan} 
-                                    zoom={zoom} 
-                                    viewportSize={viewportSize} 
-                                    onCitySlotClick={onCitySlotClick} 
-                                    onVillageClick={onVillageClick} 
-                                    onRuinClick={onRuinClick} 
+                                <MapGrid
+                                    mapGrid={mapGrid}
+                                    worldState={worldState}
+                                    pan={pan}
+                                    zoom={zoom}
+                                    viewportSize={viewportSize}
+                                    onCitySlotClick={onCitySlotClick}
+                                    onVillageClick={onVillageClick}
+                                    onRuinClick={onRuinClick}
                                     onGodTownClick={onGodTownClick}
-                                    isPlacingDummyCity={isPlacingDummyCity} 
-                                    movements={movements} 
-                                    combinedSlots={combinedSlotsForGrid} 
-                                    villages={villages} 
-                                    ruins={ruins} 
+                                    isPlacingDummyCity={isPlacingDummyCity}
+                                    movements={movements}
+                                    combinedSlots={combinedSlotsForGrid}
+                                    villages={villages}
+                                    ruins={ruins}
                                     godTowns={godTowns}
-                                    playerAlliance={playerAlliance} 
-                                    conqueredVillages={conqueredVillages} 
+                                    playerAlliance={playerAlliance}
+                                    conqueredVillages={conqueredVillages}
                                     gameSettings={gameSettings}
                                     cityPoints={cityPoints}
                                     scoutedCities={scoutedCities}

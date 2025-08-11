@@ -23,7 +23,7 @@ import ReportsView from './ReportsView';
 import MessagesView from './messaging/MessagesView';
 import AllianceModal from './map/AllianceModal';
 import AllianceCreation from './alliance/AllianceCreation';
-import AllianceForum from './alliance/AllianceForum'; 
+import AllianceForum from './alliance/AllianceForum';
 import SettingsModal from './shared/SettingsModal';
 import ProfileView from './profile/ProfileView';
 import Leaderboard from './leaderboard/Leaderboard';
@@ -56,16 +56,15 @@ const Game = ({ onBackToWorlds }) => {
 
     const { modalState, openModal, closeModal } = useModalState();
     const { unreadReportsCount, setUnreadReportsCount, unreadMessagesCount, setUnreadMessagesCount } = useMapState();
-    
+
     const showMap = () => setView('map');
-    
-    // #comment Renamed showCity to onEnterCityView for clarity
-    const onEnterCityView = useCallback((cityId) => {
+
+    const showCity = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
     }, [setActiveCityId]);
 
-    const { handleCancelMovement, handleActionClick } = useMapActions(openModal, closeModal, onEnterCityView, () => {});
+    const { handleCancelMovement, handleActionClick } = useMapActions(openModal, closeModal, showCity, () => {});
 
     const toggleView = () => {
         setView(prevView => prevView === 'city' ? 'map' : 'city');
@@ -77,34 +76,42 @@ const Game = ({ onBackToWorlds }) => {
         }
     }, [view, playerCity]);
 
-    const cycleCity = (direction, currentView) => {
+    const handleCityChange = (newCityId) => {
+        console.log(`[Game.js] handleCityChange triggered for cityId: ${newCityId}. Current view is: ${view}`);
+        setActiveCityId(newCityId);
+        if (view === 'map') {
+            const nextCity = playerCities[newCityId];
+            if (nextCity) {
+                console.log(`[Game.js] In map view. Panning to coordinates:`, { x: nextCity.x, y: nextCity.y });
+                setPanToCoords({ x: nextCity.x, y: nextCity.y });
+            }
+        }
+        // If not in map view, we are in city view. setActiveCityId will cause a re-render
+        // with the new city's data, and the view will remain 'city'. No need for an else block.
+    };
+
+    const cycleCity = (direction) => {
+        console.log(`[Game.js] cycleCity called with direction: ${direction}`);
         const sortedCities = Object.values(playerCities).sort((a, b) => a.cityName.localeCompare(b.cityName));
         const cityIds = sortedCities.map(c => c.id);
         if (cityIds.length <= 1) return;
-    
+
         const currentIndex = cityIds.indexOf(activeCityId);
         let nextIndex;
-    
+
         if (direction === 'right') {
             nextIndex = (currentIndex + 1) % cityIds.length;
         } else {
             nextIndex = (currentIndex - 1 + cityIds.length) % cityIds.length;
         }
-        
+
         const nextCityId = cityIds[nextIndex];
-        setActiveCityId(nextCityId);
-    
-        if (currentView === 'map') {
-            const nextCity = playerCities[nextCityId];
-            if (nextCity) {
-                setPanToCoords({ x: nextCity.x, y: nextCity.y });
-            }
-        }
+        handleCityChange(nextCityId);
     };
 
     useKeyboardControls({
         toggleView,
-        openAlliance: () => openModal('alliance'), // #comment Simplified this call
+        openAlliance: () => openModal('alliance'),
         openQuests: () => openModal('quests'),
         centerOnCity,
         openForum: () => openModal('allianceForum'),
@@ -112,8 +119,8 @@ const Game = ({ onBackToWorlds }) => {
         openLeaderboard: () => openModal('leaderboard'),
         openProfile: () => openModal('profile'),
         openSettings: () => openModal('settings'),
-        cycleCityLeft: () => cycleCity('left', view),
-        cycleCityRight: () => cycleCity('right', view),
+        cycleCityLeft: () => cycleCity('left'),
+        cycleCityRight: () => cycleCity('right'),
     });
 
     useEffect(() => {
@@ -143,7 +150,7 @@ const Game = ({ onBackToWorlds }) => {
             });
             setRuins(ruinsData);
         });
-        
+
         const godTownsColRef = collection(db, 'worlds', worldId, 'godTowns');
         const unsubscribeGodTowns = onSnapshot(godTownsColRef, (snapshot) => {
             const townsData = {};
@@ -167,18 +174,18 @@ const Game = ({ onBackToWorlds }) => {
         const queueName = queueType === 'heal' ? 'healQueue' : `${queueType}Queue`;
         const costField = queueType === 'heal' ? 'heal_cost' : 'cost';
         const refundField = queueType === 'heal' ? 'wounded' : 'units';
-    
+
         if (!cityState || !cityState[queueName]) {
             return;
         }
-    
+
         const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', cityId);
-    
+
         try {
             await runTransaction(db, async (transaction) => {
                 const cityDoc = await transaction.get(cityDocRef);
                 if (!cityDoc.exists()) throw new Error("City data not found.");
-                
+
                 const currentState = cityDoc.data();
                 const itemIndex = currentState[queueName].findIndex(i => i.id === item.id);
                 if (itemIndex === -1) throw new Error("Item not found in queue.");
@@ -186,17 +193,17 @@ const Game = ({ onBackToWorlds }) => {
                 const newQueue = [...currentState[queueName]];
                 const canceledTask = newQueue.splice(itemIndex, 1)[0];
                 const unit = unitConfig[canceledTask.unitId];
-    
+
                 const newResources = { ...currentState.resources };
                 newResources.wood += (unit[costField].wood || 0) * canceledTask.amount;
                 newResources.stone += (unit[costField].stone || 0) * canceledTask.amount;
                 newResources.silver += (unit[costField].silver || 0) * canceledTask.amount;
-    
+
                 const newRefundUnits = { ...currentState[refundField] };
                 if (queueType === 'heal') {
                     newRefundUnits[canceledTask.unitId] = (newRefundUnits[canceledTask.unitId] || 0) + canceledTask.amount;
                 }
-    
+
                 for (let i = itemIndex; i < newQueue.length; i++) {
                     const prevEndTime = (i === 0) ? Date.now() : (newQueue[i - 1].endTime.toDate ? newQueue[i - 1].endTime.toDate().getTime() : new Date(newQueue[i - 1].endTime).getTime());
                     const task = newQueue[i];
@@ -204,7 +211,7 @@ const Game = ({ onBackToWorlds }) => {
                     const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * task.amount;
                     newQueue[i].endTime = new Date(prevEndTime + taskTime * 1000);
                 }
-    
+
                 const updates = {
                     resources: newResources,
                     [queueName]: newQueue,
@@ -212,7 +219,7 @@ const Game = ({ onBackToWorlds }) => {
                 if (queueType === 'heal') {
                     updates.wounded = newRefundUnits;
                 }
-    
+
                 transaction.update(cityDocRef, updates);
             });
         } catch (error) {
@@ -241,7 +248,7 @@ const Game = ({ onBackToWorlds }) => {
     }, [movements, playerCities, conqueredVillages]);
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...villages, ...ruins }), [playerCities, villages, ruins]);
-    
+
     const handleOpenAlliance = () => openModal('alliance');
     const handleMessageAction = async (type, id) => {
         if (type === 'accept_invite') {
@@ -263,7 +270,7 @@ const Game = ({ onBackToWorlds }) => {
     };
     const handleOpenProfile = (userId) => openModal('profile', { userId });
     const handleOpenAllianceProfile = (allianceId) => openModal('allianceProfile', { allianceId });
-    
+
     const handleGoToCityFromProfile = useCallback((x, y) => {
         setView('map');
         setPanToCoords({x, y});
@@ -287,8 +294,7 @@ const Game = ({ onBackToWorlds }) => {
         handleActionClick('attack', targetData);
         setSelectedGodTownId(null);
     };
-    
-    // #comment Handler for opening the admin event trigger modal
+
     const handleOpenEvents = () => {
         openModal('eventTrigger');
     };
@@ -300,9 +306,9 @@ const Game = ({ onBackToWorlds }) => {
     return (
         <div className="w-full h-screen bg-gray-900 text-white relative">
             {view === 'city' && (
-                <CityView 
-                    showMap={showMap} 
-                    worldId={worldId} 
+                <CityView
+                    showMap={showMap}
+                    worldId={worldId}
                     openModal={openModal}
                     unreadReportsCount={unreadReportsCount}
                     unreadMessagesCount={unreadMessagesCount}
@@ -317,11 +323,12 @@ const Game = ({ onBackToWorlds }) => {
                     onRenameCity={renameCity}
                     quests={quests}
                     handleOpenEvents={handleOpenEvents}
+                    onCityChange={handleCityChange}
                 />
             )}
             {view === 'map' && (
-                <MapView 
-                    onEnterCityView={onEnterCityView} 
+                <MapView
+                    showCity={showCity}
                     openModal={openModal}
                     closeModal={closeModal}
                     modalState={modalState}
@@ -346,9 +353,10 @@ const Game = ({ onBackToWorlds }) => {
                     centerOnCity={centerOnCity}
                     onGodTownClick={handleGodTownClick}
                     handleOpenEvents={handleOpenEvents}
+                    onCityChange={handleCityChange}
                 />
             )}
-            
+
             {/* Render shared modals here */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleMessageAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
@@ -361,13 +369,13 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}
             {modalState.isEventTriggerOpen && userProfile?.is_admin && <EventTrigger onClose={() => closeModal('eventTrigger')} />}
-            
+
             {viewingReportId && <SharedReportView reportId={viewingReportId} onClose={() => setViewingReportId(null)} />}
 
             {selectedGodTownId && (
-                <GodTownModal 
-                    townId={selectedGodTownId} 
-                    onClose={() => setSelectedGodTownId(null)} 
+                <GodTownModal
+                    townId={selectedGodTownId}
+                    onClose={() => setSelectedGodTownId(null)}
                     onAttack={handleAttackGodTown}
                 />
             )}

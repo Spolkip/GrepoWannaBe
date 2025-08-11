@@ -115,9 +115,10 @@ const TopBar = ({
     // #comment New props for quests
     onOpenQuests,
     hasUnclaimedQuests,
-    getWarehouseCapacity
+    getWarehouseCapacity,
+    onCityChange
 }) => {
-    const { playerCities, setActiveCityId, activeCityId } = useGame();
+    const { playerCities, activeCityId } = useGame();
     const [isCityListOpen, setIsCityListOpen] = useState(false);
     const [activeTooltip, setActiveTooltip] = useState(null);
     const [isTooltipLocked, setIsTooltipLocked] = useState(false);
@@ -222,7 +223,7 @@ const TopBar = ({
         if (!movements) return 0;
         return movements.filter(m => !isTradeMovement(m)).length;
     }, [movements]);
-    
+
     // #comment Memoized calculation for the happiness tooltip
     const happinessTooltip = useMemo(() => {
         if (!gameState?.buildings) return `Happiness: ${happiness}%`;
@@ -247,7 +248,7 @@ const TopBar = ({
     const happinessIcon = happiness > 70 ? '😊' : (happiness > 40 ? '😐' : '😠');
 
     const handleCitySelect = (cityId) => {
-        setActiveCityId(cityId);
+        onCityChange(cityId);
         setIsCityListOpen(false);
     };
 
@@ -267,7 +268,7 @@ const TopBar = ({
             setActiveTooltip(null);
         }, 300);
     };
-    
+
     const handleTooltipClick = (e, tooltip) => {
         e.stopPropagation();
         // Toggle lock state on click
@@ -315,9 +316,9 @@ const TopBar = ({
             {/* Left Section */}
             <div className="flex-1 flex justify-start items-center space-x-4">
                 {worldState && (
-                    <div 
-                        className="relative" 
-                        onMouseEnter={() => handleMouseEnter('weather')} 
+                    <div
+                        className="relative"
+                        onMouseEnter={() => handleMouseEnter('weather')}
                         onMouseLeave={handleMouseLeave}
                         onClick={(e) => handleTooltipClick(e, 'weather')}
                     >
@@ -348,11 +349,11 @@ const TopBar = ({
                         </button>
                         {recruitmentCount > 0 && <span className="activity-badge">{recruitmentCount}</span>}
                         {activeTooltip === 'recruitment' && (
-                            <RecruitmentTooltip 
-                                playerCities={playerCities} 
-                                onCancelTrain={onCancelTrain} 
-                                isLocked={isTooltipLocked} 
-                                countdown={lockCountdown} 
+                            <RecruitmentTooltip
+                                playerCities={playerCities}
+                                onCancelTrain={onCancelTrain}
+                                isLocked={isTooltipLocked}
+                                countdown={lockCountdown}
                             />
                         )}
                     </div>
@@ -362,12 +363,12 @@ const TopBar = ({
                         </button>
                         {tradeCount > 0 && <span className="activity-badge">{tradeCount}</span>}
                         {activeTooltip === 'trades' && (
-                            <TradesTooltip 
-                                movements={movements} 
-                                combinedSlots={combinedSlots} 
-                                onCancel={onCancelMovement} 
-                                isLocked={isTooltipLocked} 
-                                countdown={lockCountdown} 
+                            <TradesTooltip
+                                movements={movements}
+                                combinedSlots={combinedSlots}
+                                onCancel={onCancelMovement}
+                                isLocked={isTooltipLocked}
+                                countdown={lockCountdown}
                             />
                         )}
                     </div>
@@ -377,12 +378,12 @@ const TopBar = ({
                         </button>
                         {movementCount > 0 && <span className="activity-badge">{movementCount}</span>}
                         {activeTooltip === 'movements' && (
-                            <MovementsTooltip 
-                                movements={movements} 
-                                combinedSlots={combinedSlots} 
-                                onCancel={onCancelMovement} 
-                                isLocked={isTooltipLocked} 
-                                countdown={lockCountdown} 
+                            <MovementsTooltip
+                                movements={movements}
+                                combinedSlots={combinedSlots}
+                                onCancel={onCancelMovement}
+                                isLocked={isTooltipLocked}
+                                countdown={lockCountdown}
                             />
                         )}
                     </div>
@@ -420,12 +421,12 @@ const TopBar = ({
 
             {/* Right Section */}
             <div className="flex-1 flex justify-end items-center space-x-2" onMouseLeave={handleMouseLeave}>
-                <div 
+                <div
                     className="resource-display relative"
                     onMouseEnter={() => handleMouseEnter('wood')}
                     onClick={(e) => handleTooltipClick(e, 'wood')}
                 >
-                    <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
+                    <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/>
                     <span className="text-yellow-800 font-bold">{Math.floor(resources.wood)}</span>
                     {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
                     {activeTooltip === 'wood' && productionRates && getWarehouseCapacity && (
@@ -438,12 +439,12 @@ const TopBar = ({
                         />
                     )}
                 </div>
-                <div 
+                <div
                     className="resource-display relative"
                     onMouseEnter={() => handleMouseEnter('stone')}
                     onClick={(e) => handleTooltipClick(e, 'stone')}
                 >
-                    <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
+                    <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/>
                     <span className="text-gray-600 font-bold">{Math.floor(resources.stone)}</span>
                      {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
                      {activeTooltip === 'stone' && productionRates && getWarehouseCapacity && (
@@ -456,12 +457,12 @@ const TopBar = ({
                         />
                     )}
                 </div>
-                <div 
+                <div
                     className="resource-display relative"
                     onMouseEnter={() => handleMouseEnter('silver')}
                     onClick={(e) => handleTooltipClick(e, 'silver')}
                 >
-                    <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
+                    <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/>
                     <span className="text-blue-800 font-bold">{Math.floor(resources.silver)}</span>
                      {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
                      {activeTooltip === 'silver' && productionRates && getWarehouseCapacity && (
@@ -478,8 +479,8 @@ const TopBar = ({
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
                     <span className="font-bold text-red-800">{Math.floor(availablePopulation)}</span>
                 </div>
-                <div 
-                    className="resource-display relative" 
+                <div
+                    className="resource-display relative"
                     onMouseEnter={() => handleMouseEnter('happiness')}
                     onClick={(e) => handleTooltipClick(e, 'happiness')}
                 >

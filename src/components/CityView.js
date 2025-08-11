@@ -14,8 +14,8 @@ import TopBar from './map/TopBar';
 import QuestsButton from './QuestsButton';
 import { useAlliance } from '../contexts/AllianceContext';
 
-const CityView = ({ 
-    showMap, 
+const CityView = ({
+    showMap,
     worldId,
     openModal,
     unreadReportsCount,
@@ -30,7 +30,8 @@ const CityView = ({
     combinedSlots,
     onRenameCity,
     quests,
-    handleOpenEvents
+    handleOpenEvents,
+    onCityChange
 }) => {
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame();
@@ -77,8 +78,8 @@ const CityView = ({
     return (
         <div className="w-full h-screen bg-gray-900 city-view-wrapper relative">
             <Modal message={message} onClose={() => setMessage('')} />
-            
-            <QuestsButton 
+
+            <QuestsButton
                 onOpenQuests={() => openModal('quests')}
                 quests={quests}
             />
@@ -120,6 +121,7 @@ const CityView = ({
                     incomingAttackCount={incomingAttackCount}
                     onRenameCity={onRenameCity}
                     getWarehouseCapacity={getWarehouseCapacity}
+                    onCityChange={onCityChange}
                 />
                 <CityViewContent
                     cityGameState={cityGameState}
