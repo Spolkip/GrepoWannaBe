@@ -2,7 +2,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
 import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc, serverTimestamp } from "firebase/firestore";
-import { sendSystemMessage } from '../util/sendSystemMessage';
+import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
 
 const calculateMaxMembers = (alliance) => {

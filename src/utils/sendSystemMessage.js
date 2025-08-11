@@ -1,5 +1,5 @@
 import { collection, query, where, getDocs, doc, setDoc, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db } from '../../firebase/config';
+import { db } from '../firebase/config';
 
 export const sendSystemMessage = async (targetUserId, targetUsername, messageText, worldId) => {
     const systemId = 'system';
