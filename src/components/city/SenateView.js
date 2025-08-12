@@ -18,9 +18,14 @@ contexts.forEach(context => {
     });
 });
 
-const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFull }) => {
-    const isMaxLevel = level >= (config.maxLevel || 99);
-    let buttonText = level === 0 ? 'Build' : `Expand to ${level + 1}`;
+const BuildingCard = ({ id, config, level, finalQueuedLevel, cost, canAfford, onUpgrade, isQueueFull, isMaxLevel }) => {
+    let buttonText;
+    if (level === 0 && finalQueuedLevel === 0) {
+        buttonText = 'Build';
+    } else {
+        buttonText = `Expand to ${finalQueuedLevel + 1}`;
+    }
+
     if (isMaxLevel) buttonText = 'Max Level';
 
     let disabledReason = '';
@@ -32,7 +37,9 @@ const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFu
         <div className="bg-gray-700/80 border-2 border-gray-600 rounded-lg p-2 w-48 text-center flex flex-col items-center relative shadow-lg">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-500/50"></div>
             <h4 className="font-bold text-yellow-400 text-base">{config.name}</h4>
-            <p className="text-sm text-gray-300 font-semibold">Level {level}</p>
+            <p className="text-sm text-gray-300 font-semibold">
+                Level {level} {finalQueuedLevel > level ? `(-> ${finalQueuedLevel})` : ''}
+            </p>
             <img src={buildingImages[config.image]} alt={config.name} className="w-20 h-20 object-contain my-1" />
             <div className="text-xs text-gray-400 mb-2">
                 <span>{cost.wood}W</span>, <span>{cost.stone}S</span>, <span>{cost.silver}Ag</span>, <span>{cost.population}P</span>
@@ -85,10 +92,14 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
     // #comment Calculate the final level of a building after all queued tasks are complete.
     const getFinalLevelInQueue = (buildingId) => {
         let finalLevel = buildings[buildingId]?.level || 0;
-        const tasksForBuilding = (buildQueue || []).filter(task => task.buildingId === buildingId);
+        const tasksForBuilding = (buildQueue || []).filter(task => task.buildingId === buildingId && task.type !== 'demolish');
+        const demolishTasks = (buildQueue || []).filter(task => task.buildingId === buildingId && task.type === 'demolish');
+
         if (tasksForBuilding.length > 0) {
-            // The final level is the target level of the last task in the queue for this building.
-            finalLevel = tasksForBuilding[tasksForBuilding.length - 1].level;
+            finalLevel = Math.max(...tasksForBuilding.map(t => t.level));
+        }
+        if(demolishTasks.length > 0) {
+            finalLevel = Math.min(...demolishTasks.map(t => t.level));
         }
         return finalLevel;
     };
@@ -130,8 +141,13 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                         }
                                         const config = buildingConfig[id];
                                         if (config.constructible === false && id !== 'senate') return null;
-                                        const level = buildings[id]?.level || 0;
-                                        const cost = getUpgradeCost(id, level + 1);
+                                        
+                                        const currentLevel = buildings[id]?.level || 0;
+                                        const finalQueuedLevel = getFinalLevelInQueue(id);
+                                        const nextLevelToBuild = finalQueuedLevel + 1;
+                                        const isMaxLevel = finalQueuedLevel >= (config.maxLevel || 99);
+
+                                        const cost = getUpgradeCost(id, nextLevelToBuild);
                                         let canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver;
                                         if (id !== 'farm' && id !== 'warehouse') {
                                             canAfford = canAfford && (maxPopulation - usedPopulation >= cost.population);
@@ -143,11 +159,13 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                                 key={id} 
                                                 id={id}
                                                 config={config}
-                                                level={level}
+                                                level={currentLevel}
+                                                finalQueuedLevel={finalQueuedLevel}
                                                 cost={cost}
                                                 canAfford={canAfford}
                                                 onUpgrade={onUpgrade}
                                                 isQueueFull={isQueueFull}
+                                                isMaxLevel={isMaxLevel}
                                             />
                                         );
                                     })}

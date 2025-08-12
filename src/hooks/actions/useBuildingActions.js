@@ -26,6 +26,12 @@ export const useBuildingActions = ({
         });
 
         const nextLevelToQueue = effectiveCurrentLevel + 1;
+        const config = buildingConfig[buildingId];
+        if (config && nextLevelToQueue > config.maxLevel) {
+            setMessage("Building is already at its maximum level or queued to be.");
+            return;
+        }
+        
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
         
         const hasEnoughResources = currentState.resources.wood >= cost.wood &&
