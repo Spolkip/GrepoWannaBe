@@ -7,7 +7,7 @@ import { useGame } from '../../contexts/GameContext';
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, onWonderSpotClick, onConstructingWonderClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, godTowns, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, onWonderSpotClick, onConstructingWonderClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, godTowns, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities, controlledIslands }) => {
     const { playerCities } = useGame();
 
     const locationLookup = useMemo(() => {
@@ -49,7 +49,8 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     tileContent = <GodTownTile townData={tile.data} onClick={onGodTownClick} gameSettings={gameSettings} />;
                     break;
                 case 'wonder_spot':
-                    tileContent = <WonderSpotTile spotData={tile.data} onClick={onWonderSpotClick} />;
+                    // #comment Pass controlledIslands and playerAlliance to the WonderSpotTile
+                    tileContent = <WonderSpotTile spotData={tile.data} onClick={onWonderSpotClick} playerAlliance={playerAlliance} controlledIslands={controlledIslands} />;
                     break;
                 case 'constructing_wonder':
                     tileContent = <ConstructingWonderTile wonderData={tile.data} onClick={onConstructingWonderClick} />;

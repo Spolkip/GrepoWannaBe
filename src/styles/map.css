@@ -136,7 +136,11 @@
 
 /* Wonder Styles */
 .wonder-spot-tile {
-    @apply w-8 h-8 rounded-full cursor-pointer relative bg-yellow-400/50;
+    @apply w-8 h-8 rounded-full relative bg-gray-600/50 border-2 border-gray-500;
+}
+
+.wonder-spot-tile.active {
+    @apply cursor-pointer bg-yellow-400/50 border-yellow-300;
     animation: glowing-wonder-spot 2s infinite;
 }
 

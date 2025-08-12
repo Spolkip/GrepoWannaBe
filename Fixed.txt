@@ -1,8 +1,8 @@
 
 
 Fixed: 
-- Indicator visual on both people
-- Allince doesn't work on all cities
+- Indicator visual on both people (✅)
+- Allince doesn't work on all cities (❌)
 - Demolish goes to 0 and not lowering by 1 level
 - Defult troops need to be remove
 - Ruins attack icon movement doesn't happen after arriving

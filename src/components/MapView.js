@@ -84,7 +84,6 @@ const MapView = ({
 
     useEffect(() => {
         if (!worldId) return;
-        console.log("Wonder Check: Setting up listener for all city slots.");
         const citySlotsRef = collection(db, 'worlds', worldId, 'citySlots');
         const unsubscribe = onSnapshot(citySlotsRef, (snapshot) => {
             const slots = {};
@@ -92,10 +91,9 @@ const MapView = ({
                 slots[doc.id] = { id: doc.id, ...doc.data() };
             });
             setAllCitySlots(slots);
-            console.log(`Wonder Check: Updated with ${Object.keys(slots).length} total city slots.`);
         });
 
-        return () => unsubscribe(); // Cleanup listener on unmount
+        return () => unsubscribe();
     }, [worldId]);
 
     useEffect(() => {
@@ -340,9 +338,8 @@ const MapView = ({
 
     // #comment Effect to find controlled islands
     useEffect(() => {
-        console.log("Wonder Check: Running controlled island check...");
+        // #comment Add a guard to ensure all necessary data is loaded before proceeding.
         if (!worldState?.islands || !allCitySlots) {
-            console.log("Wonder Check: Missing data, skipping check.", { worldState, allCitySlots });
             return;
         }
 
@@ -367,9 +364,6 @@ const MapView = ({
             }
         });
         
-        console.log("Wonder Check: Island Slot Counts:", JSON.parse(JSON.stringify(islandSlotCounts)));
-        console.log("Wonder Check: Island Alliance Counts:", JSON.parse(JSON.stringify(islandAllianceCounts)));
-
         const newControlledIslands = {};
         for (const islandId in islandSlotCounts) {
             if (islandSlotCounts[islandId] > 0) {
@@ -380,32 +374,28 @@ const MapView = ({
                 }
             }
         }
-        console.log("Wonder Check: Final Controlled Islands:", JSON.parse(JSON.stringify(newControlledIslands)));
         setControlledIslands(newControlledIslands);
     }, [worldState, allCitySlots]);
 
-    // #comment Effect to create wonder spots
+    // #comment Effect to create wonder spots for every island
     useEffect(() => {
-        console.log("Wonder Spot Check: Running wonder spot generation...");
-        if (!worldState || Object.keys(controlledIslands).length === 0 || !allCitySlots || !villages) {
-            console.log("Wonder Spot Check: Missing data, skipping generation.", { worldState, controlledIslands, allCitySlots, villages });
+        if (!worldState?.islands || !allCitySlots || !villages) {
             setWonderSpots({});
             return;
         }
     
         const newSpots = {};
-        for (const islandId in controlledIslands) {
-            if (playerAlliance?.allianceWonder?.id) continue;
-    
-            const island = worldState.islands.find(i => i.id === islandId);
-            if (!island) continue;
+        // #comment Iterate over ALL islands to create a potential spot for each.
+        worldState.islands.forEach(island => {
+            // #comment Don't generate a spot if a wonder is already on this island
+            if (playerAlliance?.allianceWonder?.islandId === island.id) return;
     
             const centerX = Math.round(island.x);
             const centerY = Math.round(island.y);
             let bestSpot = null;
             let fallbackSpot = null; 
     
-            // Search for an empty land tile first
+            // #comment Search for an empty land tile first
             for (let r = 0; r < island.radius * 2 && !bestSpot; r++) {
                 for (let dx = -r; dx <= r && !bestSpot; dx++) {
                     for (let dy = -r; dy <= r; dy++) {
@@ -425,12 +415,11 @@ const MapView = ({
                         const isVillage = Object.values(villages).some(v => v && v.x === x && v.y === y);
     
                         if (!isVillage) {
-                            bestSpot = { x, y, islandId, allianceId: controlledIslands[islandId] };
-                            console.log(`Wonder Spot Check: Found empty spot for island ${islandId} at (${x}, ${y})`);
+                            bestSpot = { x, y, islandId: island.id };
                             break; 
                         } else if (!fallbackSpot) {
-                            // If no empty spot is found, the first village tile becomes the fallback
-                            fallbackSpot = { x, y, islandId, allianceId: controlledIslands[islandId] };
+                            // #comment If no empty spot is found, the first village tile becomes the fallback
+                            fallbackSpot = { x, y, islandId: island.id };
                         }
                     }
                 }
@@ -438,25 +427,18 @@ const MapView = ({
     
             const finalSpot = bestSpot || fallbackSpot;
             if (finalSpot) {
-                console.log(`Wonder Spot Check: Final spot for island ${islandId} is at (${finalSpot.x}, ${finalSpot.y}). Best spot found: ${!!bestSpot}`);
-                newSpots[islandId] = finalSpot;
-            } else {
-                console.log(`Wonder Spot Check: No suitable spot found for island ${islandId}`);
+                newSpots[island.id] = finalSpot;
             }
-        }
-        console.log("Wonder Spot Check: Final Wonder Spots:", JSON.parse(JSON.stringify(newSpots)));
+        });
         setWonderSpots(newSpots);
-    }, [controlledIslands, worldState, allCitySlots, villages, playerAlliance]);
+    }, [worldState, allCitySlots, villages, playerAlliance]);
 
     const handleWonderSpotClick = (spotData) => {
         if (playerAlliance?.leader?.uid !== currentUser.uid) {
             setMessage("Only the alliance leader can begin construction of a wonder.");
             return;
         }
-        if (playerAlliance.id !== spotData.allianceId) {
-            setMessage("Your alliance does not control this island.");
-            return;
-        }
+        // #comment The alliance ID check is now implicitly handled by the tile's visibility
         setWonderBuilderData({ islandId: spotData.islandId, coords: { x: spotData.x, y: spotData.y } });
     };
 
@@ -601,6 +583,7 @@ const MapView = ({
                                     gameSettings={gameSettings}
                                     cityPoints={cityPoints}
                                     scoutedCities={scoutedCities}
+                                    controlledIslands={controlledIslands}
                                 />
                             </div>
                         </div>

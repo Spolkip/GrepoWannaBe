@@ -202,11 +202,25 @@ const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => 
     );
 };
 
-const _WonderSpotTile = ({ spotData, onClick }) => {
+const _WonderSpotTile = ({ spotData, onClick, playerAlliance, controlledIslands }) => {
+    const allianceTag = playerAlliance?.tag;
+    const controllingAllianceTag = controlledIslands ? controlledIslands[spotData.islandId] : null;
+    
+    // #comment Check if the player's alliance has full control of the island
+    const hasControl = allianceTag && allianceTag === controllingAllianceTag;
+
+    const tileClass = `wonder-spot-tile ${hasControl ? 'active' : ''}`;
+    const tooltipText = hasControl 
+        ? "Click to build an Alliance Wonder" 
+        : "Your alliance must control this entire island to build a wonder.";
+
+    // #comment Only attach the onClick handler if the alliance has control
+    const handleClick = hasControl ? () => onClick(spotData) : undefined;
+
     return (
         <div className="w-full h-full flex justify-center items-center">
-            <div onClick={() => onClick(spotData)} className="wonder-spot-tile">
-                <span className="map-object-tooltip">Click to build an Alliance Wonder</span>
+            <div onClick={handleClick} className={tileClass}>
+                <span className="map-object-tooltip">{tooltipText}</span>
             </div>
         </div>
     );
