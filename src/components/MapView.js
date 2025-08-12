@@ -1,9 +1,10 @@
+// src/components/MapView.js
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot } from 'firebase/firestore';
 
 
 import SidebarNav from './map/SidebarNav';
@@ -79,6 +80,23 @@ const MapView = ({
     const [wonderSpots, setWonderSpots] = useState({});
     const [wonderBuilderData, setWonderBuilderData] = useState(null);
     const [wonderProgressData, setWonderProgressData] = useState(null);
+    const [allCitySlots, setAllCitySlots] = useState(null);
+
+    useEffect(() => {
+        if (!worldId) return;
+        console.log("Wonder Check: Setting up listener for all city slots.");
+        const citySlotsRef = collection(db, 'worlds', worldId, 'citySlots');
+        const unsubscribe = onSnapshot(citySlotsRef, (snapshot) => {
+            const slots = {};
+            snapshot.forEach(doc => {
+                slots[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setAllCitySlots(slots);
+            console.log(`Wonder Check: Updated with ${Object.keys(slots).length} total city slots.`);
+        });
+
+        return () => unsubscribe(); // Cleanup listener on unmount
+    }, [worldId]);
 
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -322,14 +340,11 @@ const MapView = ({
 
     // #comment Effect to find controlled islands
     useEffect(() => {
-        if (!worldState?.islands || !visibleSlots || !playerCities) return;
-
-        const allSlotsOnMap = { ...visibleSlots };
-        Object.values(playerCities).forEach(city => {
-            if (city.slotId) {
-                allSlotsOnMap[city.slotId] = { ...allSlotsOnMap[city.slotId], ...city };
-            }
-        });
+        console.log("Wonder Check: Running controlled island check...");
+        if (!worldState?.islands || !allCitySlots) {
+            console.log("Wonder Check: Missing data, skipping check.", { worldState, allCitySlots });
+            return;
+        }
 
         const islandSlotCounts = {};
         const islandAllianceCounts = {};
@@ -339,72 +354,99 @@ const MapView = ({
             islandAllianceCounts[island.id] = {};
         });
 
-        Object.values(allSlotsOnMap).forEach(slot => {
+        Object.values(allCitySlots).forEach(slot => {
             if (slot.islandId && islandSlotCounts.hasOwnProperty(slot.islandId)) {
                 islandSlotCounts[slot.islandId]++;
                 if (slot.ownerId && slot.alliance) {
-                    const alliance = slot.alliance;
-                    if (!islandAllianceCounts[slot.islandId][alliance]) {
-                        islandAllianceCounts[slot.islandId][alliance] = 0;
+                    const allianceTag = slot.alliance;
+                    if (!islandAllianceCounts[slot.islandId][allianceTag]) {
+                        islandAllianceCounts[slot.islandId][allianceTag] = 0;
                     }
-                    islandAllianceCounts[slot.islandId][alliance]++;
+                    islandAllianceCounts[slot.islandId][allianceTag]++;
                 }
             }
         });
+        
+        console.log("Wonder Check: Island Slot Counts:", JSON.parse(JSON.stringify(islandSlotCounts)));
+        console.log("Wonder Check: Island Alliance Counts:", JSON.parse(JSON.stringify(islandAllianceCounts)));
 
         const newControlledIslands = {};
         for (const islandId in islandSlotCounts) {
             if (islandSlotCounts[islandId] > 0) {
-                for (const allianceId in islandAllianceCounts[islandId]) {
-                    if (islandAllianceCounts[islandId][allianceId] === islandSlotCounts[islandId]) {
-                        newControlledIslands[islandId] = allianceId;
+                for (const allianceTag in islandAllianceCounts[islandId]) {
+                    if (islandAllianceCounts[islandId][allianceTag] === islandSlotCounts[islandId]) {
+                        newControlledIslands[islandId] = allianceTag;
                     }
                 }
             }
         }
+        console.log("Wonder Check: Final Controlled Islands:", JSON.parse(JSON.stringify(newControlledIslands)));
         setControlledIslands(newControlledIslands);
-    }, [worldState, visibleSlots, playerCities]);
+    }, [worldState, allCitySlots]);
 
     // #comment Effect to create wonder spots
     useEffect(() => {
-        if (!worldState || Object.keys(controlledIslands).length === 0) {
+        console.log("Wonder Spot Check: Running wonder spot generation...");
+        if (!worldState || Object.keys(controlledIslands).length === 0 || !allCitySlots || !villages) {
+            console.log("Wonder Spot Check: Missing data, skipping generation.", { worldState, controlledIslands, allCitySlots, villages });
             setWonderSpots({});
             return;
         }
-
+    
         const newSpots = {};
         for (const islandId in controlledIslands) {
             if (playerAlliance?.allianceWonder?.id) continue;
-
+    
             const island = worldState.islands.find(i => i.id === islandId);
             if (!island) continue;
-
+    
             const centerX = Math.round(island.x);
             const centerY = Math.round(island.y);
-            let spot = null;
-
-            for (let r = 0; r < island.radius && !spot; r++) {
-                for (let dx = -r; dx <= r && !spot; dx++) {
-                    for (let dy = -r; dy <= r && !spot; dy++) {
-                        if (dx * dx + dy * dy > r * r) continue;
+            let bestSpot = null;
+            let fallbackSpot = null; 
+    
+            // Search for an empty land tile first
+            for (let r = 0; r < island.radius * 2 && !bestSpot; r++) {
+                for (let dx = -r; dx <= r && !bestSpot; dx++) {
+                    for (let dy = -r; dy <= r; dy++) {
+                        if (dx*dx + dy*dy > r*r) continue;
+    
                         const x = centerX + dx;
                         const y = centerY + dy;
-
-                        const isOccupied = Object.values(combinedSlots).some(s => s.x === x && s.y === y) || Object.values(villages).some(v => v.x === x && v.y === y);
-                        
-                        if (!isOccupied) {
-                            const distSq = Math.pow(x - island.x, 2) + Math.pow(y - island.y, 2);
-                            if (distSq <= Math.pow(island.radius, 2)) {
-                                spot = { x, y, islandId, allianceId: controlledIslands[islandId] };
-                            }
+    
+                        if (x < 0 || x >= worldState.width || y < 0 || y >= worldState.height) continue;
+    
+                        const distSq = Math.pow(x - island.x, 2) + Math.pow(y - island.y, 2);
+                        if (distSq > Math.pow(island.radius, 2)) continue;
+    
+                        const isCitySlot = Object.values(allCitySlots).some(s => s && s.x === x && s.y === y);
+                        if (isCitySlot) continue;
+    
+                        const isVillage = Object.values(villages).some(v => v && v.x === x && v.y === y);
+    
+                        if (!isVillage) {
+                            bestSpot = { x, y, islandId, allianceId: controlledIslands[islandId] };
+                            console.log(`Wonder Spot Check: Found empty spot for island ${islandId} at (${x}, ${y})`);
+                            break; 
+                        } else if (!fallbackSpot) {
+                            // If no empty spot is found, the first village tile becomes the fallback
+                            fallbackSpot = { x, y, islandId, allianceId: controlledIslands[islandId] };
                         }
                     }
                 }
             }
-            if (spot) newSpots[islandId] = spot;
+    
+            const finalSpot = bestSpot || fallbackSpot;
+            if (finalSpot) {
+                console.log(`Wonder Spot Check: Final spot for island ${islandId} is at (${finalSpot.x}, ${finalSpot.y}). Best spot found: ${!!bestSpot}`);
+                newSpots[islandId] = finalSpot;
+            } else {
+                console.log(`Wonder Spot Check: No suitable spot found for island ${islandId}`);
+            }
         }
+        console.log("Wonder Spot Check: Final Wonder Spots:", JSON.parse(JSON.stringify(newSpots)));
         setWonderSpots(newSpots);
-    }, [controlledIslands, worldState, combinedSlots, villages, playerAlliance]);
+    }, [controlledIslands, worldState, allCitySlots, villages, playerAlliance]);
 
     const handleWonderSpotClick = (spotData) => {
         if (playerAlliance?.leader?.uid !== currentUser.uid) {

@@ -24,3 +24,8 @@ If the city becomes a ghost town, any player can send the other agent with troop
 for it to get conquered.
 
 For a player to found a city we need the second agent to go inside the city with at least one villager, the more the villager the less time it will take for the city to be found.
+
+
+
+Bugs:
+Reasources are going beyong the cap of the wearhouse even of says 15k it will have on the background 90k or how much you have be given
