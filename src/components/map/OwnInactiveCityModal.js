@@ -46,12 +46,24 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
                         <button onClick={handleSelect} className="action-btn">
                             Select City
                         </button>
+                        <button 
+                            onClick={() => onAction('reinforce', city)}
+                            className="action-btn reinforce-btn"
+                        >
+                            Reinforce
+                        </button>
+                        <button 
+                            onClick={() => onAction('trade', city)}
+                            className="action-btn"
+                        >
+                            Trade
+                        </button>
                         {hasReinforcements && (
                             <button onClick={() => onWithdraw(city)} className="action-btn">
                                 Withdraw Troops
                             </button>
                         )}
-                        <button onClick={handleGoTo} className={`action-btn ${hasReinforcements ? '' : 'col-span-2'}`}>
+                        <button onClick={handleGoTo} className="action-btn">
                             Center on Map
                         </button>
                     </div>
