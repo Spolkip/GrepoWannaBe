@@ -7,11 +7,7 @@ Maybe:
 - add presets for the workers
 - add cities inside the island
 
-Bugs:
-Hard to fix:
-
 Later fixes: 
-- Agrotika xoria icons are Wrong
 - Barracks last number does not get deleted there is always 1 number left when using backspace
 - Academy demolish it always with research and does not deletes them
 
@@ -32,3 +28,4 @@ Fixed:
 - Market Spaming Click Create Offer makes more
 - Trading on with your other cities is not working
 - Attacks show all troops in enemy cities
+- Agrotika xoria icons are Wrong

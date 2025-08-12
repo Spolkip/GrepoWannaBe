@@ -357,6 +357,25 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                             updates.buildings[task.buildingId].level = task.level; // task.level is currentLevel - 1
                         }
                         
+                        // #comment If academy is demolished, check and deactivate now-invalid research
+                        if (task.buildingId === 'academy') {
+                            const newAcademyLevel = task.level;
+                            updates.research = updates.research || { ...currentState.research };
+
+                            Object.keys(updates.research).forEach(researchId => {
+                                const researchState = updates.research[researchId];
+                                const isCompleted = researchState === true || (researchState && researchState.completed);
+
+                                if (isCompleted) {
+                                    const researchInfo = researchConfig[researchId];
+                                    if (researchInfo && researchInfo.requirements.academy > newAcademyLevel) {
+                                        // Deactivate instead of deleting and refunding
+                                        updates.research[researchId] = { completed: true, active: false };
+                                    }
+                                }
+                            });
+                        }
+            
                         // #comment Calculate and apply resource refund
                         const costToBuildLastLevel = getUpgradeCost(task.buildingId, task.currentLevel);
                         const refund = {
@@ -371,11 +390,30 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             
                     } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
-                    } else {
+                    } else { // This is an upgrade completion
                         if (!updates.buildings[task.buildingId]) {
                             updates.buildings[task.buildingId] = { level: 0 };
                         }
                         updates.buildings[task.buildingId].level = task.level;
+
+                        // #comment If academy is upgraded, check for research to reactivate
+                        if (task.buildingId === 'academy') {
+                            const newAcademyLevel = task.level;
+                            updates.research = updates.research || { ...currentState.research };
+                            
+                            Object.keys(updates.research).forEach(researchId => {
+                                const researchState = updates.research[researchId];
+                                const isCompleted = researchState === true || (researchState && researchState.completed);
+                                const isActive = researchState === true || (researchState && researchState.active);
+
+                                if (isCompleted && !isActive) {
+                                    const researchInfo = researchConfig[researchId];
+                                    if (researchInfo && researchInfo.requirements.academy <= newAcademyLevel) {
+                                        updates.research[researchId] = { completed: true, active: true };
+                                    }
+                                }
+                            });
+                        }
                     }
                 });
             });
@@ -404,7 +442,8 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             processSingleQueue('researchQueue', (completed, updates) => {
                 updates.research = updates.research || { ...currentState.research };
                 completed.forEach(task => {
-                    updates.research[task.researchId] = true;
+                    // #comment Set research state to new object format
+                    updates.research[task.researchId] = { completed: true, active: true };
                 });
             });
 
