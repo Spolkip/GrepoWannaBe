@@ -1,14 +1,22 @@
+// src/components/map/OwnInactiveCityModal.js
 import React from 'react';
-import './OtherCityModal.css'; // Reusing styles
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
+import './OtherCityModal.css'; // Reuse styles
 
-const OwnActiveCityModal = ({ city, onClose, onEnterCity, onGoTo, onWithdraw }) => {
+const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity, onWithdraw }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
         if (onGoTo) {
             onGoTo(city.x, city.y);
+        }
+        onClose();
+    };
+
+    const handleSelect = () => {
+        if (onSelectCity) {
+            onSelectCity(city.id);
         }
         onClose();
     };
@@ -19,7 +27,7 @@ const OwnActiveCityModal = ({ city, onClose, onEnterCity, onGoTo, onWithdraw }) 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="other-city-modal-container" onClick={e => e.stopPropagation()}>
                 <div className="other-city-modal-header">
-                    <h3 className="font-title text-2xl">Active City: {city.cityName}</h3>
+                    <h3 className="font-title text-2xl">Your City: {city.cityName}</h3>
                     <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
                 <div className="other-city-modal-content">
@@ -31,21 +39,20 @@ const OwnActiveCityModal = ({ city, onClose, onEnterCity, onGoTo, onWithdraw }) 
                             reinforcements={city.reinforcements}
                         />
                     </div>
-                    <p className="text-center mb-4">This is your currently selected city.</p>
                     <div className="action-buttons-grid">
                         <button onClick={() => onEnterCity(city.id)} className="action-btn">
                             Enter City
                         </button>
-                        <button onClick={handleGoTo} className="action-btn">
-                            Center on Map
+                        <button onClick={handleSelect} className="action-btn">
+                            Select City
                         </button>
                         {hasReinforcements && (
-                             <button onClick={() => onWithdraw(city)} className="action-btn">
+                            <button onClick={() => onWithdraw(city)} className="action-btn">
                                 Withdraw Troops
                             </button>
                         )}
-                        <button disabled className={`action-btn ${hasReinforcements ? '' : 'col-span-2'}`}>
-                            City Selected
+                        <button onClick={handleGoTo} className={`action-btn ${hasReinforcements ? '' : 'col-span-2'}`}>
+                            Center on Map
                         </button>
                     </div>
                 </div>
@@ -54,4 +61,4 @@ const OwnActiveCityModal = ({ city, onClose, onEnterCity, onGoTo, onWithdraw }) 
     );
 };
 
-export default OwnActiveCityModal;
+export default OwnInactiveCityModal;

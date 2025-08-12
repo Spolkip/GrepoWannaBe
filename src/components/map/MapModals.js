@@ -2,16 +2,14 @@
 import React from 'react';
 import OtherCityModal from './OtherCityModal';
 import OwnInactiveCityModal from './OwnInactiveCityModal';
-import OwnActiveCityModal from './OwnActiveCityModal';
+import OwnActiveCityModal from './OwnActiveCityModal'; // Import new modal
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
-import WithdrawModal from '../city/WithdrawModal'; // Import the new modal
 
 const MapModals = ({
     modalState,
     closeModal,
-    openModal,
     gameState,
     playerCity,
     travelTimeInfo,
@@ -30,8 +28,7 @@ const MapModals = ({
     onActionClick,
     marketCapacity,
     onEnterCity,
-    onSwitchCity,
-    onWithdraw, // Receive the withdraw handler
+    onSwitchCity
 }) => {
     return (
         <>
@@ -57,16 +54,15 @@ const MapModals = ({
                     onGoTo={goToCoordinates}
                     onEnterCity={onEnterCity}
                     onSelectCity={onSwitchCity}
-                    onWithdraw={() => openModal('withdraw', modalState.selectedCity)}
                 />
             )}
+            {/* Add the new modal render logic */}
             {modalState.isOwnActiveCityModalOpen && modalState.selectedCity && (
                 <OwnActiveCityModal
                     city={modalState.selectedCity}
                     onClose={() => closeModal('ownActiveCity')}
                     onGoTo={goToCoordinates}
                     onEnterCity={onEnterCity}
-                    onWithdraw={() => openModal('withdraw', modalState.selectedCity)}
                 />
             )}
             {modalState.selectedVillage && (
@@ -101,13 +97,6 @@ const MapModals = ({
                     onCancel={handleCancelMovement}
                     onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
-                />
-            )}
-            {modalState.isWithdrawModalOpen && modalState.withdrawCity && (
-                <WithdrawModal
-                    city={modalState.withdrawCity}
-                    onClose={() => closeModal('withdraw')}
-                    onWithdraw={onWithdraw}
                 />
             )}
         </>

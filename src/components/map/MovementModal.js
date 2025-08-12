@@ -4,7 +4,6 @@ import { calculateTravelTime, formatTravelTime } from '../../utils/travel';
 import unitConfig from '../../gameData/units.json';
 import { useGame } from '../../contexts/GameContext';
 import './MovementModal.css';
-import TroopDisplay from '../TroopDisplay'; // Import TroopDisplay
 
 // Import new panels
 import TradePanel from './TradePanel';
@@ -346,16 +345,6 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
-
-                    {mode === 'reinforce' && (
-                        <div className="mt-4 pt-4 border-t border-gray-700">
-                             <h4 className="unit-selection-header">Troops Already Stationed</h4>
-                             <TroopDisplay 
-                                units={targetCity.units} 
-                                reinforcements={targetCity.reinforcements} 
-                            />
                         </div>
                     )}
 
