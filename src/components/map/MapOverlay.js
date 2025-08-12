@@ -1,10 +1,12 @@
 // src/components/map/MapOverlay.js
 import React, { useRef, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MINIMAP_SIZE = 175; // The size of the minimap canvas in pixels
 
-const MapOverlay = ({ mouseCoords, pan, zoom, viewportSize, worldState, playerCities }) => {
+const MapOverlay = ({ mouseCoords, pan, zoom, viewportSize, worldState, allCities, ruins, playerAlliance }) => {
     const minimapRef = useRef(null);
+    const { currentUser } = useAuth();
 
     // #comment Calculate the sea name based on the center of the viewport
     const seaName = (() => {
@@ -19,7 +21,7 @@ const MapOverlay = ({ mouseCoords, pan, zoom, viewportSize, worldState, playerCi
     // #comment Draw the minimap
     useEffect(() => {
         const canvas = minimapRef.current;
-        if (!canvas || !worldState || !viewportSize.width) return;
+        if (!canvas || !worldState || !viewportSize.width || !currentUser) return;
 
         const ctx = canvas.getContext('2d');
         const { width: worldWidth, height: worldHeight, islands } = worldState;
@@ -45,11 +47,37 @@ const MapOverlay = ({ mouseCoords, pan, zoom, viewportSize, worldState, playerCi
             ctx.fill();
         });
 
-        // Draw player cities
-        ctx.fillStyle = '#facc15'; // Yellow for player cities
-        Object.values(playerCities).forEach(city => {
-            ctx.fillRect(city.x * scaleX - 1, city.y * scaleY - 1, 3, 3);
-        });
+        // #comment Draw ruins
+        if (ruins) {
+            ctx.fillStyle = '#a855f7'; // Purple for ruins
+            Object.values(ruins).forEach(ruin => {
+                ctx.fillRect(ruin.x * scaleX - 1, ruin.y * scaleY - 1, 3, 3);
+            });
+        }
+
+        // #comment Draw all cities with appropriate colors
+        if (allCities) {
+            Object.values(allCities).forEach(city => {
+                if (!city.ownerId) return; // Skip empty slots
+
+                let cityColor = '#f59e0b'; // Neutral - amber-500
+
+                if (city.ownerId === currentUser.uid) {
+                    cityColor = '#facc15'; // My City - yellow-400
+                } else if (playerAlliance && city.alliance) {
+                    if (city.alliance === playerAlliance.tag) {
+                        cityColor = '#3b82f6'; // Alliance - blue-500
+                    } else if (playerAlliance.diplomacy?.allies?.some(a => a.tag === city.alliance)) {
+                        cityColor = '#22c55e'; // Ally - green-500
+                    } else if (playerAlliance.diplomacy?.enemies?.some(e => e.tag === city.alliance)) {
+                        cityColor = '#ef4444'; // Enemy - red-500
+                    }
+                }
+                
+                ctx.fillStyle = cityColor;
+                ctx.fillRect(city.x * scaleX - 1, city.y * scaleY - 1, 3, 3);
+            });
+        }
         
         // Draw viewport rectangle
         const viewRectX = -pan.x / (32 * zoom) * scaleX;
@@ -61,7 +89,7 @@ const MapOverlay = ({ mouseCoords, pan, zoom, viewportSize, worldState, playerCi
         ctx.lineWidth = 1;
         ctx.strokeRect(viewRectX, viewRectY, viewRectWidth, viewRectHeight);
 
-    }, [worldState, playerCities, pan, zoom, viewportSize]);
+    }, [worldState, allCities, ruins, playerAlliance, pan, zoom, viewportSize, currentUser]);
 
 
     return (

@@ -19,7 +19,7 @@ const getMarketCapacity = (level) => {
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
-    const { activeCityId} = useGame(); // #comment Get activeCityId and all cities from context
+    const { activeCityId, addNotification } = useGame(); // #comment Get addNotification from context
     const { playerAlliance } = useAlliance();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
@@ -365,6 +365,41 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                     updates[queueName] = activeQueue;
                     processCompleted(completedTasks, updates);
                     hasUpdates = true;
+
+                    // #comment Add notifications for completed tasks
+                    completedTasks.forEach(task => {
+                        let message = '';
+                        const cityName = currentState.cityName;
+                        switch (queueName) {
+                            case 'buildQueue':
+                                const building = buildingConfig[task.buildingId];
+                                if (task.type === 'demolish') {
+                                    message = `Demolition of ${building.name} is complete in ${cityName}.`;
+                                } else {
+                                    message = `Your ${building.name} (Level ${task.level}) is complete in ${cityName}.`;
+                                }
+                                break;
+                            case 'barracksQueue':
+                            case 'shipyardQueue':
+                            case 'divineTempleQueue':
+                                const unit = unitConfig[task.unitId];
+                                message = `Training of ${task.amount}x ${unit.name} is complete in ${cityName}.`;
+                                break;
+                            case 'researchQueue':
+                                const research = researchConfig[task.researchId];
+                                message = `Research for ${research.name} is complete in ${cityName}.`;
+                                break;
+                            case 'healQueue':
+                                const healedUnit = unitConfig[task.unitId];
+                                message = `Healing of ${task.amount}x ${healedUnit.name} is complete in ${cityName}.`;
+                                break;
+                            default:
+                                break;
+                        }
+                        if (message && addNotification) {
+                            addNotification(message);
+                        }
+                    });
                 }
             };
 
@@ -490,7 +525,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
 
 useEffect(() => {
     const autoSave = async () => {

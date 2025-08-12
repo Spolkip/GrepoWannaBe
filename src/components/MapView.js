@@ -549,7 +549,9 @@ const MapView = ({
                         zoom={zoom}
                         viewportSize={viewportSize}
                         worldState={worldState}
-                        playerCities={playerCities}
+                        allCities={combinedSlotsForGrid}
+                        ruins={ruins}
+                        playerAlliance={playerAlliance}
                     />
 
                     <div className="map-viewport" ref={viewportRef} onMouseDown={handleMouseDown} style={{ cursor: isPanning ? 'grabbing' : (isPlacingDummyCity ? 'crosshair' : 'grab') }}>
