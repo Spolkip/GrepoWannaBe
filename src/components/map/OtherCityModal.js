@@ -109,14 +109,16 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                         </div>
                     )}
                     
-                    <div className="info-box">
-                        <TroopDisplay
-                            units={city.units}
-                            reinforcements={city.reinforcements}
-                            title="Garrison"
-                            cityOwnerId={city.ownerId}
-                        />
-                    </div>
+                    {!isRuin &&
+                        <div className="info-box">
+                            <TroopDisplay
+                                units={city.units}
+                                reinforcements={city.reinforcements}
+                                title="Garrison"
+                                cityOwnerId={city.ownerId}
+                            />
+                        </div>
+                    }
 
                     <div className="action-buttons-grid">
                         {(isVillageTarget || (isRuin && !isConqueredRuin)) ? (
