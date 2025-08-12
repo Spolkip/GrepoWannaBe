@@ -7,7 +7,7 @@ const SpecialBuildingPlot = ({ building, onClick, image, name, isConstructed }) 
         left: `${position.x}px`,
         width: '200px',
         height: '150px',
-        backgroundImage: image ? `url(${image})` : 'none',
+        backgroundImage: isConstructed && image ? `url(${image})` : 'none',
         backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',

@@ -41,7 +41,7 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, 
                 <SpecialBuildingPlot
                     key={building.id}
                     building={building}
-                    onClick={onOpenSpecialBuildingMenu}
+                    onClick={() => onBuildingClick(building.id)}
                     image={image}
                     name={config.name}
                     isConstructed={!!specialBuildingId}

@@ -124,6 +124,6 @@
     "description": "Construct a legendary building that provides a unique, city-wide bonus.",
     "image": "special_building_plot.png",
     "constructible": false,
-    "points": 0
+    "points": 500
   }
 }

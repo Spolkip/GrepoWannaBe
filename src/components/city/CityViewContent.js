@@ -4,12 +4,18 @@ import Cityscape from './Cityscape';
 import SideInfoPanel from '../SideInfoPanel';
 import buildingConfig from '../../gameData/buildings.json'; // Import building config
 
-// Dynamically import all building images
+// #comment Dynamically import all building and special building images
 const buildingImages = {};
-const buildingImageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
-buildingImageContext.keys().forEach((item) => {
-    const key = item.replace('./', '');
-    buildingImages[key] = buildingImageContext(item);
+const contexts = [
+    require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/special_buildings', false, /\.(png|jpe?g|svg)$/)
+];
+
+contexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const key = item.replace('./', '');
+        buildingImages[key] = context(item);
+    });
 });
 
 const CITYSCAPE_WIDTH = 2000;
