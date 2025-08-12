@@ -15,10 +15,12 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
     const { buildings, resources, research = {}, researchPoints = 0 } = cityGameState;
     const academyLevel = buildings.academy?.level || 0;
 
+    // #comment check if player can afford research
     const canAfford = (cost) => {
         return resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver && researchPoints >= (cost.points || 0);
     };
 
+    // #comment check if player meets research requirements
     const meetsRequirements = (reqs) => {
         if (reqs.academy && academyLevel < reqs.academy) {
             return false;
@@ -29,6 +31,7 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
         return true;
     };
 
+    // #comment check if research is already in queue
     const isResearchInQueue = (researchId) => {
         return (researchQueue || []).some(item => item.researchId === researchId);
     };
@@ -48,8 +51,8 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
                         const requirementsMet = meetsRequirements(config.requirements);
                         const affordable = canAfford(config.cost);
                         const inQueue = isResearchInQueue(id);
+                        const isQueueFull = (researchQueue || []).length >= 5;
 
-                        let button;
                         let reqText = '';
                         if (!requirementsMet) {
                             reqText = `Requires: Academy Lvl ${config.requirements.academy || 0}`;
@@ -58,14 +61,23 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
                             }
                         }
 
+                        let buttonText = 'Research';
+                        let isDisabled = false;
                         if (isResearched) {
-                            button = <button disabled className="btn research-btn completed">Completed</button>;
+                            buttonText = 'Completed';
+                            isDisabled = true;
                         } else if (inQueue) {
-                            button = <button disabled className="btn research-btn in-queue">In Queue</button>;
-                        } else {
-                            button = <button onClick={() => onResearch(id)} disabled={!affordable || !requirementsMet || researchQueue.length >= 5} className="btn research-btn">
-                                {researchQueue.length >= 5 ? 'Queue Full' : 'Research'}
-                            </button>;
+                            buttonText = 'In Queue';
+                            isDisabled = true;
+                        } else if (isQueueFull) {
+                            buttonText = 'Queue Full';
+                            isDisabled = true;
+                        } else if (!requirementsMet) {
+                            buttonText = 'Locked';
+                            isDisabled = true;
+                        } else if (!affordable) {
+                            buttonText = 'No Resources';
+                            isDisabled = true;
                         }
 
                         return (
@@ -80,7 +92,13 @@ const AcademyMenu = ({ cityGameState, onResearch, onClose, researchQueue, onCanc
                                         {reqText && <p className="tooltip-req">{reqText}</p>}
                                     </div>
                                 </div>
-                                {button}
+                                <button 
+                                    onClick={() => onResearch(id)} 
+                                    disabled={isDisabled} 
+                                    className={`btn research-btn ${isResearched ? 'completed' : inQueue ? 'in-queue' : 'btn-primary'}`}
+                                >
+                                    {buttonText}
+                                </button>
                             </div>
                         );
                     })}

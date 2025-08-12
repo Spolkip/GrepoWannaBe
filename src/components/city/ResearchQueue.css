@@ -1,10 +1,6 @@
 /* src/components/city/ResearchQueue.css */
 .research-queue-tooltip {
-    position: absolute;
-    bottom: 100%; /* Position above the item */
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 8px; /* Space between item and tooltip */
+    /* Position is now handled by inline styles */
     width: 280px;
     background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
     background-color: #F5DEB3; /* wheat */

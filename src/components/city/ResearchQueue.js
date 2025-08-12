@@ -1,6 +1,7 @@
 // src/components/city/ResearchQueue.js
 import React, { useState, useEffect, useRef } from 'react';
 import researchConfig from '../../gameData/research.json';
+import './ResearchQueue.css'; // #comment Import new CSS
 
 const formatTime = (seconds) => {
     if (seconds < 0) seconds = 0;
@@ -10,8 +11,9 @@ const formatTime = (seconds) => {
     return `${h}:${m}:${s}`;
 };
 
-const ResearchQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave, hoveredItem }) => {
+const ResearchQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave }) => {
     const [timeLeft, setTimeLeft] = useState(0);
+    const itemRef = useRef(null);
 
     useEffect(() => {
         if (!isFirst) return; // Only calculate time for the first item.
@@ -32,49 +34,52 @@ const ResearchQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave, 
     }, [item.endTime, isFirst]);
 
     const research = researchConfig[item.researchId];
+    if (!research) return null;
 
     return (
-        <div 
-            className="flex justify-between items-center bg-gray-600 p-2 rounded relative"
-            onMouseEnter={() => onHover(item.researchId)}
+        <div
+            ref={itemRef}
+            className="relative p-2 bg-amber-100/50 rounded flex justify-between items-center"
+            onMouseEnter={() => onHover(item, itemRef.current)}
             onMouseLeave={onLeave}
         >
             <span className="font-semibold">{research.name}</span>
             <div className="flex items-center gap-4">
-                {isFirst && <span className="font-mono text-yellow-300">{formatTime(timeLeft)}</span>}
+                {isFirst && <span className="font-mono text-gray-800 bg-white/50 px-2 py-1 rounded">{formatTime(timeLeft)}</span>}
                 {isLast && (
-                    <button 
-                        onClick={onCancel} 
-                        className="text-red-400 hover:text-red-300 font-bold text-xl leading-none px-2 rounded-full"
+                    <button
+                        onClick={onCancel}
+                        className="text-red-600 hover:text-red-500 font-bold text-xl leading-none px-2 rounded-full"
                         title="Cancel Research"
                     >
                         &times;
                     </button>
                 )}
             </div>
-            {hoveredItem === item.researchId && (
-                <div className="unit-tooltip" style={{ top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '5px', zIndex: 100, width: '250px', pointerEvents: 'none' }}>
-                    <div className="tooltip-header"><h3 className="tooltip-title">{research.name}</h3></div>
-                    <div className="tooltip-body" style={{ padding: '0.5rem' }}>
-                        <p className="tooltip-description" style={{ fontSize: '0.75rem' }}>{research.description}</p>
-                        <div className="tooltip-stats" style={{ border: 'none', padding: 0, marginTop: '8px' }}>
-                            <div className="stat-row" style={{ fontSize: '0.7rem' }}><span>Cost:</span><span>{research.cost.wood}W, {research.cost.stone}S, {research.cost.silver}Ag, {research.cost.points || 0}RP</span></div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
 
 const ResearchQueue = ({ researchQueue, onCancel }) => {
     const [hoveredItem, setHoveredItem] = useState(null);
+    const [tooltipStyle, setTooltipStyle] = useState({ display: 'none' });
     const tooltipTimeoutRef = useRef(null);
+    const queueContainerRef = useRef(null);
 
-    // #comment handle mouse enter to show tooltip
-    const handleMouseEnter = (itemId) => {
+    // #comment handle mouse enter to show tooltip and calculate its position
+    const handleMouseEnter = (item, element) => {
         clearTimeout(tooltipTimeoutRef.current);
-        setHoveredItem(itemId);
+        if (element && queueContainerRef.current) {
+            const itemRect = element.getBoundingClientRect();
+
+            setTooltipStyle({
+                position: 'fixed', // Use fixed to break out of the modal
+                bottom: `${window.innerHeight - itemRect.top + 8}px`, // Position above the item
+                left: `${itemRect.left + (itemRect.width / 2)}px`,
+                transform: 'translateX(-50%)',
+            });
+            setHoveredItem(item);
+        }
     };
 
     // #comment handle mouse leave to hide tooltip
@@ -83,32 +88,56 @@ const ResearchQueue = ({ researchQueue, onCancel }) => {
             setHoveredItem(null);
         }, 200);
     };
+    
+    // #comment Get the completion time of the last item in the queue
+    const totalCompletionTime = researchQueue && researchQueue.length > 0
+        ? researchQueue[researchQueue.length - 1].endTime
+        : null;
+
+    const renderTooltip = () => {
+        if (!hoveredItem) return null;
+        const research = researchConfig[hoveredItem.researchId];
+        const totalCompletionTimeString = totalCompletionTime ? new Date(totalCompletionTime).toLocaleTimeString() : 'N/A';
+
+        return (
+            <div className="research-queue-tooltip" style={tooltipStyle}>
+                <h3 className="research-tooltip-title">{research.name}</h3>
+                <p className="text-sm mb-2">{research.description}</p>
+                <dl className="research-tooltip-info">
+                    <dt>Time:</dt>
+                    <dd>{formatTime(research.cost.time)}</dd>
+                    <dt>Queue Completion:</dt>
+                    <dd>{totalCompletionTimeString}</dd>
+                </dl>
+            </div>
+        );
+    };
 
     if (!researchQueue || researchQueue.length === 0) {
         return (
-            <div className="bg-gray-900 p-3 rounded-lg mb-4">
+            <div className="bg-gray-900/80 p-3 mt-auto flex-shrink-0">
                 <h4 className="text-lg font-semibold text-gray-400 text-center">Research queue is empty.</h4>
             </div>
         );
     }
 
     return (
-        <div className="bg-gray-900 p-3 rounded-lg mb-4">
+        <div className="bg-gray-900/80 p-3 mt-auto flex-shrink-0" ref={queueContainerRef}>
             <h4 className="text-lg font-semibold text-yellow-400 mb-2">Research Queue ({researchQueue.length}/5)</h4>
             <div className="space-y-2">
                 {researchQueue.map((item, index) => (
-                    <ResearchQueueItem 
-                        key={`${item.researchId}-${index}`} 
-                        item={item} 
-                        onCancel={() => onCancel(index)} 
+                    <ResearchQueueItem
+                        key={`${item.researchId}-${index}`}
+                        item={item}
+                        onCancel={() => onCancel(index)}
                         isFirst={index === 0}
                         isLast={index === researchQueue.length - 1}
                         onHover={handleMouseEnter}
                         onLeave={handleMouseLeave}
-                        hoveredItem={hoveredItem}
                     />
                 ))}
             </div>
+            {renderTooltip()}
         </div>
     );
 };
