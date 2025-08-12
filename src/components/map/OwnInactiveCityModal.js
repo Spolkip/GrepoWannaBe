@@ -4,7 +4,7 @@ import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 import './OtherCityModal.css'; // Reuse styles
 
-const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity }) => {
+const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity, onWithdraw }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -21,6 +21,8 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
         onClose();
     };
 
+    const hasReinforcements = city.reinforcements && Object.keys(city.reinforcements).length > 0;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="other-city-modal-container" onClick={e => e.stopPropagation()}>
@@ -30,7 +32,12 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
                 </div>
                 <div className="other-city-modal-content">
                     <div className="info-box">
-                        <TroopDisplay units={city.units} unitsData={unitsData} title="Garrison" />
+                        <TroopDisplay 
+                            units={city.units} 
+                            unitsData={unitsData} 
+                            title="Garrison"
+                            reinforcements={city.reinforcements}
+                        />
                     </div>
                     <div className="action-buttons-grid">
                         <button onClick={() => onEnterCity(city.id)} className="action-btn">
@@ -39,13 +46,12 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
                         <button onClick={handleSelect} className="action-btn">
                             Select City
                         </button>
-                        <button onClick={() => onAction('reinforce', city)} className="action-btn reinforce-btn">
-                            Reinforce
-                        </button>
-                        <button onClick={() => onAction('trade', city)} className="action-btn">
-                            Trade
-                        </button>
-                        <button onClick={handleGoTo} className="action-btn col-span-2">
+                        {hasReinforcements && (
+                            <button onClick={() => onWithdraw(city)} className="action-btn">
+                                Withdraw Troops
+                            </button>
+                        )}
+                        <button onClick={handleGoTo} className={`action-btn ${hasReinforcements ? '' : 'col-span-2'}`}>
                             Center on Map
                         </button>
                     </div>

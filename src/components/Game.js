@@ -341,6 +341,9 @@ const Game = ({ onBackToWorlds }) => {
             case 'view_report':
                 setViewingReportId(data);
                 break;
+            case 'viewReinforcements':
+                openModal('reinforcements', data);
+                break;
             default:
                 console.warn(`Unhandled action type: ${type}`);
         }

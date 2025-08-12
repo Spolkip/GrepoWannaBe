@@ -6,6 +6,7 @@ import OwnActiveCityModal from './OwnActiveCityModal'; // Import new modal
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
+import ReinforcementModal from '../city/ReinforcementModal';
 
 const MapModals = ({
     modalState,
@@ -99,6 +100,13 @@ const MapModals = ({
                     onCancel={handleCancelMovement}
                     onRush={handleRushMovement}
                     isAdmin={userProfile?.is_admin}
+                />
+            )}
+            {modalState.isReinforcementsModalOpen && (
+                <ReinforcementModal
+                    city={modalState.reinforcementsModalData}
+                    onClose={() => closeModal('reinforcements')}
+                    onOpenWithdraw={onWithdraw}
                 />
             )}
         </>
