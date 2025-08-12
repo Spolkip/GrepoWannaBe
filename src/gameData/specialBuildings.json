@@ -52,5 +52,10 @@
       "value": 0.10
     },
     "image": "library_of_alexandria.png"
+  },
+  "alliance_wonders": {
+    "name": "Alliance Wonders",
+    "description": "A special building only available to alliances that control an entire island.",
+    "image": "alliance_wonders.png"
   }
 }

@@ -1,3 +1,4 @@
+// src/contexts/AllianceProvider.js
 import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -8,6 +9,7 @@ import { useAllianceBankActions } from '../hooks/actions/useAllianceBank';
 import { useAllianceDiplomacyActions } from '../hooks/actions/useAllianceDiplomacy';
 import { useAllianceManagementActions } from '../hooks/actions/useAllianceManagement';
 import { useAllianceResearchActions } from '../hooks/actions/useAllianceResearch';
+import { useAllianceWonderActions } from '../hooks/actions/useAllianceWonderActions'; // Import new hook
 
 export const AllianceProvider = ({ children }) => {
     const { worldId, playerGameData } = useGame();
@@ -36,6 +38,7 @@ export const AllianceProvider = ({ children }) => {
     const diplomacyActions = useAllianceDiplomacyActions(playerAlliance);
     const managementActions = useAllianceManagementActions(playerAlliance);
     const researchActions = useAllianceResearchActions(playerAlliance);
+    const wonderActions = useAllianceWonderActions(playerAlliance);
 
     const value = {
         playerAlliance,
@@ -44,6 +47,7 @@ export const AllianceProvider = ({ children }) => {
         ...diplomacyActions,
         ...managementActions,
         ...researchActions,
+        ...wonderActions
     };
 
     return (

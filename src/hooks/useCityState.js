@@ -1,3 +1,4 @@
+// src/hooks/useCityState.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'; 
@@ -7,9 +8,8 @@ import unitConfig from '../gameData/units.json';
 import researchConfig from '../gameData/research.json';
 import { useGame } from '../contexts/GameContext';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
-
-// #comment This hook now gets the active city ID from the GameContext
-// #comment and uses it to listen to and update the correct city document.
+import { useAlliance } from '../contexts/AllianceContext';
+import allianceWonders from '../gameData/alliance_wonders.json';
 
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
@@ -19,7 +19,8 @@ const getMarketCapacity = (level) => {
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
-    const { activeCityId, addNotification } = useGame(); // #comment Get activeCityId and addNotification from context
+    const { activeCityId, playerCities } = useGame(); // #comment Get activeCityId and all cities from context
+    const { playerAlliance } = useAlliance();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
 
@@ -48,8 +49,15 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     // #comment Calculates city happiness based on Senate level and worker upkeep.
     const calculateHappiness = useCallback((buildings) => {
         if (!buildings || !buildings.senate) return 0;
-        return getHappinessDetails(buildings).total;
-    }, [getHappinessDetails]);
+        const details = getHappinessDetails(buildings);
+        
+        let happiness = details.total;
+        if (playerAlliance?.allianceWonder?.id === 'shrine_of_the_ancestors') {
+             happiness += allianceWonders.shrine_of_the_ancestors.bonus.value * 100;
+        }
+
+        return Math.min(100, happiness);
+    }, [getHappinessDetails, playerAlliance]);
     
     const getMaxWorkerSlots = useCallback((level) => {
         if (!level || level < 1) return 0;
@@ -89,8 +97,12 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     // #comment Adjusted farm capacity for better population balance.
     const getFarmCapacity = useCallback((level) => {
         if (!level) return 0;
-        return Math.floor(200 * Math.pow(1.25, level - 1));
-    }, []);
+        let capacity = Math.floor(200 * Math.pow(1.25, level - 1));
+        if (playerAlliance?.allianceWonder?.id === 'shrine_of_the_ancestors') {
+            capacity *= (1 + allianceWonders.shrine_of_the_ancestors.bonus.value);
+        }
+        return capacity;
+    }, [playerAlliance]);
 
     const getHospitalCapacity = useCallback((level) => {
         if (!level) return 0;
@@ -122,13 +134,19 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     const getResearchCost = useCallback((researchId) => {
         const research = researchConfig[researchId];
         if (!research) return null;
+        
+        let time = research.cost.time;
+        if (playerAlliance?.allianceWonder?.id === 'great_forum') {
+            time *= (1 - allianceWonders.great_forum.bonus.value);
+        }
+
         return {
             wood: research.cost.wood,
             stone: research.cost.stone,
             silver: research.cost.silver,
-            time: isInstantResearch ? 1 : research.cost.time,
+            time: isInstantResearch ? 1 : time,
         };
-    }, [isInstantResearch]);
+    }, [isInstantResearch, playerAlliance]);
 
     const calculateUsedPopulation = useCallback((buildings, units, specialBuilding) => {
         let used = 0;
@@ -181,8 +199,12 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (gameState.research) {
             points += Object.keys(gameState.research).length * 50; // Points for research
         }
+        
+        if (playerAlliance?.allianceWonder) {
+            points += 500;
+        }
         return Math.floor(points);
-    }, []);
+    }, [playerAlliance]);
 
     const saveGameState = useCallback(async (stateToSave) => {
         if (!currentUser || !worldId || !activeCityId || !stateToSave) return;
@@ -275,15 +297,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 
                 const productionRates = getProductionRates(newState.buildings);
                 const capacity = getWarehouseCapacity(newState.buildings?.warehouse?.level);
-                
-                // #comment Add safety check for resources to prevent NaN errors
-                const currentWood = prevState.resources.wood || 0;
-                const currentStone = prevState.resources.stone || 0;
-                const currentSilver = prevState.resources.silver || 0;
-
-                newState.resources.wood = Math.min(capacity, currentWood + (productionRates.wood / 3600) * elapsedSeconds);
-                newState.resources.stone = Math.min(capacity, currentStone + (productionRates.stone / 3600) * elapsedSeconds);
-                newState.resources.silver = Math.min(capacity, currentSilver + (productionRates.silver / 3600) * elapsedSeconds);
+                newState.resources.wood = Math.min(capacity, prevState.resources.wood + (productionRates.wood / 3600) * elapsedSeconds);
+                newState.resources.stone = Math.min(capacity, prevState.resources.stone + (productionRates.stone / 3600) * elapsedSeconds);
+                newState.resources.silver = Math.min(capacity, prevState.resources.silver + (productionRates.silver / 3600) * elapsedSeconds);
 
                 const templeLevel = newState.buildings.temple?.level || 0;
                 if (newState.god && templeLevel > 0) {
@@ -393,17 +409,14 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                         updates.resources.wood += refund.wood;
                         updates.resources.stone += refund.stone;
                         updates.resources.silver += refund.silver;
-                        addNotification(`${buildingConfig[task.buildingId].name} has been demolished to level ${task.level}.`);
             
                     } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
-                        addNotification(`Your wonder, ${buildingConfig[task.buildingId].name}, has been constructed!`);
                     } else { // This is an upgrade completion
                         if (!updates.buildings[task.buildingId]) {
                             updates.buildings[task.buildingId] = { level: 0 };
                         }
                         updates.buildings[task.buildingId].level = task.level;
-                        addNotification(`${buildingConfig[task.buildingId].name} has been upgraded to level ${task.level}.`);
 
                         // #comment If academy is upgraded, check for research to reactivate
                         if (task.buildingId === 'academy') {
@@ -431,7 +444,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been trained.`);
                 });
             });
 
@@ -439,7 +451,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been built.`);
                 });
             });
 
@@ -447,7 +458,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been summoned.`);
                 });
             });
 
@@ -456,7 +466,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 completed.forEach(task => {
                     // #comment Set research state to new object format
                     updates.research[task.researchId] = { completed: true, active: true };
-                    addNotification(`Research for "${researchConfig[task.researchId].name}" is complete.`);
                 });
             });
 
@@ -464,7 +473,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been healed.`);
                 });
             });
 
@@ -482,7 +490,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost]);
 
 useEffect(() => {
     const autoSave = async () => {
