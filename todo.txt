@@ -1,7 +1,6 @@
 Will do: 
 
 Todo after above:
-- add icons to back to world selection and logout
 - add notification icons to show when something is completed
 - add a placeholder on profile's image
 - add buildings to build when the island is full of an alliance
