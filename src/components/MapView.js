@@ -166,7 +166,7 @@ const MapView = ({
         return getProductionRates(gameState.buildings);
     }, [gameState, getProductionRates]);
 
-    const handleOpenAlliance = () => playerAlliance ? openModal('alliance') : openModal('allianceCreation');
+    const handleOpenAlliance = () => openModal('alliance');
 
     const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
 

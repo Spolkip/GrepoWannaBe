@@ -1,18 +1,4 @@
-Later:
-- add heroes that can do skills on battle and also give buffs
-- make it so you can conquer other cities
-- be able to surrender if you have one city and you are about to lose it 
 
-Maybe: 
-- add presets for the workers
-- add cities inside the island
-
-Later fixes: 
-- Barracks last number does not get deleted there is always 1 number left when using backspace
-
-Models:
-- add a battle simulation
-- add troops into the city
 
 Fixed: 
 - Indicator visual on both people

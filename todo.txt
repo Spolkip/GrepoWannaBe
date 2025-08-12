@@ -1,8 +1,21 @@
 Will do: 
 
 Todo after above:
-- add notification icons to show when something is complete.
 - add buildings to build when the island is full of an alliance
+
+Later:
+- add heroes that can do skills on battle and also give buffs
+- be able to surrender if you have one city and you are about to lose it 
+
+Maybe: 
+- add presets for the workers
+- add cities inside the island
+Later fixes: 
+- Barracks last number does not get deleted there is always 1 number left when using backspace
+
+Models:
+- add a battle simulation
+- add troops into the city
 
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player
 doesnt have the troops to stop it, it will become a ghost city. The player that sends the agent will get updated with the troops of the city and with the morale. 
