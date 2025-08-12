@@ -9,7 +9,6 @@ Maybe:
 
 Later fixes: 
 - Barracks last number does not get deleted there is always 1 number left when using backspace
-- Academy demolish it always with research and does not deletes them
 
 Models:
 - add a battle simulation
@@ -29,3 +28,4 @@ Fixed:
 - Trading on with your other cities is not working
 - Attacks show all troops in enemy cities
 - Agrotika xoria icons are Wrong
+- Academy demolish it always with research and does not deletes them
