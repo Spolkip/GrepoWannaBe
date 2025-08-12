@@ -547,9 +547,22 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                            <p className="mb-4 text-center">Invest resources to upgrade this village for better yields.</p>
                             <div className="bg-gray-700 p-3 rounded-lg mb-4">
                                 <h4 className="font-bold text-lg">Cost to Upgrade to Level {village.level + 1}:</h4>
-                                <div className="flex justify-center space-x-4 mt-2 text-yellow-300"><span>🪵 {cost.wood}</span><span>🪨 {cost.stone}</span><span>⚪️ {cost.silver}</span></div>
+                                <div className="flex justify-center items-center space-x-4 mt-2 text-yellow-300">
+                                    <div className="flex items-center gap-1">
+                                        <img src={woodImage} alt="Wood" className="w-6 h-6" />
+                                        <span>{cost.wood}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <img src={stoneImage} alt="Stone" className="w-6 h-6" />
+                                        <span>{cost.stone}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <img src={silverImage} alt="Silver" className="w-6 h-6" />
+                                        <span>{cost.silver}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <button onClick={handleUpgrade} disabled={isProcessing || !canAffordUpgrade} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded w-40 transition duration-300 disabled:bg-gray-500 disabled:cursor-not-allowed">{isProcessing ? 'Processing...' : 'Upgrade Village'}</button>
+                            <button onClick={handleUpgrade} disabled={isProcessing || !canAffordUpgrade} className="btn btn-primary py-3 px-4 w-40">{isProcessing ? 'Processing...' : 'Upgrade Village'}</button>
                         </div>
                     )}
                     {message && <p className="text-green-400 mt-4 text-center">{message}</p>}

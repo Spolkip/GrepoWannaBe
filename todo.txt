@@ -1,10 +1,7 @@
 Will do: 
-- make manager for troops and research spells, puzzles and buildings with a lot of options
 
 Todo after above:
-- put special buildings on cityscape
 - add icons to back to world selection and logout
-- add more research and make them to actually work
 - add notification icons to show when something is completed
 - add a placeholder on profile's image
 - add buildings to build when the island is full of an alliance
