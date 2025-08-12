@@ -24,6 +24,15 @@ export const useCityActions = (props) => {
     const handlePlotClick = (buildingId) => {
         const buildingData = cityGameState.buildings[buildingId];
         if (!buildingData || buildingData.level === 0) {
+            // #comment If the special building plot is clicked and it's not built, open the menu
+            if (buildingId === 'special_building_plot') {
+                if (cityGameState.specialBuilding) {
+                    openModal('isSpecialBuildingPanelOpen');
+                } else {
+                    openModal('isSpecialBuildingMenuOpen');
+                }
+                return;
+            }
             openModal('isSenateViewOpen');
             return;
         }
@@ -37,6 +46,14 @@ export const useCityActions = (props) => {
             case 'academy': openModal('isAcademyMenuOpen'); break;
             case 'hospital': openModal('isHospitalMenuOpen'); break;
             case 'market': openModal('isMarketMenuOpen'); break;
+            // #comment Handle special building plot click
+            case 'special_building_plot':
+                if (cityGameState.specialBuilding) {
+                    openModal('isSpecialBuildingPanelOpen');
+                } else {
+                    openModal('isSpecialBuildingMenuOpen');
+                }
+                break;
             default: setModalState(prev => ({ ...prev, selectedBuildingId: buildingId })); break;
         }
     };

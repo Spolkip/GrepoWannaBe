@@ -30,7 +30,7 @@ const SpecialBuildingPlot = ({ building, onClick, image, name, isConstructed }) 
 
     return (
         <div
-            className="building-spot absolute flex flex-col items-center justify-center p-2 rounded-lg transition-colors duration-200 cursor-pointer"
+            className="building-spot absolute flex flex-col items-center justify-end p-2 rounded-lg transition-colors duration-200 cursor-pointer"
             style={{
                 ...spotStyle,
                 backgroundColor: image ? 'transparent' : 'rgba(139, 69, 19, 0.7)',
@@ -38,6 +38,8 @@ const SpecialBuildingPlot = ({ building, onClick, image, name, isConstructed }) 
             onClick={onClick}
             title={name}
         >
+            {/* #comment Added a label for the constructed building */}
+            <span className="text-white text-sm font-bold bg-black/50 px-2 py-1 rounded">{name}</span>
         </div>
     );
 };

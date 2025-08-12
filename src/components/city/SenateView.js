@@ -4,12 +4,18 @@ import buildingConfig from '../../gameData/buildings.json';
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 import BuildQueue from './BuildQueue';
 
-// Dynamically import all building images
+// #comment Dynamically import all building and special building images
 const buildingImages = {};
-const buildingImageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
-buildingImageContext.keys().forEach((item) => {
-    const key = item.replace('./', '');
-    buildingImages[key] = buildingImageContext(item);
+const contexts = [
+    require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/special_buildings', false, /\.(png|jpe?g|svg)$/)
+];
+
+contexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const key = item.replace('./', '');
+        buildingImages[key] = context(item);
+    });
 });
 
 const BuildingCard = ({ id, config, level, cost, canAfford, onUpgrade, isQueueFull }) => {

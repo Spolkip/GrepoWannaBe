@@ -75,7 +75,7 @@
     "name": "Cave",
     "description": "Train spies and store silver safely from raids.",
     "baseCost": { "wood": 100, "stone": 100, "silver": 20, "population": 5, "time": 120 },
-    "image": "cavepng.png",
+    "image": "cave.png",
     "maxLevel": 10,
     "points": 8
   },

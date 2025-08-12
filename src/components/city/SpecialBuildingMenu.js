@@ -4,7 +4,8 @@ import specialBuildings from '../../gameData/specialBuildings.json';
 import './SpecialBuildingMenu.css';
 
 const buildingImages = {};
-const imageContext = require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/);
+// #comment Update the image context to look in the special_buildings folder
+const imageContext = require.context('../../images/special_buildings', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     buildingImages[key] = imageContext(item);

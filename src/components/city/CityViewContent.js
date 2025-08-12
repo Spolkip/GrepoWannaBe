@@ -15,7 +15,7 @@ buildingImageContext.keys().forEach((item) => {
 const CITYSCAPE_WIDTH = 2000;
 const CITYSCAPE_HEIGHT = 1200;
 
-const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSettings }) => {
+const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSettings, onOpenSpecialBuildingMenu }) => {
     // Panning Logic (moved from CityView.js)
     const viewportRef = useRef(null);
     const cityContainerRef = useRef(null);
@@ -97,7 +97,13 @@ const CityViewContent = ({ cityGameState, handlePlotClick, onOpenPowers, gameSet
     return (
         <main className="flex-grow w-full h-full relative overflow-hidden cursor-grab" ref={viewportRef} onMouseDown={handleMouseDown}>
             <div ref={cityContainerRef} style={{ transformOrigin: '0 0' }}>
-                <Cityscape buildings={cityGameState.buildings} onBuildingClick={handlePlotClick} buildingImages={buildingImages} />
+                <Cityscape 
+                    buildings={cityGameState.buildings} 
+                    onBuildingClick={handlePlotClick} 
+                    buildingImages={buildingImages} 
+                    cityGameState={cityGameState} 
+                    onOpenSpecialBuildingMenu={onOpenSpecialBuildingMenu} 
+                />
             </div>
             <SideInfoPanel 
                 gameState={cityGameState} 

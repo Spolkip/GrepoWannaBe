@@ -12,6 +12,7 @@ import MarketMenu from './MarketMenu'; // #comment Import MarketMenu
 import { AcademyMenu } from './AcademyMenu';
 import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new DivineTempleMenu
 import SpecialBuildingMenu from './SpecialBuildingMenu';
+import SpecialBuildingPanel from './SpecialBuildingPanel'; // #comment Import the new panel
 
 const CityModals = ({
   cityGameState,
@@ -64,6 +65,7 @@ const CityModals = ({
     isMarketMenuOpen, // #comment Get market menu state
     isDivineTempleMenuOpen,
     isSpecialBuildingMenuOpen,
+    isSpecialBuildingPanelOpen, // #comment Get panel state
   } = modalState;
 
   if (!cityGameState) return null;
@@ -191,6 +193,14 @@ const CityModals = ({
             onClose={() => closeModal('isSpecialBuildingMenuOpen')}
             availablePopulation={availablePopulation}
           />
+      )}
+      {/* #comment Render the new SpecialBuildingPanel */}
+      {isSpecialBuildingPanelOpen && (
+        <SpecialBuildingPanel
+            buildingId={cityGameState.specialBuilding}
+            onClose={() => closeModal('isSpecialBuildingPanelOpen')}
+            onDemolish={handleDemolishSpecialBuilding}
+        />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (
         <AdminCheatMenu

@@ -19,6 +19,7 @@ export const useCityModalManager = () => {
         isDivinePowersOpen: false,
         isMarketMenuOpen: false,
         isSpecialBuildingMenuOpen: false,
+        isSpecialBuildingPanelOpen: false, // #comment Add state for the new panel
     });
 
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));
