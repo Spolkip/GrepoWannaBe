@@ -17,7 +17,7 @@ imageContexts.forEach(context => {
     });
 });
 
-const TroopDisplay = ({ units, title }) => {
+const TroopDisplay = ({ units, reinforcements, title }) => {
     const [hoveredUnit, setHoveredUnit] = useState(null);
     const [isTooltipLocked, setIsTooltipLocked] = useState(false);
     const [lockCountdown, setLockCountdown] = useState(5);
@@ -96,6 +96,9 @@ const TroopDisplay = ({ units, title }) => {
     const landUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'land' && !unitConfig[id]?.mythical);
     const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval' && !unitConfig[id]?.mythical);
     const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
+
+    // #comment Aggregate all reinforcing units
+    const allReinforcements = Object.values(reinforcements || {}).flatMap(reinf => Object.entries(reinf.units));
 
 
     const renderUnit = ([unitId, count]) => {
@@ -178,7 +181,15 @@ const TroopDisplay = ({ units, title }) => {
                     </div>
                 </div>
             )}
-            {(landUnits.length === 0 && navalUnits.length === 0 && mythicUnits.length === 0) && (
+            {allReinforcements.length > 0 && (
+                <div className="troop-section">
+                    <h4 className="troop-section-header">Reinforcements</h4>
+                    <div className="troop-grid">
+                        {allReinforcements.map(renderUnit)}
+                    </div>
+                </div>
+            )}
+            {(landUnits.length === 0 && navalUnits.length === 0 && mythicUnits.length === 0 && allReinforcements.length === 0) && (
                  <p className="text-gray-500 text-xs text-center p-4">No troops in this city.</p>
             )}
         </div>

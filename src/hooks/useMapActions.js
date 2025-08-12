@@ -19,6 +19,9 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             openModal('action', { mode, city: targetCity });
             closeModal('city');
             closeModal('village');
+        } else if (mode === 'withdraw') {
+            openModal('withdraw', targetCity);
+            closeModal('city');
         } else if (mode === 'message') {
             openModal('messages', { city: targetCity });
             closeModal('city');

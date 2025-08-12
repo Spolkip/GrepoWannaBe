@@ -213,7 +213,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 }
     
                 const newResources = { ...cityData.resources };
-                const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
+                const warehouseCapacity = Math.floor(1500 * Math.pow(1.4, cityData.buildings.warehouse.level - 1));
                 
                 const yieldAmount = {
                     wood: Math.floor((baseVillageData.demandYield.wood || 0) * option.multiplier * villageData.level * bonusMultiplier),
@@ -281,7 +281,7 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                 const plunderAmount = { wood: Math.floor((baseData.resources.wood || 0) * 0.5), stone: Math.floor((baseData.resources.stone || 0) * 0.5), silver: Math.floor((baseData.resources.silver || 0) * 0.5) };
                 const newPlayerResources = { ...cityData.resources };
                 const newVillageResources = { ...baseData.resources };
-                const warehouseCapacity = 1000 * Math.pow(1.5, cityData.buildings.warehouse.level - 1);
+                const warehouseCapacity = Math.floor(1500 * Math.pow(1.4, cityData.buildings.warehouse.level - 1));
 
                 for(const res in plunderAmount) {
                     newPlayerResources[res] = Math.min(warehouseCapacity, newPlayerResources[res] + plunderAmount[res]);

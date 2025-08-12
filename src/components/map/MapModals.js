@@ -66,6 +66,7 @@ const MapModals = ({
                     onClose={() => closeModal('ownActiveCity')}
                     onGoTo={goToCoordinates}
                     onEnterCity={onEnterCity}
+                    onWithdraw={onWithdraw} // #comment Pass onWithdraw to the modal
                 />
             )}
             {modalState.selectedVillage && (

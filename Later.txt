@@ -9,8 +9,6 @@ Maybe:
 
 Bugs:
 Hard to fix:
-- storage says the limit on resources but in the background it keeps stacking
-- When you give reasoure to a city at is more then the storage capacity it dublicates every new building made
 
 Later fixes: 
 - Agrotika xoria icons are Wrong

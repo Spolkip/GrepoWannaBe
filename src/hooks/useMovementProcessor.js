@@ -100,6 +100,7 @@ export const useMovementProcessor = (worldId) => {
             batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), returnReport);
             batch.update(originCityRef, { units: newUnits, resources: newResources, wounded: newWounded });
             batch.delete(movementDoc.ref);
+            await batch.commit();
             console.log(`Movement ${movement.id} processed and deleted.`);
         } else if (movement.status === 'moving') {
             console.log(`Movement ${movement.id} is moving with type: ${movement.type}`);
@@ -591,68 +592,77 @@ export const useMovementProcessor = (worldId) => {
                     break;
                 }
                 case 'reinforce': {
-                    if (!targetCityState) {
-                        console.log(`Target game state not found for movement ${movement.id}. Deleting.`);
+                    if (!targetCityState || !movement.targetSlotId) {
+                        console.log(`Target game state or slot ID not found for movement ${movement.id}. Deleting.`);
                         batch.delete(movementDoc.ref);
                         break;
                     }
                     
-                    // #comment Differentiate between reinforcing another player and reinforcing one's own city
-                    if (movement.originOwnerId === movement.targetOwnerId) {
-                        const newReinforcements = { ...(targetCityState.reinforcements || {}) };
+                    const targetCitySlotRef = doc(db, 'worlds', worldId, 'citySlots', movement.targetSlotId);
+
+                    await runTransaction(db, async (transaction) => {
+                        const targetCitySnap = await transaction.get(targetCityRef);
+                        const targetCitySlotSnap = await transaction.get(targetCitySlotRef);
+
+                        if (!targetCitySnap.exists() || !targetCitySlotSnap.exists()) {
+                            throw new Error("Target city or slot data not found.");
+                        }
+
+                        const currentCityState = targetCitySnap.data();
+                        
+                        const newReinforcements = { ...(currentCityState.reinforcements || {}) };
                         const originCityId = movement.originCityId;
                 
                         if (!newReinforcements[originCityId]) {
                             newReinforcements[originCityId] = {
-                                units: {},
+                                ownerId: movement.originOwnerId,
                                 originCityName: movement.originCityName,
+                                units: {},
                             };
                         }
                 
                         for (const unitId in movement.units) {
                             newReinforcements[originCityId].units[unitId] = (newReinforcements[originCityId].units[unitId] || 0) + movement.units[unitId];
                         }
-                        batch.update(targetCityRef, { reinforcements: newReinforcements });
-                    } else {
-                        const newTargetUnits = { ...targetCityState.units };
-                        for (const unitId in movement.units) {
-                            newTargetUnits[unitId] = (newTargetUnits[unitId] || 0) + movement.units[unitId];
+                        
+                        transaction.update(targetCityRef, { reinforcements: newReinforcements });
+                        transaction.update(targetCitySlotRef, { reinforcements: newReinforcements });
+
+                        const reinforceReport = { 
+                            type: 'reinforce', 
+                            title: `Reinforcement to ${targetCityState.cityName}`, 
+                            timestamp: serverTimestamp(), 
+                            units: movement.units, 
+                            read: false,
+                            originCityName: originCityState.cityName,
+                            targetCityName: targetCityState.cityName,
+                            originPlayer: {
+                                username: movement.originOwnerUsername,
+                                id: movement.originOwnerId,
+                                cityId: movement.originCityId,
+                                x: originCityState.x,
+                                y: originCityState.y
+                            },
+                            targetPlayer: {
+                                username: movement.ownerUsername,
+                                id: movement.targetOwnerId,
+                                cityId: movement.targetCityId,
+                                x: targetCityState.x,
+                                y: targetCityState.y
+                            }
+                        };
+                        transaction.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), reinforceReport);
+
+                        if (movement.targetOwnerId) {
+                            const arrivalReport = { 
+                                ...reinforceReport,
+                                title: `Reinforcements from ${originCityState.cityName}`,
+                            };
+                            transaction.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
                         }
-                        batch.update(targetCityRef, { units: newTargetUnits });
-                    }
 
-                    const reinforceReport = { 
-                        type: 'reinforce', 
-                        title: `Reinforcement to ${targetCityState.cityName}`, 
-                        timestamp: serverTimestamp(), 
-                        units: movement.units, 
-                        read: false,
-                        originCityName: originCityState.cityName,
-                        targetCityName: targetCityState.cityName,
-                        originPlayer: {
-                            username: movement.originOwnerUsername,
-                            id: movement.originOwnerId,
-                            cityId: movement.originCityId,
-                            x: originCityState.x,
-                            y: originCityState.y
-                        },
-                        targetPlayer: {
-                            username: movement.ownerUsername,
-                            id: movement.targetOwnerId,
-                            cityId: movement.targetCityId,
-                            x: targetCityState.x,
-                            y: targetCityState.y
-                        }
-                    };
-                    batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), reinforceReport);
-
-                    const arrivalReport = { 
-                        ...reinforceReport,
-                        title: `Reinforcements from ${originCityState.cityName}`,
-                    };
-                    batch.set(doc(collection(db, `users/${movement.targetOwnerId}/worlds/${worldId}/reports`)), arrivalReport);
-
-                    batch.delete(movementDoc.ref);
+                        transaction.delete(movementDoc.ref);
+                    });
                     break;
                 }
                 case 'trade': {

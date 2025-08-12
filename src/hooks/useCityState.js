@@ -188,14 +188,26 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (!currentUser || !worldId || !activeCityId || !stateToSave) return;
         try {
             const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
-            const dataToSave = { ...stateToSave, lastUpdated: Date.now() };
+            
+            // #comment Apply warehouse capacity limit before saving
+            const capacity = getWarehouseCapacity(stateToSave.buildings?.warehouse?.level);
+            const cappedResources = {
+                wood: Math.min(capacity, stateToSave.resources.wood),
+                stone: Math.min(capacity, stateToSave.resources.stone),
+                silver: Math.min(capacity, stateToSave.resources.silver),
+            };
 
-            // #comment Firestore's setDoc can handle JS Date objects directly, so no special conversion is needed.
+            const dataToSave = { 
+                ...stateToSave, 
+                resources: { ...stateToSave.resources, ...cappedResources },
+                lastUpdated: Date.now() 
+            };
+            
             await setDoc(cityDocRef, dataToSave, { merge: true });
         } catch (error) {
             console.error('Failed to save game state:', error);
         }
-    }, [currentUser, worldId, activeCityId]);
+    }, [currentUser, worldId, activeCityId, getWarehouseCapacity]);
 
     useEffect(() => {
         if (!currentUser || !worldId || !activeCityId) {

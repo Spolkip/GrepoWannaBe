@@ -1,10 +1,10 @@
-// src/components/map/OwnInactiveCityModal.js
+// src/components/map/OwnActiveCityModal.js
 import React from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 import './OtherCityModal.css'; // Reuse styles
 
-const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity, onWithdraw }) => {
+const OwnActiveCityModal = ({ city, onClose, onGoTo, onEnterCity, onWithdraw }) => {
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -14,20 +14,14 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
         onClose();
     };
 
-    const handleSelect = () => {
-        if (onSelectCity) {
-            onSelectCity(city.id);
-        }
-        onClose();
-    };
-
+    // #comment Check if there are any reinforcements from other cities owned by the player
     const hasReinforcements = city.reinforcements && Object.keys(city.reinforcements).length > 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="other-city-modal-container" onClick={e => e.stopPropagation()}>
                 <div className="other-city-modal-header">
-                    <h3 className="font-title text-2xl">Your City: {city.cityName}</h3>
+                    <h3 className="font-title text-2xl">Your Active City: {city.cityName}</h3>
                     <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
                 <div className="other-city-modal-content">
@@ -43,9 +37,7 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
                         <button onClick={() => onEnterCity(city.id)} className="action-btn">
                             Enter City
                         </button>
-                        <button onClick={handleSelect} className="action-btn">
-                            Select City
-                        </button>
+                        {/* #comment Conditionally render Withdraw button */}
                         {hasReinforcements && (
                             <button onClick={() => onWithdraw(city)} className="action-btn">
                                 Withdraw Troops
@@ -61,4 +53,4 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
     );
 };
 
-export default OwnInactiveCityModal;
+export default OwnActiveCityModal;

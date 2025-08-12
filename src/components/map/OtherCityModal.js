@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
 import ruinsResearch from '../../gameData/ruinsResearch.json';
@@ -13,10 +13,14 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
     const { currentUser } = useAuth();
     const { setActiveCityId } = useGame();
 
+    const canWithdraw = useMemo(() => {
+        if (!city || !city.reinforcements) return false;
+        return Object.values(city.reinforcements).some(reinf => reinf.ownerId === currentUser.uid);
+    }, [city, currentUser.uid]);
+
     if (!city) return null;
 
     const isOwnCity = city.ownerId === currentUser.uid;
-    const hasReinforcements = city.reinforcements && Object.keys(city.reinforcements).length > 0;
 
     const resourceImages = {
         wood: woodImage,
@@ -103,6 +107,15 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                             )}
                         </div>
                     )}
+                    
+                    <div className="info-box">
+                        <TroopDisplay
+                            units={city.units}
+                            reinforcements={city.reinforcements}
+                            title="Garrison"
+                            cityOwnerId={city.ownerId}
+                        />
+                    </div>
 
                     <div className="action-buttons-grid">
                         {(isVillageTarget || (isRuin && !isConqueredRuin)) ? (
@@ -135,12 +148,12 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                                         >
                                             Reinforce
                                         </button>
-                                        {hasReinforcements && (
+                                        {canWithdraw && (
                                             <button 
-                                                onClick={() => onAction('viewReinforcements', city)}
+                                                onClick={() => onAction('withdraw', city)}
                                                 className="action-btn"
                                             >
-                                                Reinforcements
+                                                Withdraw Troops
                                             </button>
                                         )}
                                         <button 
