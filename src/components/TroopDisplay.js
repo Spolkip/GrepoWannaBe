@@ -97,8 +97,8 @@ const TroopDisplay = ({ units, reinforcements, title }) => {
     const navalUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.type === 'naval' && !unitConfig[id]?.mythical);
     const mythicUnits = Object.entries(units || {}).filter(([id, count]) => count > 0 && unitConfig[id]?.mythical);
 
-    // #comment Aggregate all reinforcing units
-    const allReinforcements = Object.values(reinforcements || {}).flatMap(reinf => Object.entries(reinf.units));
+    const hasReinforcements = reinforcements && Object.keys(reinforcements).length > 0;
+    const hasUnits = landUnits.length > 0 || navalUnits.length > 0 || mythicUnits.length > 0;
 
 
     const renderUnit = ([unitId, count]) => {
@@ -181,15 +181,20 @@ const TroopDisplay = ({ units, reinforcements, title }) => {
                     </div>
                 </div>
             )}
-            {allReinforcements.length > 0 && (
+            {hasReinforcements && (
                 <div className="troop-section">
                     <h4 className="troop-section-header">Reinforcements</h4>
-                    <div className="troop-grid">
-                        {allReinforcements.map(renderUnit)}
-                    </div>
+                    {Object.entries(reinforcements).map(([originCityId, reinfData]) => (
+                        <div key={originCityId} className="mb-2 last:mb-0">
+                            <p className="text-xs text-center font-semibold text-yellow-600">{reinfData.originCityName}</p>
+                            <div className="troop-grid">
+                                {Object.entries(reinfData.units || {}).map(renderUnit)}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
-            {(landUnits.length === 0 && navalUnits.length === 0 && mythicUnits.length === 0 && allReinforcements.length === 0) && (
+            {!hasUnits && !hasReinforcements && (
                  <p className="text-gray-500 text-xs text-center p-4">No troops in this city.</p>
             )}
         </div>

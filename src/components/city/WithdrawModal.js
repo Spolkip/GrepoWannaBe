@@ -1,6 +1,7 @@
 // src/components/city/WithdrawModal.js
 import React, { useState } from 'react';
 import unitConfig from '../../gameData/units.json';
+import { useAuth } from '../../contexts/AuthContext';
 
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
@@ -10,6 +11,7 @@ imageContext.keys().forEach((item) => {
 });
 
 const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
+    const { currentUser } = useAuth();
     const [withdrawAmounts, setWithdrawAmounts] = useState({});
 
     // #comment handle changes in the withdrawal amount input fields
@@ -35,17 +37,21 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
             onClose();
         }
     };
+    
+    // #comment Filter reinforcements to only show those owned by the current user
+    const myReinforcements = Object.entries(city.reinforcements || {})
+        .filter(([, reinfData]) => reinfData.ownerId === currentUser.uid);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl border-2 border-gray-600 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-title text-3xl text-white">Reinforcements in {city.cityName}</h3>
+                    <h3 className="font-title text-3xl text-white">Withdraw Your Troops from {city.cityName}</h3>
                     <button onClick={onClose} className="text-gray-400 text-3xl leading-none hover:text-white">&times;</button>
                 </div>
 
                 <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                    {Object.entries(city.reinforcements || {}).map(([originCityId, reinfData]) => (
+                    {myReinforcements.length > 0 ? myReinforcements.map(([originCityId, reinfData]) => (
                         <div key={originCityId} className="bg-gray-700 p-3 rounded-lg">
                             <h4 className="font-bold text-yellow-400 mb-2">From: {reinfData.originCityName}</h4>
                             <div className="space-y-2">
@@ -74,7 +80,9 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
                                 })}
                             </div>
                         </div>
-                    ))}
+                    )) : (
+                        <p className="text-center text-gray-400">You have no troops to withdraw from this city.</p>
+                    )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-600 flex justify-end">

@@ -1,3 +1,4 @@
+// src/components/map/OtherCityModal.js
 import React, { useMemo } from 'react';
 import TroopDisplay from '../TroopDisplay';
 import unitsData from '../../gameData/units.json';
