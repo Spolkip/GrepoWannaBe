@@ -133,3 +133,21 @@
 .god-town-slot.city {
     filter: drop-shadow(0 0 8px #fde047);
 }
+
+/* Wonder Styles */
+.wonder-spot-tile {
+    @apply w-8 h-8 rounded-full cursor-pointer relative bg-yellow-400/50;
+    animation: glowing-wonder-spot 2s infinite;
+}
+
+@keyframes glowing-wonder-spot {
+    0% { box-shadow: 0 0 5px #fde047; }
+    50% { box-shadow: 0 0 20px #fef08a, 0 0 10px #fef08a; }
+    100% { box-shadow: 0 0 5px #fde047; }
+}
+
+.constructing-wonder-tile {
+    @apply w-8 h-8 cursor-pointer relative;
+    background-image: url('../images/special_buildings/alliance_wonders.jpg');
+    background-size: contain;
+}

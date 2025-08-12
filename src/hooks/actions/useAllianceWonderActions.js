@@ -22,12 +22,53 @@ export const getWonderProgress = (alliance, wonderId) => {
 };
 
 // #comment This hook contains actions related to alliance wonders.
-// #comment The function name has been corrected from useAdminActions to useAllianceWonderActions to fix the export error.
 export const useAllianceWonderActions = (playerAlliance) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId, gameState } = useGame();
 
-    const donateToWonder = async (wonderId, donation, isInitialBuild = false) => {
+    const startWonder = async (wonderId, islandId, coords) => {
+        if (!playerAlliance) throw new Error("You are not in an alliance.");
+        if (playerAlliance.leader.uid !== currentUser.uid) throw new Error("Only the leader can start a wonder.");
+        if (playerAlliance.allianceWonder) throw new Error("Your alliance is already building a wonder.");
+
+        const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', gameState.id);
+        const eventRef = doc(collection(allianceDocRef, 'events'));
+        const startCost = { wood: 50000, stone: 50000, silver: 25000 };
+
+        await runTransaction(db, async (transaction) => {
+            const cityDoc = await transaction.get(cityDocRef);
+            if (!cityDoc.exists()) throw new Error("Your city data was not found.");
+            const cityData = cityDoc.data();
+
+            for (const resource in startCost) {
+                if ((cityData.resources[resource] || 0) < startCost[resource]) {
+                    throw new Error(`You do not have enough ${resource} to start the wonder.`);
+                }
+            }
+
+            const newPlayerResources = { ...cityData.resources };
+            for (const resource in startCost) {
+                newPlayerResources[resource] -= startCost[resource];
+            }
+
+            transaction.update(cityDocRef, { resources: newPlayerResources });
+
+            transaction.update(allianceDocRef, {
+                allianceWonder: { id: wonderId, level: 0, islandId, x: coords.x, y: coords.y },
+                wonderProgress: { [wonderId]: { wood: 0, stone: 0, silver: 0 } }
+            });
+
+            const eventText = `${userProfile.username} has started construction of the ${allianceWonders[wonderId].name}.`;
+            transaction.set(eventRef, {
+                type: 'wonder_start',
+                text: eventText,
+                timestamp: serverTimestamp()
+            });
+        });
+    };
+
+    const donateToWonder = async (wonderId, donation) => {
         if (!playerAlliance) throw new Error("You are not in an alliance.");
 
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
@@ -42,27 +83,6 @@ export const useAllianceWonderActions = (playerAlliance) => {
             const cityData = cityDoc.data();
             const allianceData = allianceDoc.data();
             
-            if (isInitialBuild) {
-                if (allianceData.allianceWonder) throw new Error("A wonder has already been selected.");
-                // #comment The check below seems to rely on a 'memberCities' field which may not exist in your alliance data.
-                // #comment It has been disabled to prevent potential crashes. You may need to implement a different logic to check for island control.
-                // const citiesOnIslandCount = allianceData.members.reduce((count, member) => count + (allianceData.memberCities?.[member.uid]?.length || 0), 0);
-                // if (citiesOnIslandCount < 16) throw new Error("You must have all cities on the island to build a wonder.");
-                
-                transaction.update(allianceDocRef, {
-                    allianceWonder: { id: wonderId, level: 0 },
-                    wonderProgress: { [wonderId]: { wood: 0, stone: 0, silver: 0 } }
-                });
-                
-                const eventText = `${userProfile.username} has started construction of the ${allianceWonders[wonderId].name}.`;
-                transaction.set(eventRef, {
-                    type: 'wonder_start',
-                    text: eventText,
-                    timestamp: serverTimestamp()
-                });
-                return;
-            }
-
             const currentWonder = allianceData.allianceWonder;
             if (!currentWonder || currentWonder.id !== wonderId) throw new Error("Cannot donate to this wonder, as it is not the active wonder.");
 
@@ -77,6 +97,15 @@ export const useAllianceWonderActions = (playerAlliance) => {
 
             transaction.update(cityDocRef, { resources: newPlayerResources });
             transaction.update(allianceDocRef, { [`wonderProgress.${wonderId}`]: newWonderProgress });
+
+            const donationAmounts = Object.entries(donation).filter(([,a]) => a > 0).map(([r,a]) => `${a.toLocaleString()} ${r}`).join(', ');
+            if (donationAmounts) {
+                transaction.set(eventRef, {
+                    type: 'wonder_donation',
+                    text: `${userProfile.username} donated ${donationAmounts} to the wonder.`,
+                    timestamp: serverTimestamp()
+                });
+            }
         });
     };
 
@@ -94,15 +123,21 @@ export const useAllianceWonderActions = (playerAlliance) => {
             const currentWonder = allianceData.allianceWonder;
             const progress = allianceData.wonderProgress[wonderId] || { wood: 0, stone: 0, silver: 0 };
             const nextLevel = currentWonder.level + 1;
-            const cost = getWonderCost(nextLevel);
+            const cost = getWonderCost(nextLevel -1);
 
             if (progress.wood < cost.wood || progress.stone < cost.stone || progress.silver < cost.silver) {
                 throw new Error("Not enough resources have been donated to claim this level.");
             }
 
+            const newProgress = {
+                wood: progress.wood - cost.wood,
+                stone: progress.stone - cost.stone,
+                silver: progress.silver - cost.silver,
+            };
+
             transaction.update(allianceDocRef, {
-                allianceWonder: { id: wonderId, level: nextLevel },
-                wonderProgress: { [wonderId]: { wood: 0, stone: 0, silver: 0 } } // Reset progress for next level
+                allianceWonder: { ...currentWonder, level: nextLevel },
+                [`wonderProgress.${wonderId}`]: newProgress
             });
         });
     };
@@ -116,9 +151,9 @@ export const useAllianceWonderActions = (playerAlliance) => {
             const allianceDoc = await transaction.get(allianceDocRef);
             if (!allianceDoc.exists()) throw new Error("Alliance data not found.");
 
-            transaction.update(allianceDocRef, { allianceWonder: null });
+            transaction.update(allianceDocRef, { allianceWonder: null, wonderProgress: {} });
         });
     };
 
-    return { donateToWonder, claimWonderLevel, demolishWonder };
+    return { startWonder, donateToWonder, claimWonderLevel, demolishWonder };
 };

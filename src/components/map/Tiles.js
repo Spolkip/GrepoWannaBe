@@ -1,11 +1,9 @@
-// src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ruinImage from '../../images/ruin_new.png';
 import unitConfig from '../../gameData/units.json';
 import godTownImage from '../../images/god-town.png';
 
-// #comment Dynamically import all unit images so they can be used in the tooltip
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
@@ -15,7 +13,6 @@ imageContext.keys().forEach((item) => {
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
-// Define components first without exporting them directly
 const _WaterTile = ({ gameSettings = defaultSettings }) => {
     return <div className="w-full h-full bg-transparent" />;
 };
@@ -59,7 +56,6 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
         const points = cityPoints[slotData.id] ? cityPoints[slotData.id].toLocaleString() : '...';
 
         let troopsHTML = '';
-        // #comment Check for troops in own city or in scouted reports for other cities
         if (slotData.ownerId === currentUser.uid) {
             slotClass = 'my-city';
             troopsHTML = formatUnitsForTooltip(slotData.units);
@@ -70,7 +66,6 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             troopsHTML = formatUnitsForTooltip(scoutedCities[slotData.id]);
         }
 
-        // #comment Construct the base info part of the tooltip
         const baseInfo = `
             <div class="tooltip-info-section">
                 <b>${slotData.cityName}</b><br>
@@ -80,10 +75,8 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             </div>
         `;
 
-        // #comment Combine base info with troops if available
         tooltipText = `${baseInfo}${troopsHTML}`;
         
-        // #comment Determine the city color based on diplomatic status if it's not the player's city
         if (slotData.ownerId !== currentUser.uid && slotData.ownerId !== 'ghost') {
             if (playerAlliance && playerAlliance.tag && cityAllianceTag) {
                 const allies = playerAlliance.diplomacy?.allies || [];
@@ -166,7 +159,7 @@ const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
         }
     }
 
-    const bgClass = 'bg-transparent'; // Use the parent's water texture
+    const bgClass = 'bg-transparent';
 
     return (
         <div className={`w-full h-full ${bgClass} flex justify-center items-center`}>
@@ -199,7 +192,7 @@ const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => 
     return (
         <div className={`w-full h-full ${bgClass} flex justify-center items-center`}>
             <div
-                onClick={() => onClick(townData.id)} // #comment Pass the ID, not the whole object
+                onClick={() => onClick(townData.id)}
                 className={townClass}
                 style={{ backgroundImage: `url(${image})` }}
             >
@@ -209,10 +202,31 @@ const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => 
     );
 };
 
-// Now, memoize and export the components
+const _WonderSpotTile = ({ spotData, onClick }) => {
+    return (
+        <div className="w-full h-full flex justify-center items-center">
+            <div onClick={() => onClick(spotData)} className="wonder-spot-tile">
+                <span className="map-object-tooltip">Click to build an Alliance Wonder</span>
+            </div>
+        </div>
+    );
+};
+
+const _ConstructingWonderTile = ({ wonderData, onClick }) => {
+    return (
+        <div className="w-full h-full flex justify-center items-center">
+            <div onClick={() => onClick(wonderData)} className="constructing-wonder-tile">
+                <span className="map-object-tooltip">Wonder under construction</span>
+            </div>
+        </div>
+    );
+};
+
 export const WaterTile = React.memo(_WaterTile);
 export const LandTile = React.memo(_LandTile);
 export const CitySlotTile = React.memo(_CitySlotTile);
 export const FarmingVillageTile = React.memo(_FarmingVillageTile);
 export const RuinTile = React.memo(_RuinTile);
 export const GodTownTile = React.memo(_GodTownTile);
+export const WonderSpotTile = React.memo(_WonderSpotTile);
+export const ConstructingWonderTile = React.memo(_ConstructingWonderTile);

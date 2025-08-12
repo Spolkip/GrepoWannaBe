@@ -1,24 +1,20 @@
 // src/components/map/MapGrid.js
 import React, { useMemo } from 'react';
-import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile, GodTownTile } from './Tiles';
+import { WaterTile, LandTile, CitySlotTile, FarmingVillageTile, RuinTile, GodTownTile, WonderSpotTile, ConstructingWonderTile } from './Tiles';
 import MovementIndicator from './MovementIndicator';
 import { useGame } from '../../contexts/GameContext';
 
 const TILE_SIZE = 32;
 const defaultSettings = { animations: true, showVisuals: true, showGrid: true };
 
-const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, godTowns, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick, onVillageClick, onRuinClick, onGodTownClick, onWonderSpotClick, onConstructingWonderClick, isPlacingDummyCity, movements, combinedSlots, villages, ruins, godTowns, playerAlliance, conqueredVillages, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
     const { playerCities } = useGame();
 
-    // #comment Create a comprehensive lookup for all map locations by their various IDs for the MovementIndicator.
     const locationLookup = useMemo(() => {
         const lookup = {};
-        // Add all visible slots, villages, ruins, and god towns keyed by their primary ID (slotId or docId)
         Object.values({...combinedSlots, ...villages, ...ruins, ...godTowns}).forEach(loc => {
             if (loc && loc.id) lookup[loc.id] = loc;
         });
-        // Also add all of the current player's cities, keyed by their document ID.
-        // This is crucial for finding the origin of outgoing movements.
         Object.values(playerCities || {}).forEach(city => {
             if (city && city.id) lookup[city.id] = city;
         });
@@ -51,6 +47,12 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     break;
                 case 'god_town':
                     tileContent = <GodTownTile townData={tile.data} onClick={onGodTownClick} gameSettings={gameSettings} />;
+                    break;
+                case 'wonder_spot':
+                    tileContent = <WonderSpotTile spotData={tile.data} onClick={onWonderSpotClick} />;
+                    break;
+                case 'constructing_wonder':
+                    tileContent = <ConstructingWonderTile wonderData={tile.data} onClick={onConstructingWonderClick} />;
                     break;
                 case 'land':
                     tileContent = <LandTile gameSettings={gameSettings} />;

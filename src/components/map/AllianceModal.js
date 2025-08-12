@@ -13,7 +13,6 @@ import AllianceProperties from '../alliance/AllianceProperties';
 import AllianceBank from '../alliance/AllianceBank';
 import AllianceSuggestions from '../alliance/AllianceSuggestions';
 import AllianceCreation from '../alliance/AllianceCreation';
-import AllianceWonder from '../alliance/AllianceWonder';
 import './AllianceModal.css';
 
 const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
@@ -111,7 +110,6 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
             case 'settings': return <AllianceSettings alliance={playerAlliance} isLeader={isLeader} />;
             case 'invitations': return <AllianceInvitations alliance={playerAlliance} isLeader={isLeader} />;
             case 'ranks': return <AllianceRanks alliance={playerAlliance} isLeader={isLeader} />;
-            case 'wonder': return <AllianceWonder />;
             default: return <AllianceOverview />;
         }
     };
@@ -142,7 +140,6 @@ const AllianceModal = ({ onClose, onOpenAllianceProfile, openModal }) => {
                 <button onClick={() => setActiveTab('research')} className={activeTab === 'research' ? 'active' : ''}>Research</button>
                 <button onClick={() => setActiveTab('diplomacy')} className={activeTab === 'diplomacy' ? 'active' : ''}>Diplomacy</button>
                 <button onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'active' : ''}>Bank</button>
-                <button onClick={() => setActiveTab('wonder')} className={activeTab === 'wonder' ? 'active' : ''}>Wonder</button>
                 <button onClick={() => setActiveTab('properties')} className={activeTab === 'properties' ? 'active' : ''}>Properties</button>
                 {isLeader && (
                     <>

@@ -15,6 +15,8 @@ import DivinePowers from './city/DivinePowers';
 import QuestsButton from './QuestsButton';
 import MapOverlay from './map/MapOverlay';
 import WithdrawModal from './city/WithdrawModal';
+import WonderBuilderModal from './alliance/WonderBuilderModal';
+import WonderProgressModal from './alliance/WonderProgressModal';
 
 
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -72,6 +74,11 @@ const MapView = ({
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
     const [mouseCoords, setMouseCoords] = useState({ x: 0, y: 0 });
+
+    const [controlledIslands, setControlledIslands] = useState({});
+    const [wonderSpots, setWonderSpots] = useState({});
+    const [wonderBuilderData, setWonderBuilderData] = useState(null);
+    const [wonderProgressData, setWonderProgressData] = useState(null);
 
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -168,8 +175,7 @@ const MapView = ({
 
     const handleOpenAlliance = () => openModal('alliance');
 
-    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins, ...godTowns }), [playerCities, visibleSlots, villages, ruins, godTowns]);
-
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins }), [playerCities, visibleSlots, villages, ruins]);
 
     useEffect(() => {
         if (initialMapAction?.type === 'open_city_modal') {
@@ -304,18 +310,118 @@ const MapView = ({
         }
     };
 
-    // when we enter a city from the map, we want to go to the city view
     const handleEnterCity = (cityId) => {
         showCity(cityId);
         closeModal('ownInactiveCity');
         closeModal('ownActiveCity');
     };
     
-    // #comment handler to open the withdraw modal
     const handleOpenWithdrawModal = (city) => {
         openModal('withdraw', city);
     };
 
+    // #comment Effect to find controlled islands
+    useEffect(() => {
+        if (!worldState?.islands || !visibleSlots || !playerCities) return;
+
+        const allSlotsOnMap = { ...visibleSlots };
+        Object.values(playerCities).forEach(city => {
+            if (city.slotId) {
+                allSlotsOnMap[city.slotId] = { ...allSlotsOnMap[city.slotId], ...city };
+            }
+        });
+
+        const islandSlotCounts = {};
+        const islandAllianceCounts = {};
+
+        worldState.islands.forEach(island => {
+            islandSlotCounts[island.id] = 0;
+            islandAllianceCounts[island.id] = {};
+        });
+
+        Object.values(allSlotsOnMap).forEach(slot => {
+            if (slot.islandId && islandSlotCounts.hasOwnProperty(slot.islandId)) {
+                islandSlotCounts[slot.islandId]++;
+                if (slot.ownerId && slot.alliance) {
+                    const alliance = slot.alliance;
+                    if (!islandAllianceCounts[slot.islandId][alliance]) {
+                        islandAllianceCounts[slot.islandId][alliance] = 0;
+                    }
+                    islandAllianceCounts[slot.islandId][alliance]++;
+                }
+            }
+        });
+
+        const newControlledIslands = {};
+        for (const islandId in islandSlotCounts) {
+            if (islandSlotCounts[islandId] > 0) {
+                for (const allianceId in islandAllianceCounts[islandId]) {
+                    if (islandAllianceCounts[islandId][allianceId] === islandSlotCounts[islandId]) {
+                        newControlledIslands[islandId] = allianceId;
+                    }
+                }
+            }
+        }
+        setControlledIslands(newControlledIslands);
+    }, [worldState, visibleSlots, playerCities]);
+
+    // #comment Effect to create wonder spots
+    useEffect(() => {
+        if (!worldState || Object.keys(controlledIslands).length === 0) {
+            setWonderSpots({});
+            return;
+        }
+
+        const newSpots = {};
+        for (const islandId in controlledIslands) {
+            if (playerAlliance?.allianceWonder?.id) continue;
+
+            const island = worldState.islands.find(i => i.id === islandId);
+            if (!island) continue;
+
+            const centerX = Math.round(island.x);
+            const centerY = Math.round(island.y);
+            let spot = null;
+
+            for (let r = 0; r < island.radius && !spot; r++) {
+                for (let dx = -r; dx <= r && !spot; dx++) {
+                    for (let dy = -r; dy <= r && !spot; dy++) {
+                        if (dx * dx + dy * dy > r * r) continue;
+                        const x = centerX + dx;
+                        const y = centerY + dy;
+
+                        const isOccupied = Object.values(combinedSlots).some(s => s.x === x && s.y === y) || Object.values(villages).some(v => v.x === x && v.y === y);
+                        
+                        if (!isOccupied) {
+                            const distSq = Math.pow(x - island.x, 2) + Math.pow(y - island.y, 2);
+                            if (distSq <= Math.pow(island.radius, 2)) {
+                                spot = { x, y, islandId, allianceId: controlledIslands[islandId] };
+                            }
+                        }
+                    }
+                }
+            }
+            if (spot) newSpots[islandId] = spot;
+        }
+        setWonderSpots(newSpots);
+    }, [controlledIslands, worldState, combinedSlots, villages, playerAlliance]);
+
+    const handleWonderSpotClick = (spotData) => {
+        if (playerAlliance?.leader?.uid !== currentUser.uid) {
+            setMessage("Only the alliance leader can begin construction of a wonder.");
+            return;
+        }
+        if (playerAlliance.id !== spotData.allianceId) {
+            setMessage("Your alliance does not control this island.");
+            return;
+        }
+        setWonderBuilderData({ islandId: spotData.islandId, coords: { x: spotData.x, y: spotData.y } });
+    };
+
+    const handleConstructingWonderClick = (wonderData) => {
+        setWonderProgressData(wonderData);
+    };
+    
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
@@ -351,8 +457,19 @@ const MapView = ({
                 grid[y][x] = { type: 'god_town', data: town };
             }
         });
+        Object.values(wonderSpots).forEach(spot => {
+            if (grid[spot.y]?.[spot.x]) {
+                grid[spot.y][spot.x] = { type: 'wonder_spot', data: spot };
+            }
+        });
+        if (playerAlliance?.allianceWonder?.id && playerAlliance.allianceWonder.x !== undefined) {
+            const wonder = playerAlliance.allianceWonder;
+            if (grid[wonder.y]?.[wonder.x]) {
+                grid[wonder.y][wonder.x] = { type: 'constructing_wonder', data: wonder };
+            }
+        }
         return grid;
-    }, [worldState, combinedSlotsForGrid, villages, ruins, godTowns]);
+    }, [worldState, combinedSlotsForGrid, villages, ruins, godTowns, wonderSpots, playerAlliance]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -429,6 +546,8 @@ const MapView = ({
                                     onVillageClick={onVillageClick}
                                     onRuinClick={onRuinClick}
                                     onGodTownClick={onGodTownClick}
+                                    onWonderSpotClick={handleWonderSpotClick}
+                                    onConstructingWonderClick={handleConstructingWonderClick}
                                     isPlacingDummyCity={isPlacingDummyCity}
                                     movements={movements}
                                     combinedSlots={combinedSlotsForGrid}
@@ -455,6 +574,8 @@ const MapView = ({
                     onWithdrawTroops={handleWithdrawTroops}
                 />
             )}
+            {wonderBuilderData && <WonderBuilderModal onClose={() => setWonderBuilderData(null)} {...wonderBuilderData} />}
+            {wonderProgressData && <WonderProgressModal onClose={() => setWonderProgressData(null)} />}
         </div>
     );
 };
