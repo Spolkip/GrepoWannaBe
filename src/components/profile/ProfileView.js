@@ -8,6 +8,7 @@ import { useCityState } from '../../hooks/useCityState';
 import unitConfig from '../../gameData/units.json';
 import './ProfileView.css';
 import TextEditor from '../shared/TextEditor';
+import placeholder_profile from '../../images/placeholder_profile.png';
 
 const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
@@ -178,7 +179,12 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                         <div className="profile-box">
                             <div className="profile-box-header">Profile</div>
                             <div className="profile-description-box">
-                                <img src={displayProfile?.imageUrl || 'https://i.imgur.com/7D72tLz.png'} alt="Profile Avatar" className="profile-avatar-large" />
+                                <img 
+                                    src={displayProfile?.imageUrl || placeholder_profile} 
+                                    onError={(e) => { e.target.onerror = null; e.target.src=placeholder_profile; }}
+                                    alt="Profile Avatar" 
+                                    className="profile-avatar-large" 
+                                />
                                 <div className="profile-description-text">
                                     {isEditing ? (
                                         <form onSubmit={handleUpdateProfile} className="h-full flex flex-col">

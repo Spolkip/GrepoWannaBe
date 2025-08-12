@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { AllianceProvider } from './contexts/AllianceProvider';
+import { NotificationProvider } from './contexts/NotificationProvider'; // Import NotificationProvider
 import AuthScreen from './components/AuthScreen';
 import Game from './components/Game';
 import WorldSelectionScreen from './components/WorldSelectionScreen';
@@ -46,11 +47,13 @@ function App() {
 
     if (selectedWorldId) {
         return (
-            <GameProvider worldId={selectedWorldId}>
-                <AllianceProvider>
-                    <GameController onBackToWorlds={() => setSelectedWorldId(null)} />
-                </AllianceProvider>
-            </GameProvider>
+            <NotificationProvider>
+                <GameProvider worldId={selectedWorldId}>
+                    <AllianceProvider>
+                        <GameController onBackToWorlds={() => setSelectedWorldId(null)} />
+                    </AllianceProvider>
+                </GameProvider>
+            </NotificationProvider>
         );
     }
 

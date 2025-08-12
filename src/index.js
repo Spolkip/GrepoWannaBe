@@ -12,6 +12,7 @@ import './components/map/MovementModal.css'; // Import the new CSS file
 import './components/map/OtherCityModal.css'; // Import the new CSS file
 import './components/map/MapOverlay.css'; // #comment Import the new overlay CSS
 import './components/city/ResearchQueue.css'; // Import the new CSS file
+import './components/shared/Notification.css'; // Import Notification CSS
 import App from './App';
 import { AuthProvider } from './contexts/AuthContext';
 

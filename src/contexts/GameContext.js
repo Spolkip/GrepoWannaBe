@@ -2,6 +2,7 @@ import React, { useState, useEffect, createContext, useContext, useCallback } fr
 import { doc, onSnapshot, collection, writeBatch, updateDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext'; // Import useNotification
 
 const GameContext = createContext();
 
@@ -9,6 +10,7 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children, worldId }) => {
     const { currentUser } = useAuth();
+    const { addNotification } = useNotification(); // Get addNotification from context
     const [playerGameData, setPlayerGameData] = useState(null);
     const [playerCities, setPlayerCities] = useState({});
     const [activeCityId, setActiveCityId] = useState(null);
@@ -170,6 +172,7 @@ export const GameProvider = ({ children, worldId }) => {
         setGameSettings,
         countCitiesOnIsland,
         renameCity,
+        addNotification, // Pass addNotification through the context
 
         gameState,
         playerCity,

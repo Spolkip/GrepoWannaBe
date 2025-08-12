@@ -19,7 +19,7 @@ const getMarketCapacity = (level) => {
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
-    const { activeCityId } = useGame(); // #comment Get activeCityId from context
+    const { activeCityId, addNotification } = useGame(); // #comment Get activeCityId and addNotification from context
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);
 
@@ -275,9 +275,15 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 
                 const productionRates = getProductionRates(newState.buildings);
                 const capacity = getWarehouseCapacity(newState.buildings?.warehouse?.level);
-                newState.resources.wood = Math.min(capacity, prevState.resources.wood + (productionRates.wood / 3600) * elapsedSeconds);
-                newState.resources.stone = Math.min(capacity, prevState.resources.stone + (productionRates.stone / 3600) * elapsedSeconds);
-                newState.resources.silver = Math.min(capacity, prevState.resources.silver + (productionRates.silver / 3600) * elapsedSeconds);
+                
+                // #comment Add safety check for resources to prevent NaN errors
+                const currentWood = prevState.resources.wood || 0;
+                const currentStone = prevState.resources.stone || 0;
+                const currentSilver = prevState.resources.silver || 0;
+
+                newState.resources.wood = Math.min(capacity, currentWood + (productionRates.wood / 3600) * elapsedSeconds);
+                newState.resources.stone = Math.min(capacity, currentStone + (productionRates.stone / 3600) * elapsedSeconds);
+                newState.resources.silver = Math.min(capacity, currentSilver + (productionRates.silver / 3600) * elapsedSeconds);
 
                 const templeLevel = newState.buildings.temple?.level || 0;
                 if (newState.god && templeLevel > 0) {
@@ -387,14 +393,17 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                         updates.resources.wood += refund.wood;
                         updates.resources.stone += refund.stone;
                         updates.resources.silver += refund.silver;
+                        addNotification(`${buildingConfig[task.buildingId].name} has been demolished to level ${task.level}.`);
             
                     } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
+                        addNotification(`Your wonder, ${buildingConfig[task.buildingId].name}, has been constructed!`);
                     } else { // This is an upgrade completion
                         if (!updates.buildings[task.buildingId]) {
                             updates.buildings[task.buildingId] = { level: 0 };
                         }
                         updates.buildings[task.buildingId].level = task.level;
+                        addNotification(`${buildingConfig[task.buildingId].name} has been upgraded to level ${task.level}.`);
 
                         // #comment If academy is upgraded, check for research to reactivate
                         if (task.buildingId === 'academy') {
@@ -422,6 +431,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been trained.`);
                 });
             });
 
@@ -429,6 +439,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been built.`);
                 });
             });
 
@@ -436,6 +447,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been summoned.`);
                 });
             });
 
@@ -444,6 +456,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 completed.forEach(task => {
                     // #comment Set research state to new object format
                     updates.research[task.researchId] = { completed: true, active: true };
+                    addNotification(`Research for "${researchConfig[task.researchId].name}" is complete.`);
                 });
             });
 
@@ -451,6 +464,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 updates.units = updates.units || { ...currentState.units };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                    addNotification(`${task.amount} ${unitConfig[task.unitId].name}(s) have been healed.`);
                 });
             });
 
@@ -468,7 +482,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
 
 useEffect(() => {
     const autoSave = async () => {
