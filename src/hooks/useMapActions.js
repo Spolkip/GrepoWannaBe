@@ -10,7 +10,7 @@ import buildingConfig from '../gameData/buildings.json';
 
 export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCache) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldId, gameState, playerCity, setGameState, worldState } = useGame();
+    const { worldId, gameState, playerCity, setGameState, worldState, playerCities } = useGame();
     const [message, setMessage] = useState('');
     const [travelTimeInfo, setTravelTimeInfo] = useState(null);
 
@@ -342,6 +342,74 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             setMessage(`Failed to create dummy city: ${error.message}`);
         }
     }, [userProfile, worldId, invalidateChunkCache, setMessage]);
+    
+    // #comment handle withdrawing reinforcing troops from one of your cities
+    const handleWithdrawTroops = useCallback(async (reinforcedCity, withdrawalData) => {
+        const batch = writeBatch(db);
+    
+        for (const originCityId in withdrawalData) {
+            const unitsToWithdraw = withdrawalData[originCityId];
+            if (Object.values(unitsToWithdraw).every(amount => amount === 0)) {
+                continue;
+            }
+    
+            const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
+            const originCity = playerCities[originCityId];
+            if (!originCity) {
+                console.error(`Could not find origin city with ID ${originCityId} for withdrawal.`);
+                continue;
+            }
+    
+            const distance = calculateDistance(reinforcedCity, originCity);
+            const speeds = Object.keys(unitsToWithdraw).map(unitId => unitConfig[unitId].speed);
+            const slowestSpeed = Math.min(...speeds);
+            const travelSeconds = calculateTravelTime(distance, slowestSpeed);
+            const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
+    
+            const movementData = {
+                type: 'return',
+                status: 'returning',
+                originCityId: originCityId,
+                originCoords: { x: originCity.x, y: originCity.y },
+                originOwnerId: currentUser.uid,
+                originCityName: originCity.cityName,
+                targetCityId: reinforcedCity.id,
+                targetCoords: { x: reinforcedCity.x, y: reinforcedCity.y },
+                units: unitsToWithdraw,
+                departureTime: serverTimestamp(),
+                arrivalTime: arrivalTime,
+                involvedParties: [currentUser.uid]
+            };
+            batch.set(newMovementRef, movementData);
+        }
+    
+        const reinforcedCityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', reinforcedCity.id);
+        const reinforcedCitySnap = await getDoc(reinforcedCityRef);
+        if (!reinforcedCitySnap.exists()) {
+            throw new Error("Reinforced city data not found.");
+        }
+        const currentReinforcements = reinforcedCitySnap.data().reinforcements || {};
+        const newReinforcements = JSON.parse(JSON.stringify(currentReinforcements));
+    
+        for (const originCityId in withdrawalData) {
+            const unitsToWithdraw = withdrawalData[originCityId];
+            for (const unitId in unitsToWithdraw) {
+                if (newReinforcements[originCityId]?.units?.[unitId]) {
+                    newReinforcements[originCityId].units[unitId] -= unitsToWithdraw[unitId];
+                    if (newReinforcements[originCityId].units[unitId] <= 0) {
+                        delete newReinforcements[originCityId].units[unitId];
+                    }
+                }
+            }
+            if (Object.keys(newReinforcements[originCityId]?.units || {}).length === 0) {
+                delete newReinforcements[originCityId];
+            }
+        }
+        batch.update(reinforcedCityRef, { reinforcements: newReinforcements });
+    
+        await batch.commit();
+        setMessage("Troops are returning.");
+    }, [currentUser, worldId, playerCities, setMessage]);
 
     return {
         message,
@@ -351,6 +419,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         handleActionClick,
         handleSendMovement,
         handleCancelMovement,
-        handleCreateDummyCity
+        handleCreateDummyCity,
+        handleWithdrawTroops,
     };
 };

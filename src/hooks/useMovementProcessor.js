@@ -596,11 +596,30 @@ export const useMovementProcessor = (worldId) => {
                         batch.delete(movementDoc.ref);
                         break;
                     }
-                    const newTargetUnits = { ...targetCityState.units };
-                    for (const unitId in movement.units) {
-                        newTargetUnits[unitId] = (newTargetUnits[unitId] || 0) + movement.units[unitId];
+                    
+                    // #comment Differentiate between reinforcing another player and reinforcing one's own city
+                    if (movement.originOwnerId === movement.targetOwnerId) {
+                        const newReinforcements = { ...(targetCityState.reinforcements || {}) };
+                        const originCityId = movement.originCityId;
+                
+                        if (!newReinforcements[originCityId]) {
+                            newReinforcements[originCityId] = {
+                                units: {},
+                                originCityName: movement.originCityName,
+                            };
+                        }
+                
+                        for (const unitId in movement.units) {
+                            newReinforcements[originCityId].units[unitId] = (newReinforcements[originCityId].units[unitId] || 0) + movement.units[unitId];
+                        }
+                        batch.update(targetCityRef, { reinforcements: newReinforcements });
+                    } else {
+                        const newTargetUnits = { ...targetCityState.units };
+                        for (const unitId in movement.units) {
+                            newTargetUnits[unitId] = (newTargetUnits[unitId] || 0) + movement.units[unitId];
+                        }
+                        batch.update(targetCityRef, { units: newTargetUnits });
                     }
-                    batch.update(targetCityRef, { units: newTargetUnits });
 
                     const reinforceReport = { 
                         type: 'reinforce', 

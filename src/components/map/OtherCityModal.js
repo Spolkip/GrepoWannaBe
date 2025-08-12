@@ -16,6 +16,7 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
     if (!city) return null;
 
     const isOwnCity = city.ownerId === currentUser.uid;
+    const hasReinforcements = city.reinforcements && Object.keys(city.reinforcements).length > 0;
 
     const resourceImages = {
         wood: woodImage,
@@ -134,6 +135,14 @@ const OtherCityModal = ({ city, onClose, onGoTo, onAction, isVillageTarget }) =>
                                         >
                                             Reinforce
                                         </button>
+                                        {hasReinforcements && (
+                                            <button 
+                                                onClick={() => onAction('viewReinforcements', city)}
+                                                className="action-btn"
+                                            >
+                                                Reinforcements
+                                            </button>
+                                        )}
                                         <button 
                                             onClick={() => onAction('scout', city)}
                                             className="action-btn"

@@ -28,7 +28,8 @@ const MapModals = ({
     onActionClick,
     marketCapacity,
     onEnterCity,
-    onSwitchCity
+    onSwitchCity,
+    onWithdraw, // #comment Receive onWithdraw handler
 }) => {
     return (
         <>
@@ -54,6 +55,7 @@ const MapModals = ({
                     onGoTo={goToCoordinates}
                     onEnterCity={onEnterCity}
                     onSelectCity={onSwitchCity}
+                    onWithdraw={onWithdraw} // #comment Pass onWithdraw to the modal
                 />
             )}
             {/* Add the new modal render logic */}
