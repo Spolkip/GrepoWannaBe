@@ -348,8 +348,17 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
     
     // #comment handle withdrawing reinforcing troops from one of your cities
     const handleWithdrawTroops = useCallback(async (reinforcedCity, withdrawalData) => {
+        if (!reinforcedCity || !reinforcedCity.ownerId) {
+            setMessage("Invalid city data for withdrawal.");
+            return;
+        }
+    
+        const reinforcedCityOwnerId = reinforcedCity.ownerId;
+        const reinforcedCitySlotId = reinforcedCity.slotId || reinforcedCity.id;
+    
         const batch = writeBatch(db);
     
+        // Create return movements
         for (const originCityId in withdrawalData) {
             const unitsToWithdraw = withdrawalData[originCityId];
             if (Object.values(unitsToWithdraw).every(amount => amount === 0)) {
@@ -381,37 +390,60 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 units: unitsToWithdraw,
                 departureTime: serverTimestamp(),
                 arrivalTime: arrivalTime,
-                involvedParties: [currentUser.uid]
+                involvedParties: [currentUser.uid, reinforcedCityOwnerId]
             };
             batch.set(newMovementRef, movementData);
         }
     
-        const reinforcedCityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', reinforcedCity.id);
-        const reinforcedCitySnap = await getDoc(reinforcedCityRef);
-        if (!reinforcedCitySnap.exists()) {
-            throw new Error("Reinforced city data not found.");
-        }
-        const currentReinforcements = reinforcedCitySnap.data().reinforcements || {};
-        const newReinforcements = JSON.parse(JSON.stringify(currentReinforcements));
+        try {
+            // Use a transaction to safely read and update the reinforced city's data
+            await runTransaction(db, async (transaction) => {
+                const citiesRef = collection(db, `users/${reinforcedCityOwnerId}/games`, worldId, 'cities');
+                const q = query(citiesRef, where('slotId', '==', reinforcedCitySlotId), limit(1));
+                const cityQuerySnap = await getDocs(q);
     
-        for (const originCityId in withdrawalData) {
-            const unitsToWithdraw = withdrawalData[originCityId];
-            for (const unitId in unitsToWithdraw) {
-                if (newReinforcements[originCityId]?.units?.[unitId]) {
-                    newReinforcements[originCityId].units[unitId] -= unitsToWithdraw[unitId];
-                    if (newReinforcements[originCityId].units[unitId] <= 0) {
-                        delete newReinforcements[originCityId].units[unitId];
+                if (cityQuerySnap.empty) {
+                    console.warn(`Could not find city doc for slotId ${reinforcedCitySlotId} to update reinforcements.`);
+                    return; 
+                }
+    
+                const reinforcedCityDocId = cityQuerySnap.docs[0].id;
+                const reinforcedCityRef = doc(db, `users/${reinforcedCityOwnerId}/games`, worldId, 'cities', reinforcedCityDocId);
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', reinforcedCitySlotId);
+    
+                const reinforcedCitySnap = await transaction.get(reinforcedCityRef);
+                if (!reinforcedCitySnap.exists()) {
+                    throw new Error("Reinforced city data not found.");
+                }
+    
+                const currentReinforcements = reinforcedCitySnap.data().reinforcements || {};
+                const newReinforcements = JSON.parse(JSON.stringify(currentReinforcements));
+    
+                for (const originCityId in withdrawalData) {
+                    const unitsToWithdraw = withdrawalData[originCityId];
+                    for (const unitId in unitsToWithdraw) {
+                        if (newReinforcements[originCityId]?.units?.[unitId]) {
+                            newReinforcements[originCityId].units[unitId] -= unitsToWithdraw[unitId];
+                            if (newReinforcements[originCityId].units[unitId] <= 0) {
+                                delete newReinforcements[originCityId].units[unitId];
+                            }
+                        }
+                    }
+                    if (Object.keys(newReinforcements[originCityId]?.units || {}).length === 0) {
+                        delete newReinforcements[originCityId];
                     }
                 }
-            }
-            if (Object.keys(newReinforcements[originCityId]?.units || {}).length === 0) {
-                delete newReinforcements[originCityId];
-            }
-        }
-        batch.update(reinforcedCityRef, { reinforcements: newReinforcements });
+                transaction.update(reinforcedCityRef, { reinforcements: newReinforcements });
+                transaction.update(citySlotRef, { reinforcements: newReinforcements });
+            });
     
-        await batch.commit();
-        setMessage("Troops are returning.");
+            await batch.commit(); // Commit the movement creation
+            setMessage("Troops are returning.");
+    
+        } catch (error) {
+            console.error("Error withdrawing troops:", error);
+            setMessage(`Failed to withdraw troops: ${error.message}`);
+        }
     }, [currentUser, worldId, playerCities, setMessage]);
 
     return {
