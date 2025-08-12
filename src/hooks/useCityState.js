@@ -19,7 +19,7 @@ const getMarketCapacity = (level) => {
 
 export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInstantUnits) => {
     const { currentUser } = useAuth();
-    const { activeCityId, playerCities } = useGame(); // #comment Get activeCityId and all cities from context
+    const { activeCityId} = useGame(); // #comment Get activeCityId and all cities from context
     const { playerAlliance } = useAlliance();
     const [cityGameState, setCityGameState] = useState(null);
     const gameStateRef = useRef(cityGameState);

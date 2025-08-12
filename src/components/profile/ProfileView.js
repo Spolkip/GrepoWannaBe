@@ -136,7 +136,7 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                 <button onClick={onClose} className="profile-close-button">&times;</button>
                 <div className="profile-grid">
                     <div className="profile-left-column">
-                        <div className="profile-box flex-grow">
+                        <div className="profile-box">
                             <div className="profile-box-header">{displayProfile?.username}</div>
                             <div className="player-info-content">
                                 {gameData?.alliance ? (
@@ -154,7 +154,8 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                                 <div className="stat-item"><span>🏆 Total Points</span> <span>{points.toLocaleString()}</span></div>
                             </div>
                         </div>
-                        <div className="profile-box">
+                        {/* #comment Added flex-grow and min-h-0 to allow the cities list to grow and scroll */}
+                        <div className="profile-box flex-grow min-h-0">
                             <div className="profile-box-header flex justify-between items-center">
                                 <span>Cities ({cities.length})</span>
                                 <button className="text-xs bg-gray-500/50 px-2 py-0.5 rounded">BBCode</button>

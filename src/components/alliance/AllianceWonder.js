@@ -1,17 +1,18 @@
 // src/components/alliance/AllianceWonder.js
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
-import { useGame } from '../../contexts/GameContext';
+import { useAuth } from '../../contexts/AuthContext'; // #comment Import useAuth to get the current user
 import allianceWonders from '../../gameData/alliance_wonders.json';
 import { getWonderProgress } from '../../hooks/actions/useAllianceWonderActions';
 
 const AllianceWonder = () => {
     const { playerAlliance, donateToWonder, claimWonderLevel } = useAlliance();
-    const { worldId } = useGame();
+    const { currentUser } = useAuth(); // #comment Get currentUser from the AuthContext
     const [donation, setDonation] = useState({ wood: 0, stone: 0, silver: 0 });
     const [selectedWonder, setSelectedWonder] = useState(null);
     const [message, setMessage] = useState('');
 
+    // #comment This line now works because currentUser is defined above
     const isLeader = playerAlliance?.leader?.uid === currentUser?.uid;
 
     const currentWonder = playerAlliance?.allianceWonder;
@@ -105,9 +106,9 @@ const AllianceWonder = () => {
         const nextLevelCost = getWonderCost(nextLevel);
         const progress = getWonderProgress(playerAlliance, currentWonder.id);
         const progressPercent = (
-            (progress.wood / nextLevelCost.wood) +
-            (progress.stone / nextLevelCost.stone) +
-            (progress.silver / nextLevelCost.silver)
+            (progress.wood / (nextLevelCost.wood || 1)) +
+            (progress.stone / (nextLevelCost.stone || 1)) +
+            (progress.silver / (nextLevelCost.silver || 1))
         ) / 3 * 100;
 
         return (

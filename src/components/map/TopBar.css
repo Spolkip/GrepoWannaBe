@@ -29,6 +29,9 @@
     border: 2px solid #8B4513;
     box-shadow: 0 4px 10px rgba(0,0,0,0.4);
     color: #4a2c2a;
+    /* #comment Added max-height and overflow to make the list scrollable */
+    max-height: 320px; /* 20rem */
+    overflow-y: auto;
 }
 .city-list-item {
     @apply w-full text-left px-4 py-2 hover:bg-amber-300/50;
