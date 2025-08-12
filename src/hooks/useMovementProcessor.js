@@ -1,3 +1,4 @@
+// src/hooks/useMovementProcessor.js
 import { useEffect, useCallback } from 'react';
 import { db } from '../firebase/config';
 import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
@@ -239,7 +240,14 @@ export const useMovementProcessor = (worldId) => {
                             x: originCityState.x,
                             y: originCityState.y
                         },
-                        defender: { villageName: villageData.name, troops: villageTroops, losses: result.defenderLosses },
+                        defender: { 
+                            villageId: movement.targetVillageId,
+                            villageName: villageData.name, 
+                            troops: villageTroops, 
+                            losses: result.defenderLosses,
+                            x: villageData.x,
+                            y: villageData.y
+                        },
                         read: false,
                     };
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
@@ -351,9 +359,12 @@ export const useMovementProcessor = (worldId) => {
                             y: originCityState.y
                         },
                         defender: {
+                            ruinId: movement.targetRuinId,
                             ruinName: ruinData.name,
                             troops: ruinData.troops,
-                            losses: result.defenderLosses
+                            losses: result.defenderLosses,
+                            x: ruinData.x,
+                            y: ruinData.y
                         },
                         reward: result.attackerWon ? ruinData.researchReward : null,
                         read: false,
@@ -461,20 +472,18 @@ export const useMovementProcessor = (worldId) => {
                             x: originCityState.x,
                             y: originCityState.y
                         },
-                        defender: hasSurvivingLandOrMythic
-                            ? {
-                                cityId: movement.targetCityId,
-                                cityName: targetCityState.cityName,
-                                units: targetCityState.units,
-                                losses: result.defenderLosses,
-                                ownerId: movement.targetOwnerId,
-                                username: movement.ownerUsername || 'Unknown Player',
-                                allianceId: targetAllianceData ? targetAllianceData.id : null,
-                                allianceName: targetAllianceData ? targetAllianceData.name : null,
-                                x: targetCityState.x,
-                                y: targetCityState.y
-                            }
-                            : { cityName: targetCityState.cityName, units: {}, losses: {} },
+                        defender: {
+                            cityId: movement.targetCityId,
+                            cityName: targetCityState.cityName,
+                            units: hasSurvivingLandOrMythic ? targetCityState.units : {},
+                            losses: hasSurvivingLandOrMythic ? result.defenderLosses : {},
+                            ownerId: movement.targetOwnerId,
+                            username: movement.ownerUsername || 'Unknown Player',
+                            allianceId: targetAllianceData ? targetAllianceData.id : null,
+                            allianceName: targetAllianceData ? targetAllianceData.name : null,
+                            x: targetCityState.x,
+                            y: targetCityState.y
+                        },
                         read: false,
                     };
 

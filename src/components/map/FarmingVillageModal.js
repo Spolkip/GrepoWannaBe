@@ -19,7 +19,7 @@ const demandOptions = [
 ];
 
 const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, marketCapacity }) => {
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile } = useAuth();
     const { gameState, setGameState, countCitiesOnIsland, activeCityId } = useGame();
     const [village, setVillage] = useState(initialVillage);
     const [baseVillageData, setBaseVillageData] = useState(initialVillage);
@@ -300,7 +300,28 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                     transaction.update(cityDocRef, { units: newUnits });
                     transaction.delete(playerVillageRef);
 
-                    const report = { type: 'attack_village', title: `Revolt at ${baseData.name}!`, timestamp: serverTimestamp(), outcome: { attackerWon: false, message: `Your plunder attempt on a low-happiness village caused a revolt! You have lost control and suffered casualties, but secured the resources.`, plunder: plunderAmount }, attacker: { cityName: cityData.cityName, units: {}, losses: retaliationLosses }, defender: { villageName: baseData.name }, read: false };
+                    const report = { 
+                        type: 'attack_village', 
+                        title: `Revolt at ${baseData.name}!`, 
+                        timestamp: serverTimestamp(), 
+                        outcome: { attackerWon: false, message: `Your plunder attempt on a low-happiness village caused a revolt! You have lost control and suffered casualties, but secured the resources.`, plunder: plunderAmount }, 
+                        attacker: { 
+                            cityId: activeCityId,
+                            cityName: cityData.cityName, 
+                            ownerId: currentUser.uid,
+                            username: userProfile.username,
+                            x: cityData.x,
+                            y: cityData.y,
+                            units: {}, 
+                            losses: retaliationLosses 
+                        }, 
+                        defender: { 
+                            villageName: baseData.name,
+                            x: baseData.x,
+                            y: baseData.y
+                        }, 
+                        read: false 
+                    };
                     transaction.set(doc(reportsRef), report);
                     return { ...cityData, units: newUnits, resources: newPlayerResources };
                 } else {
@@ -312,7 +333,26 @@ const FarmingVillageModal = ({ village: initialVillage, onClose, worldId, market
                         lastPlundered: serverTimestamp() // Set plunder cooldown
                     });
                     
-                    const report = { type: 'attack_village', title: `Plunder of ${baseData.name} successful!`, timestamp: serverTimestamp(), outcome: { attackerWon: true, plunder: plunderAmount }, attacker: { cityName: cityData.cityName }, defender: { villageName: baseData.name }, read: false };
+                    const report = { 
+                        type: 'attack_village', 
+                        title: `Plunder of ${baseData.name} successful!`, 
+                        timestamp: serverTimestamp(), 
+                        outcome: { attackerWon: true, plunder: plunderAmount }, 
+                        attacker: { 
+                            cityId: activeCityId,
+                            cityName: cityData.cityName,
+                            ownerId: currentUser.uid,
+                            username: userProfile.username,
+                            x: cityData.x,
+                            y: cityData.y
+                        }, 
+                        defender: { 
+                            villageName: baseData.name,
+                            x: baseData.x,
+                            y: baseData.y
+                        }, 
+                        read: false 
+                    };
                     transaction.set(doc(reportsRef), report);
                     return { ...cityData, resources: newPlayerResources };
                 }

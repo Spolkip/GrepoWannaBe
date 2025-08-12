@@ -167,9 +167,15 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded,
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName || defender.villageName}[/city]`) }}></p>
-                                <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
-                                {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
+                               {defender.cityName ? (
+                                    <>
+                                        <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName}[/city]`) }}></p>
+                                        <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
+                                        {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
+                                    </>
+                                ) : (
+                                    <p className="font-bold text-lg">{defender.villageName || defender.ruinName || 'Unknown Target'}</p>
+                                )}
                             </div>
                         </div>
                         <div className="w-full grid grid-cols-2 gap-4 text-sm mt-4">
