@@ -36,6 +36,10 @@ import GodTownModal from './map/GodTownModal';
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json';
 
+// #comment Import the icons
+import logoutIcon from '../images/logout.png';
+import worldIcon from '../images/world_selection.png';
+
 const Game = ({ onBackToWorlds }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity, playerGameData } = useGame();
     const { currentUser, userProfile } = useAuth();
@@ -461,8 +465,14 @@ const Game = ({ onBackToWorlds }) => {
             </div>
 
             <div className="absolute bottom-4 left-4 z-30 flex flex-col space-y-2">
-                {view === 'map' && <button onClick={onBackToWorlds} className="text-sm text-blue-400 hover:text-blue-300 bg-gray-800 px-3 py-1 rounded shadow-lg flex items-center gap-2"><span>🌍</span> Back to Worlds</button>}
-                <button onClick={() => signOut(auth)} className="text-sm text-red-400 hover:text-red-300 bg-gray-800 px-3 py-1 rounded shadow-lg flex items-center gap-2"><span>🚪</span> Logout</button>
+                {view === 'map' && (
+                    <button onClick={onBackToWorlds} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Back to Worlds">
+                        <img src={worldIcon} alt="Back to Worlds" className="w-8 h-8" />
+                    </button>
+                )}
+                <button onClick={() => signOut(auth)} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Logout">
+                    <img src={logoutIcon} alt="Logout" className="w-8 h-8" />
+                </button>
             </div>
         </div>
     );

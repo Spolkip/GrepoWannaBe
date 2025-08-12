@@ -1,4 +1,3 @@
-// src/components/WorldSelectionScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, doc, writeBatch, serverTimestamp, getDoc, deleteDoc, query, limit } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
@@ -6,6 +5,8 @@ import { db, auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
 import { generateIslands, generateCitySlots, generateFarmingVillages, generateRuins } from '../utils/worldGeneration';
+import logoutIcon from '../images/logout.png';
+import worldIcon from '../images/world_selection.png';
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
     if (!message) return null;
@@ -233,7 +234,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
             <Modal message={message} onClose={() => setMessage('')} />
             {worldToDelete && (
                 <ConfirmationModal
-                    message={`Are you sure you want to permanently delete the world "${worldToDelete.name}"? This will delete all cities and progress within it.`}
+                    message={`Are you sure you want to permanently delete the world "${worldToDelete.name}"? This will delete all your cities and progress within it.`}
                     onConfirm={() => handleDeleteWorld(worldToDelete.id, worldToDelete.name)}
                     onCancel={() => setWorldToDelete(null)}
                     confirmText="Delete World"
@@ -245,7 +246,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                         onClick={() => signOut(auth)}
                         className="absolute top-4 right-4 text-sm text-red-400 hover:text-red-300 px-3 py-1 rounded"
                     >
-                        Logout
+                        <img src={logoutIcon} alt="Logout" className="w-8 h-8" />
                     </button>
                     <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Select a World</h1>
 
@@ -255,7 +256,10 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                             {joinedWorlds.length > 0 ? (
                                 joinedWorlds.map(world => (
                                     <div key={world.id} className="selection-card p-4 rounded-lg text-center mb-2 flex justify-between items-center">
-                                        <h3 className="text-xl font-bold flex-grow text-left cursor-pointer" onClick={() => onWorldSelected(world.id)}>{world.name}</h3>
+                                        <div className="flex items-center cursor-pointer" onClick={() => onWorldSelected(world.id)}>
+                                            <img src={worldIcon} alt="World" className="w-8 h-8 mr-4" />
+                                            <h3 className="text-xl font-bold flex-grow text-left">{world.name}</h3>
+                                        </div>
                                         {userProfile?.is_admin && (
                                             <button
                                                 onClick={() => setWorldToDelete(world)}
@@ -276,7 +280,10 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                             {availableWorlds.length > 0 ? (
                                 availableWorlds.map(world => (
                                     <div key={world.id} className="selection-card p-4 rounded-lg text-center mb-2 flex justify-between items-center">
-                                        <h3 className="text-xl font-bold flex-grow text-left cursor-pointer" onClick={() => onWorldSelected(world.id)}>{world.name}</h3>
+                                        <div className="flex items-center cursor-pointer" onClick={() => onWorldSelected(world.id)}>
+                                            <img src={worldIcon} alt="World" className="w-8 h-8 mr-4" />
+                                            <h3 className="text-xl font-bold flex-grow text-left">{world.name}</h3>
+                                        </div>
                                         {userProfile?.is_admin && (
                                             <button
                                                 onClick={() => setWorldToDelete(world)}
