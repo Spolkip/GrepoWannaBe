@@ -164,13 +164,13 @@ export const useAdminActions = ({
 
         if (amounts.population > 0) {
             const farmLevel = newGameState.buildings.farm.level;
-            newGameState.buildings.farm.level = farmLevel + amounts.population;
+            newGameState.buildings.farm.level = amounts.population;
         }
         if (troop.amount > 0) {
             newGameState.units[troop.unit] = (newGameState.units[troop.unit] || 0) + troop.amount;
         }
         if (warehouseLevels > 0) {
-            newGameState.buildings.warehouse.level += warehouseLevels;
+            newGameState.buildings.warehouse.level = warehouseLevels;
         }
         if (unresearchId && newGameState.research[unresearchId]) {
             delete newGameState.research[unresearchId];

@@ -29,8 +29,9 @@ export const useAllianceDiplomacyActions = (playerAlliance) => {
         if (playerAlliance.diplomacy?.allies?.some(a => a.id === targetAllianceId)) {
             throw new Error("You are already allied with this alliance.");
         }
+        // #comment Prevent sending ally requests to enemies.
         if (playerAlliance.diplomacy?.enemies?.some(e => e.id === targetAllianceId)) {
-            throw new Error("You cannot send an ally request to an enemy.");
+            throw new Error("You cannot send an ally request to an enemy. Remove them from your enemies first.");
         }
 
         const targetAllianceRef = doc(db, 'worlds', worldId, 'alliances', targetAllianceId);
@@ -60,6 +61,7 @@ export const useAllianceDiplomacyActions = (playerAlliance) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
             throw new Error("You don't have permission to do this.");
         }
+        // #comment Prevent declaring an ally as an enemy.
         if (playerAlliance.diplomacy?.allies?.some(a => a.id === targetAllianceId)) {
             throw new Error("You cannot declare an ally as an enemy.");
         }
@@ -115,6 +117,10 @@ export const useAllianceDiplomacyActions = (playerAlliance) => {
 
             switch(action) {
                 case 'accept':
+                    // #comment Prevent allying with an enemy.
+                    if (ownDiplomacy.enemies?.some(e => e.id === targetAllianceId)) {
+                        throw new Error("You cannot ally with an enemy. Remove them from your enemies list first.");
+                    }
                     transaction.update(ownAllianceRef, { 'diplomacy.requests': arrayRemove(targetInfo), 'diplomacy.allies': arrayUnion(targetInfo) });
                     transaction.update(targetAllianceRef, { 'diplomacy.allies': arrayUnion(ownInfo) });
                     addDoc(ownEventsRef, { type: 'diplomacy', text: `You are now allied with [${targetInfo.tag}].`, timestamp: serverTimestamp() });

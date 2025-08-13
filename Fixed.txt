@@ -16,3 +16,5 @@ Fixed:
 - Agrotika xoria icons are Wrong (✅)
 - Academy demolish it always with research and does not deletes them
 - spamming building before they reach their max level can bypass it
+- Can have the same allince in to allies and Enemies
+- Building can be build and going population negative it does not stop before going negative

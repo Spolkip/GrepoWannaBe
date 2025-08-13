@@ -84,10 +84,11 @@ const AllianceMembers = () => {
         };
 
         const now = Date.now();
-        const twentyMinutes = 20 * 60 * 1000;
+        // #comment Increased cache time to 10 minutes.
+        const tenMinutes = 10 * 60 * 1000;
         const allianceId = playerAlliance?.id;
 
-        if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < twentyMinutes)) {
+        if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < tenMinutes)) {
             setDetailedMembers(memberCache[allianceId].data);
             setLoading(false);
         } else {
@@ -110,8 +111,8 @@ const AllianceMembers = () => {
                 
                 // #comment Special case for status sorting (online first)
                 if (sortConfig.key === 'status') {
-                    const aIsOnline = a.lastSeen && (new Date() - a.lastSeen) < 3.25 * 60 * 1000; // Tighter window
-                    const bIsOnline = b.lastSeen && (new Date() - b.lastSeen) < 3.25 * 60 * 1000; // Tighter window
+                    const aIsOnline = a.lastSeen && (new Date() - a.lastSeen) < 5 * 60 * 1000;
+                    const bIsOnline = b.lastSeen && (new Date() - b.lastSeen) < 5 * 60 * 1000;
                     if (aIsOnline && !bIsOnline) return -1;
                     if (!aIsOnline && bIsOnline) return 1;
                     aValue = b.lastSeen || b.lastLogin || 0; // Sort by most recent activity
@@ -150,8 +151,8 @@ const AllianceMembers = () => {
     const formatLastSeen = (lastSeen, lastLogin) => {
         const now = new Date();
 
-        // Player is currently online if lastSeen is recent
-        if (lastSeen && (now - lastSeen) < 3.25 * 60 * 1000) { // Tighter 3.25 minute window
+        // #comment Player is currently online if lastSeen is recent, increased window to 5 minutes for reliability.
+        if (lastSeen && (now - lastSeen) < 5 * 60 * 1000) {
             return <span className="text-green-500 font-bold">Online</span>;
         }
 

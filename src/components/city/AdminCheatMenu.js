@@ -13,7 +13,6 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
     const [isInstantUnits, setIsInstantUnits] = useState(false); // New state for instant units
     const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
 
-
     const handleCheat = () => {
         onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
         onClose();
@@ -66,12 +65,13 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
                         />
                     </div>
                     <div className="flex justify-between items-center">
-                        <label className="text-white capitalize">Upgrade Warehouse</label>
+                        <label className="text-white capitalize">Set Warehouse Level</label>
                         <input
                             type="number"
+                            min="1"
                             value={warehouseLevels}
                             onChange={(e) => setWarehouseLevels(parseInt(e.target.value, 10) || 0)}
-                            className="bg-gray-700 text-white rounded p-2 w-32"
+                            className="bg-gray-700 text-white rounded p-2 w-32" 
                         />
                     </div>
                     {/* New Cheat: Unresearch Option */}
