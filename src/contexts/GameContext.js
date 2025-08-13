@@ -28,15 +28,29 @@ export const GameProvider = ({ children, worldId }) => {
         hideReturningReports: false,
         hideCompletedQuestsIcon: false,
     });
-    const [instantBuild, setInstantBuild] = useState(() => {
-        return localStorage.getItem("instantBuild") === "true" // restore on refresh
+    const [isInstantBuild, setIsInstantBuild] = useState(() => {
+        return localStorage.getItem("isInstantBuild") === "true" // restore on refresh
+    });
+    const [isInstantResearch, setIsInstantResearch] = useState(() => {
+        return localStorage.getItem("isInstantResearch") === "true" // restore on refresh
+    });
+    const [isInstantUnits, setIsInstantUnits] = useState(() => {
+        return localStorage.getItem("isInstantUnits") === "true" // restore on refresh
     });
 
 
     // Save to localStorage whenever it changes
     const toggleInstantBuild = (value) => {
-        setInstantBuild(value);
-        localStorage.setItem("instantBuild", value.toString());
+        setIsInstantBuild(value);
+        localStorage.setItem("isInstantBuild", value.toString());
+    };
+        const toggleisInstantResearch = (value) => {
+        setIsInstantResearch(value);
+        localStorage.setItem("isInstantResearch", value.toString());
+    };
+        const toggleisInstantUnits = (value) => {
+        setIsInstantUnits(value);
+        localStorage.setItem("isInstantUnits", value.toString());
     };
     
     useEffect(() => {
@@ -217,5 +231,5 @@ export const GameProvider = ({ children, worldId }) => {
         }
     };
 
-    return <GameContext.Provider value={{...value, instantBuild, setInstantBuild: toggleInstantBuild }}>{children}</GameContext.Provider>;
+    return <GameContext.Provider value={{...value, isInstantBuild, setIsInstantBuild: toggleInstantBuild, isInstantResearch, setIsInstantResearch: toggleisInstantResearch, isInstantUnits, setIsInstantUnits: toggleisInstantUnits }}>{children}</GameContext.Provider>;
 };

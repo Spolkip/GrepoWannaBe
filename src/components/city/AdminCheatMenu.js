@@ -1,27 +1,22 @@
 // src/components/city/AdminCheatMenu.js
-import React, { useState, useEffect } from 'react';
+import React, { useState,  } from 'react';
 import unitConfig from '../../gameData/units.json';
 import researchConfig from '../../gameData/research.json'; // Import research config
 import { useGame } from '../../contexts/GameContext';
 
-const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
+const AdminCheatMenu = ({ onCheat, onClose, InstantBuildActive}) => {
     const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0});
     const [troop, setTroop] = useState({ unit: 'swordsman', amount: 0 });
     const [warehouseLevels, setWarehouseLevels] = useState(0);
-    const { instantBuild, setInstantBuild } = useGame();
+    const {isInstantBuild, setIsInstantBuild, isInstantResearch, setIsInstantResearch, isInstantUnits, setIsInstantUnits } = useGame();
     const [unresearchId, setUnresearchId] = useState(''); // New state for unresearch
-    const [isInstantResearch, setIsInstantResearch] = useState(false); // New state for instant research
-    const [isInstantUnits, setIsInstantUnits] = useState(false); // New state for instant units
     const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
     const [farmLevels, SetFarmLevel] = useState(0);
     
-      // Debug log
-    useEffect(() => {
-        console.log("instantBuild from context:", instantBuild);
-    }, [instantBuild]);
+    
 
     const handleCheat = () => {
-        onCheat(amounts, troop, farmLevels, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
+        onCheat(amounts, troop, farmLevels, warehouseLevels, isInstantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
         onClose();
     };
 
@@ -121,20 +116,20 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
                     </div>
                     {/* New Checkbox for Instant Build */}
                     <div className="flex justify-between items-center pt-4 border-t border-gray-600">
-                        <label htmlFor="instantBuild" className="text-white capitalize">1-Second Builds</label>
+                        <label htmlFor="isInstantBuild" className="text-white capitalize">1-Second Builds</label>
                         <input
-                            id="instantBuild"
+                            id="isInstantBuild"
                             type="checkbox"
-                            checked={instantBuild}
-                            onChange={(e) => setInstantBuild(e.target.checked)}
+                            checked={isInstantBuild}
+                            onChange={(e) => setIsInstantBuild(e.target.checked)}
                             className="w-6 h-6 rounded"
                         />
                     </div>
                     {/* New Checkbox for Instant Research */}
                     <div className="flex justify-between items-center">
-                        <label htmlFor="instantResearch" className="text-white capitalize">1-Second Research</label>
+                        <label htmlFor="isInstantResearch" className="text-white capitalize">1-Second Research</label>
                         <input
-                            id="instantResearch"
+                            id="isInstantResearch"
                             type="checkbox"
                             checked={isInstantResearch}
                             onChange={(e) => setIsInstantResearch(e.target.checked)}
@@ -143,9 +138,9 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
                     </div>
                     {/* New Checkbox for Instant Units */}
                     <div className="flex justify-between items-center">
-                        <label htmlFor="instantUnits" className="text-white capitalize">1-Second Units</label>
+                        <label htmlFor="isInstantUnits" className="text-white capitalize">1-Second Units</label>
                         <input
-                            id="instantUnits"
+                            id="isInstantUnits"
                             type="checkbox"
                             checked={isInstantUnits}
                             onChange={(e) => setIsInstantUnits(e.target.checked)}

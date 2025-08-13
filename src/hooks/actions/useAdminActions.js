@@ -39,7 +39,7 @@ export const useAdminActions = ({
         }
     };
 
-    const handleCheat = async (amounts, troop, farmLevels, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity, forceRefresh) => {
+    const handleCheat = async (amounts, troop, farmLevels, warehouseLevels, isInstantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, foundSecondCity, forceRefresh) => {
         if (!cityGameState || !userProfile?.is_admin) return;
 
         // #comment Handle the new force refresh action
@@ -153,9 +153,9 @@ export const useAdminActions = ({
             return;
         }
 
-        setIsInstantBuild(instantBuild);
-        setIsInstantResearch(instantResearch);
-        setIsInstantUnits(instantUnits);
+        setIsInstantBuild(isInstantBuild);
+        setIsInstantResearch(isInstantResearch);
+        setIsInstantUnits(isInstantUnits);
 
         const newGameState = { ...cityGameState };
         newGameState.resources.wood += amounts.wood;

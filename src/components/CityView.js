@@ -40,9 +40,9 @@ const CityView = ({
     const { currentUser, userProfile } = useAuth();
     const { gameSettings, worldState } = useGame();
     const { playerAlliance } = useAlliance();
-    const [isInstantBuild, setIsInstantBuild] = useState(false);
-    const [isInstantResearch, setIsInstantResearch] = useState(false);
-    const [isInstantUnits, setIsInstantUnits] = useState(false);
+    const {isInstantBuild, setIsInstantBuild} = useGame();
+    const {isInstantResearch, setIsInstantResearch} = useGame();
+    const {isInstantUnits, setIsInstantUnits} = useGame();
     const [message, setMessage] = useState('');
 
     const {

@@ -1,7 +1,4 @@
 // src/utils/worldGeneration.js
-
-const islandImages = ['island1.png', 'island2.png'];
-
 export const generateIslands = (width, height, count) => {
     const islands = [];
     const minMargin = 4;
@@ -35,7 +32,6 @@ export const generateIslands = (width, height, count) => {
                 x: Math.floor(Math.random() * (width - radius * 2)) + radius,
                 y: Math.floor(Math.random() * (height - radius * 2)) + radius,
                 radius: radius,
-                imageName: islandImages[i % islandImages.length]
             };
             hasCollision = checkCollision(island, islands);
             attempts++;
