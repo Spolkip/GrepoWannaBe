@@ -2,9 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { useGame } from '../../contexts/GameContext';
-import { useCityState } from '../../hooks/useCityState';
 import { db } from '../../firebase/config';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,7 +21,6 @@ const AllianceMembers = () => {
     const { playerAlliance } = useAlliance();
     const { worldId } = useGame();
     const { currentUser } = useAuth();
-    const { calculateTotalPoints } = useCityState(worldId);
 
     const [detailedMembers, setDetailedMembers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -55,33 +53,23 @@ const AllianceMembers = () => {
             setLoading(true);
 
             const memberDetailsPromises = playerAlliance.members.map(async (member) => {
-                const citiesColRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
-                const citiesSnap = await getDocs(citiesColRef);
-                const citiesList = citiesSnap.docs.map(doc => doc.data());
+                const gameDocRef = doc(db, `users/${member.uid}/games`, worldId);
+                const userDocRef = doc(db, 'users', member.uid);
 
-                let totalPoints = 0;
-                for (const city of citiesList) {
-                    totalPoints += calculateTotalPoints(city);
-                }
+                const [gameDocSnap, userDocSnap] = await Promise.all([
+                    getDoc(gameDocRef),
+                    canViewActivity ? getDoc(userDocRef) : Promise.resolve(null)
+                ]);
 
-                // #comment Fetch lastLogin and lastSeen if permission is granted
-                let lastLogin = null;
-                let lastSeen = null;
-                if (canViewActivity) {
-                    const userDocRef = doc(db, 'users', member.uid);
-                    const userDocSnap = await getDoc(userDocRef);
-                    if (userDocSnap.exists()) {
-                        lastLogin = userDocSnap.data().lastLogin?.toDate() || null;
-                        lastSeen = userDocSnap.data().lastSeen?.toDate() || null;
-                    }
-                }
+                const gameData = gameDocSnap.exists() ? gameDocSnap.data() : { totalPoints: 0, cityCount: 0, lastSeen: null };
+                const userData = userDocSnap?.exists() ? userDocSnap.data() : {};
 
                 return {
                     ...member,
-                    points: totalPoints,
-                    cityCount: citiesList.length,
-                    lastLogin: lastLogin,
-                    lastSeen: lastSeen,
+                    points: gameData.totalPoints || 0,
+                    cityCount: gameData.cityCount || 0,
+                    lastSeen: gameData.lastSeen?.toDate() || null,
+                    lastLogin: userData.lastLogin?.toDate() || null,
                 };
             });
 
@@ -105,7 +93,7 @@ const AllianceMembers = () => {
         } else {
             fetchMemberDetails();
         }
-    }, [playerAlliance, worldId, calculateTotalPoints, canViewActivity]);
+    }, [playerAlliance, worldId, canViewActivity]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...detailedMembers];
@@ -122,12 +110,12 @@ const AllianceMembers = () => {
                 
                 // #comment Special case for status sorting (online first)
                 if (sortConfig.key === 'status') {
-                    const aIsOnline = a.lastSeen && (new Date() - a.lastSeen) < 5 * 60 * 1000;
-                    const bIsOnline = b.lastSeen && (new Date() - b.lastSeen) < 5 * 60 * 1000;
+                    const aIsOnline = a.lastSeen && (new Date() - a.lastSeen) < 3.25 * 60 * 1000; // Tighter window
+                    const bIsOnline = b.lastSeen && (new Date() - b.lastSeen) < 3.25 * 60 * 1000; // Tighter window
                     if (aIsOnline && !bIsOnline) return -1;
                     if (!aIsOnline && bIsOnline) return 1;
-                    aValue = b.lastSeen || 0; // Sort by most recent seen
-                    bValue = a.lastSeen || 0;
+                    aValue = b.lastSeen || b.lastLogin || 0; // Sort by most recent activity
+                    bValue = a.lastSeen || a.lastLogin || 0;
                 }
 
 
@@ -158,14 +146,24 @@ const AllianceMembers = () => {
         return '';
     };
 
-    // #comment Helper function to format the last login time
-    const formatLastSeen = (date) => {
-        if (!date || !(date instanceof Date)) return 'Unknown';
+    // #comment Helper function to format the last seen/login time
+    const formatLastSeen = (lastSeen, lastLogin) => {
         const now = new Date();
+
+        // Player is currently online if lastSeen is recent
+        if (lastSeen && (now - lastSeen) < 3.25 * 60 * 1000) { // Tighter 3.25 minute window
+            return <span className="text-green-500 font-bold">Online</span>;
+        }
+
+        // Use lastSeen if available, otherwise fallback to lastLogin for offline status
+        const date = lastSeen || lastLogin;
+
+        if (!date || !(date instanceof Date)) {
+            return <span className="text-gray-500">Offline</span>;
+        }
+
         const diffSeconds = Math.round((now - date) / 1000);
         
-        if (diffSeconds < 5 * 60) return <span className="text-green-500 font-bold">Online</span>;
-
         const diffMinutes = Math.round(diffSeconds / 60);
         const diffHours = Math.round(diffMinutes / 60);
         const diffDays = Math.round(diffHours / 24);
@@ -214,7 +212,7 @@ const AllianceMembers = () => {
                             <td className="p-2 text-right">{member.points.toLocaleString()}</td>
                             <td className="p-2 text-right">{member.cityCount}</td>
                             {canViewActivity && (
-                                <td className="p-2 text-right">{formatLastSeen(member.lastSeen)}</td>
+                                <td className="p-2 text-right">{formatLastSeen(member.lastSeen, member.lastLogin)}</td>
                             )}
                         </tr>
                     ))}

@@ -33,7 +33,7 @@ import MovementsPanel from './map/MovementsPanel';
 import SharedReportView from './SharedReportView';
 import EventTrigger from './admin/EventTrigger';
 import GodTownModal from './map/GodTownModal';
-import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction} from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction, serverTimestamp} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json';
 
 // #comment Import the icons
@@ -97,6 +97,61 @@ const Game = ({ onBackToWorlds }) => {
             }
         }
     }, [activeCityId, view, playerCities]);
+
+    // #comment This effect updates the player's online status (lastSeen) periodically.
+    useEffect(() => {
+        if (!currentUser || !worldId) return;
+
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+
+        const updatePresence = async () => {
+            const timestamp = serverTimestamp();
+            try {
+                // Update both the main user doc and the game-specific doc
+                await updateDoc(userDocRef, { lastSeen: timestamp });
+                await updateDoc(gameDocRef, { lastSeen: timestamp });
+            } catch (error) {
+                // It's possible the game doc doesn't exist yet (e.g., during city founding).
+                // This is not a critical error, so we can safely ignore it in that case.
+                if (error.code !== 'not-found') {
+                    console.error("Failed to update presence:", error);
+                }
+            }
+        };
+
+        // Update presence immediately when the game loads
+        updatePresence();
+
+        // Then, set up an interval to update it every 3 minutes
+        const presenceInterval = setInterval(updatePresence, 3 * 60 * 1000);
+        
+        // #comment Set status to offline when the user closes the tab/browser.
+        const handleBeforeUnload = () => {
+             if (currentUser) {
+                updateDoc(userDocRef, { lastSeen: null });
+                updateDoc(gameDocRef, { lastSeen: null });
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Clean up the interval when the component unmounts
+        return () => {
+            clearInterval(presenceInterval);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        }
+    }, [currentUser, worldId]);
+
+    // #comment Handles user logout, setting their status to offline.
+    const handleLogout = async () => {
+        if (currentUser) {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+            await updateDoc(userDocRef, { lastSeen: null });
+            await updateDoc(gameDocRef, { lastSeen: null });
+        }
+        signOut(auth);
+    };
 
 
     const cycleCity = useCallback((direction) => {
@@ -470,7 +525,7 @@ const Game = ({ onBackToWorlds }) => {
                         <img src={worldIcon} alt="Back to Worlds" className="w-8 h-8" />
                     </button>
                 )}
-                <button onClick={() => signOut(auth)} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Logout">
+                <button onClick={handleLogout} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Logout">
                     <img src={logoutIcon} alt="Logout" className="w-8 h-8" />
                 </button>
             </div>

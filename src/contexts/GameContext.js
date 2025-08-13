@@ -105,7 +105,7 @@ export const GameProvider = ({ children, worldId }) => {
         };
     }, [currentUser, worldId]);
 
-    // #comment This effect recalculates and saves the player's total points whenever their cities change.
+    // #comment This effect recalculates and saves the player's total points and city count whenever their cities change.
     useEffect(() => {
         if (!currentUser || !worldId || !playerCities || Object.keys(playerCities).length === 0) {
             return;
@@ -127,14 +127,15 @@ export const GameProvider = ({ children, worldId }) => {
                 // Use the pure function, passing the alliance data
                 totalPoints += calculateTotalPointsForCity(playerCities[cityId], playerAlliance);
             }
+            const cityCount = Object.keys(playerCities).length;
 
-            // Only write to the database if the points have actually changed.
-            if (playerGameData?.totalPoints !== totalPoints) {
+            // Only write to the database if the points or city count have actually changed.
+            if (playerGameData?.totalPoints !== totalPoints || playerGameData?.cityCount !== cityCount) {
                 const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
                 try {
-                    await updateDoc(gameDocRef, { totalPoints });
+                    await updateDoc(gameDocRef, { totalPoints, cityCount });
                 } catch (error) {
-                    console.error("Error updating total points:", error);
+                    console.error("Error updating total points and city count:", error);
                 }
             }
         };
