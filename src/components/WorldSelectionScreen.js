@@ -1,5 +1,6 @@
+// src/components/WorldSelectionScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs, doc, writeBatch, serverTimestamp, getDoc, deleteDoc, query, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, serverTimestamp, getDoc, deleteDoc, query, limit, onSnapshot } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 import { db, auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,30 +51,39 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
     const [isCreating, setIsCreating] = useState(false);
     const [worldToDelete, setWorldToDelete] = useState(null);
 
-    const fetchWorldsAndGames = useCallback(async () => {
+    useEffect(() => {
         setLoading(true);
-        try {
-            const worldsCollectionRef = collection(db, 'worlds');
-            const worldsSnapshot = await getDocs(worldsCollectionRef);
+        const worldsCollectionRef = collection(db, 'worlds');
+        const unsubscribeWorlds = onSnapshot(worldsCollectionRef, (worldsSnapshot) => {
             const worldsList = worldsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setWorlds(worldsList);
-
-            if (currentUser) {
-                const gamesCollectionRef = collection(db, `users/${currentUser.uid}/games`);
-                const gamesSnapshot = await getDocs(gamesCollectionRef);
-                const gamesList = gamesSnapshot.docs.map(doc => doc.id);
-                setUserGames(gamesList);
-            }
-        } catch (error) {
+        }, (error) => {
             console.error("Error fetching worlds:", error);
             setMessage('Could not load world list.');
-        }
-        setLoading(false);
-    }, [currentUser]);
+        });
 
-    useEffect(() => {
-        fetchWorldsAndGames();
-    }, [fetchWorldsAndGames]);
+        let unsubscribeGames;
+        if (currentUser) {
+            const gamesCollectionRef = collection(db, `users/${currentUser.uid}/games`);
+            unsubscribeGames = onSnapshot(gamesCollectionRef, (gamesSnapshot) => {
+                const gamesList = gamesSnapshot.docs.map(doc => doc.id);
+                setUserGames(gamesList);
+                setLoading(false);
+            }, (error) => {
+                console.error("Error fetching user games:", error);
+                setLoading(false);
+            });
+        } else {
+            setLoading(false);
+        }
+
+        return () => {
+            unsubscribeWorlds();
+            if (unsubscribeGames) {
+                unsubscribeGames();
+            }
+        };
+    }, [currentUser]);
 
     const handleCreateWorld = async (e) => {
         e.preventDefault();
@@ -213,7 +223,12 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
             await deleteDoc(worldDocRef);
 
             setMessage(`World "${worldName}" has been deleted successfully.`);
-            fetchWorldsAndGames();
+            // After deletion, re-fetch worlds to update the UI
+            const worldsCollectionRef = collection(db, 'worlds');
+            const worldsSnapshot = await getDocs(worldsCollectionRef);
+            const worldsList = worldsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setWorlds(worldsList);
+
         } catch (error) {
             console.error("Error deleting world:", error);
             setMessage(`Failed to delete world: ${error.message}`);

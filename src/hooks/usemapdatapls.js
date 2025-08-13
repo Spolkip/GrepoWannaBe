@@ -24,9 +24,13 @@ export const useMapData = (currentUser, worldId, worldState, pan, zoom, viewport
     }, []);
 
     useEffect(() => {
-        // Cleanup all listeners on unmount
+        // #comment Cleanup all listeners on unmount
         return () => {
-            Object.values(activeListenersRef.current).forEach(unsubscribe => unsubscribe());
+            Object.values(activeListenersRef.current).forEach(unsubArray => {
+                if (Array.isArray(unsubArray)) {
+                    unsubArray.forEach(unsub => unsub());
+                }
+            });
             activeListenersRef.current = {};
         };
     }, []);
