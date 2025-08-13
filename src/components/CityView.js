@@ -56,7 +56,7 @@ const CityView = ({
         cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
         getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
         setMessage, openModal: openCityModal, closeModal: closeCityModal, setModalState: setCityModalState,
-        setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
+        setIsInstantBuild, setIsInstantResearch, setIsInstantUnits, getWarehouseCapacity
     });
 
     const { availablePopulation, happiness } = useMemo(() => {

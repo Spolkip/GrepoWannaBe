@@ -41,6 +41,11 @@ export const calculateTotalPointsForCity = (gameState, playerAlliance) => {
     return Math.floor(points);
 };
 
+// #comment Moved outside the hook to be a pure, exportable function
+export const getWarehouseCapacity = (level) => {
+    if (!level) return 0;
+    return Math.floor(1500 * Math.pow(1.4, level - 1));
+};
 
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
@@ -118,12 +123,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
         return rates;
     }, [calculateHappiness]);
-
-    // #comment Adjusted warehouse capacity for better resource balance.
-    const getWarehouseCapacity = useCallback((level) => {
-        if (!level) return 0;
-        return Math.floor(1500 * Math.pow(1.4, level - 1));
-    }, []);
 
     // #comment Adjusted farm capacity for better population balance.
     const getFarmCapacity = useCallback((level) => {
@@ -234,7 +233,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         } catch (error) {
             console.error('Failed to save game state:', error);
         }
-    }, [currentUser, worldId, activeCityId, getWarehouseCapacity]);
+    }, [currentUser, worldId, activeCityId]);
 
     useEffect(() => {
         if (!currentUser || !worldId || !activeCityId) {
@@ -413,7 +412,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             
                 completed.forEach(task => {
                     if (task.type === 'demolish') {
-                        // #comment This part now needs to initialize updates.resources if it doesn't exist
                         updates.resources = updates.resources || { ...currentState.resources };
                         if (updates.buildings[task.buildingId]) {
                             updates.buildings[task.buildingId].level = task.level;
@@ -443,9 +441,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                             silver: Math.floor(costToBuildLastLevel.silver * 0.5),
                         };
             
-                        updates.resources.wood += refund.wood;
-                        updates.resources.stone += refund.stone;
-                        updates.resources.silver += refund.silver;
+                        // #comment Add warehouse capacity check for demolition refund
+                        const capacity = getWarehouseCapacity(updates.buildings?.warehouse?.level || currentState.buildings.warehouse.level);
+                        updates.resources.wood = Math.min(capacity, updates.resources.wood + refund.wood);
+                        updates.resources.stone = Math.min(capacity, updates.resources.stone + refund.stone);
+                        updates.resources.silver = Math.min(capacity, updates.resources.silver + refund.silver);
             
                     } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
@@ -525,7 +525,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification, getWarehouseCapacity]);
 
 useEffect(() => {
     const autoSave = async () => {
