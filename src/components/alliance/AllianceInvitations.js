@@ -6,6 +6,11 @@ import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 
+// #comment Shared cache for world-level data like player lists
+const worldDataCache = {
+    players: { data: [], timestamp: 0 },
+};
+
 const AllianceInvitations = ({ isLeader }) => {
     const { worldId } = useGame();
     const { playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useAlliance();
@@ -19,15 +24,25 @@ const AllianceInvitations = ({ isLeader }) => {
     const [allPlayers, setAllPlayers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
 
-    // #comment Fetch all players for autocomplete
+    // #comment Fetch all players for autocomplete, using a cache
     useEffect(() => {
         const fetchPlayers = async () => {
+            const now = Date.now();
+            const twentyMinutes = 20 * 60 * 1000;
+
+            if (now - worldDataCache.players.timestamp < twentyMinutes && worldDataCache.players.data.length > 0) {
+                setAllPlayers(worldDataCache.players.data);
+                return;
+            }
+
             const usersRef = collection(db, 'users');
             const snapshot = await getDocs(usersRef);
             const players = snapshot.docs
                 .map(doc => doc.data().username)
                 .filter(username => username !== userProfile.username); // Exclude self
+            
             setAllPlayers(players);
+            worldDataCache.players = { data: players, timestamp: now };
         };
         fetchPlayers();
     }, [userProfile.username]);

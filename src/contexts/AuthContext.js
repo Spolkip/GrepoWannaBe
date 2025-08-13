@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -22,12 +22,10 @@ export const AuthProvider = ({ children }) => {
             if (user) {
                 const userDocRef = doc(db, "users", user.uid);
                 
-                // #comment Update lastLogin timestamp on authentication.
-                updateDoc(userDocRef, { lastLogin: serverTimestamp() }).catch(err => {
-                    // This might fail if the doc doesn't exist yet, which is fine.
-                    if (err.code !== 'not-found') {
-                        console.error("Failed to update last login time:", err);
-                    }
+                // #comment Update lastLogin timestamp on authentication using setDoc for robustness.
+                // This will create the document or merge the field if the doc already exists, preventing race condition errors.
+                setDoc(userDocRef, { lastLogin: serverTimestamp() }, { merge: true }).catch(err => {
+                    console.error("Failed to update last login time:", err);
                 });
 
                 setLoading(true);
@@ -58,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     const updateUserProfile = async (profileData) => {
         if (currentUser) {
             const userDocRef = doc(db, "users", currentUser.uid);
-            await updateDoc(userDocRef, profileData);
+            await setDoc(userDocRef, profileData, { merge: true });
         }
     };
 

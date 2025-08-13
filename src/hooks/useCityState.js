@@ -241,13 +241,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             setCityGameState(null);
             return;
         }
-        // #comment This now listens to the specific city document based on activeCityId
         const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
         const unsubscribe = onSnapshot(cityDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 
-                // #comment Ensure all top-level properties and buildings exist to prevent crashes
                 if (!data.buildings) data.buildings = {};
                 for (const buildingId in buildingConfig) {
                     if (!data.buildings[buildingId]) {
@@ -261,16 +259,13 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 if (!data.cave) data.cave = { silver: 0 }; 
                 if (!data.research) data.research = {};
                 if (!data.buildQueue) data.buildQueue = [];
-                // Initialize new separate queues
                 if (!data.barracksQueue) data.barracksQueue = [];
                 if (!data.shipyardQueue) data.shipyardQueue = [];
                 if (!data.divineTempleQueue) data.divineTempleQueue = [];
-                // Retain healQueue
                 if (!data.healQueue) data.healQueue = [];
                 
-                // #comment Helper to convert Firestore Timestamps to JS Dates and assign IDs if missing
                 const convertAndAssignIds = (queue) => (queue || []).map(task => ({
-                    id: task.id || uuidv4(), // Assign ID if missing
+                    id: task.id || uuidv4(),
                     ...task,
                     endTime: task.endTime?.toDate ? task.endTime.toDate() : task.endTime
                 }));
@@ -282,6 +277,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 data.researchQueue = convertAndAssignIds(data.researchQueue);
                 data.healQueue = convertAndAssignIds(data.healQueue);
 
+                // This is the main state update from Firestore
                 setCityGameState(data);
             } else {
                 setCityGameState(null);
@@ -321,68 +317,55 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     }, [getProductionRates, getWarehouseCapacity]);
 
     useEffect(() => {
-    const processQueue = async () => {
-        try {
+        const processQueue = async () => {
             const currentState = gameStateRef.current;
-            
-            if (!currentUser || !worldId || !activeCityId) return;
-            
-            if (!currentState?.buildQueue?.length && 
-                !currentState?.barracksQueue?.length &&
-                !currentState?.shipyardQueue?.length &&
-                !currentState?.divineTempleQueue?.length &&
-                !currentState?.researchQueue?.length && 
-                !currentState?.healQueue?.length) {
-                return;
-            }
-
+            if (!currentUser || !worldId || !activeCityId || !currentState) return;
+    
+            const hasQueues = currentState.buildQueue?.length || 
+                              currentState.barracksQueue?.length ||
+                              currentState.shipyardQueue?.length ||
+                              currentState.divineTempleQueue?.length ||
+                              currentState.researchQueue?.length || 
+                              currentState.healQueue?.length;
+    
+            if (!hasQueues) return;
+    
             const now = Date.now();
             let updates = {};
             let hasUpdates = false;
-
+    
             const processSingleQueue = (queueName, processCompleted) => {
                 if (!currentState[queueName]?.length) return;
-
+    
                 const activeQueue = [];
                 const completedTasks = [];
-
+    
                 currentState[queueName].forEach(task => {
-                    try {
-                        const endTime = task.endTime?.toDate?.() || 
-                                      (task.endTime instanceof Date ? task.endTime : new Date(task.endTime));
-                        
-                        if (isNaN(endTime.getTime())) {
-                            console.error('Invalid endTime', task);
-                            return;
-                        }
-
-                        if (now >= endTime.getTime()) {
-                            completedTasks.push(task);
-                        } else {
-                            activeQueue.push(task);
-                        }
-                    } catch (error) {
-                        console.error('Error processing queue item:', error);
+                    const endTime = task.endTime?.toDate?.() || (task.endTime instanceof Date ? task.endTime : new Date(task.endTime));
+                    if (isNaN(endTime.getTime())) {
+                        console.error('Invalid endTime in queue processing', task);
+                        activeQueue.push(task); // Keep it in queue to avoid losing it
+                        return;
+                    }
+                    if (now >= endTime.getTime()) {
+                        completedTasks.push(task);
+                    } else {
+                        activeQueue.push(task);
                     }
                 });
-
+    
                 if (completedTasks.length > 0) {
                     updates[queueName] = activeQueue;
                     processCompleted(completedTasks, updates);
                     hasUpdates = true;
-
-                    // #comment Add notifications for completed tasks
+    
                     completedTasks.forEach(task => {
                         let message = '';
                         const cityName = currentState.cityName;
                         switch (queueName) {
                             case 'buildQueue':
                                 const building = buildingConfig[task.buildingId];
-                                if (task.type === 'demolish') {
-                                    message = `Demolition of ${building.name} is complete in ${cityName}.`;
-                                } else {
-                                    message = `Your ${building.name} (Level ${task.level}) is complete in ${cityName}.`;
-                                }
+                                message = task.type === 'demolish' ? `Demolition of ${building.name} is complete in ${cityName}.` : `Your ${building.name} (Level ${task.level}) is complete in ${cityName}.`;
                                 break;
                             case 'barracksQueue':
                             case 'shipyardQueue':
@@ -398,170 +381,73 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                                 const healedUnit = unitConfig[task.unitId];
                                 message = `Healing of ${task.amount}x ${healedUnit.name} is complete in ${cityName}.`;
                                 break;
-                            default:
-                                break;
+                            default: break;
                         }
-                        if (message && addNotification) {
-                            addNotification(message);
-                        }
+                        if (message && addNotification) addNotification(message);
                     });
                 }
             };
-
+    
             processSingleQueue('buildQueue', (completed, updates) => {
-                updates.buildings = updates.buildings || { ...currentState.buildings };
-                updates.resources = updates.resources || { ...currentState.resources };
-            
+                updates.buildings = { ...currentState.buildings, ...(updates.buildings || {}) };
                 completed.forEach(task => {
-                    if (task.type === 'demolish') {
-                        // #comment Handle demolition completion
-                        if (updates.buildings[task.buildingId]) {
-                            updates.buildings[task.buildingId].level = task.level; // task.level is currentLevel - 1
-                        }
-                        
-                        // #comment If academy is demolished, check and deactivate now-invalid research
-                        if (task.buildingId === 'academy') {
-                            const newAcademyLevel = task.level;
-                            updates.research = updates.research || { ...currentState.research };
-
-                            Object.keys(updates.research).forEach(researchId => {
-                                const researchState = updates.research[researchId];
-                                const isCompleted = researchState === true || (researchState && researchState.completed);
-
-                                if (isCompleted) {
-                                    const researchInfo = researchConfig[researchId];
-                                    if (researchInfo && researchInfo.requirements.academy > newAcademyLevel) {
-                                        // Deactivate instead of deleting and refunding
-                                        updates.research[researchId] = { completed: true, active: false };
-                                    }
-                                }
-                            });
-                        }
-            
-                        // #comment Calculate and apply resource refund
-                        const costToBuildLastLevel = getUpgradeCost(task.buildingId, task.currentLevel);
-                        const refund = {
-                            wood: Math.floor(costToBuildLastLevel.wood * 0.5),
-                            stone: Math.floor(costToBuildLastLevel.stone * 0.5),
-                            silver: Math.floor(costToBuildLastLevel.silver * 0.5),
-                        };
-            
-                        updates.resources.wood += refund.wood;
-                        updates.resources.stone += refund.stone;
-                        updates.resources.silver += refund.silver;
-            
-                    } else if (task.isSpecial) {
+                    if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
-                    } else { // This is an upgrade completion
-                        if (!updates.buildings[task.buildingId]) {
-                            updates.buildings[task.buildingId] = { level: 0 };
-                        }
+                    } else {
                         updates.buildings[task.buildingId].level = task.level;
-
-                        // #comment If academy is upgraded, check for research to reactivate
-                        if (task.buildingId === 'academy') {
-                            const newAcademyLevel = task.level;
-                            updates.research = updates.research || { ...currentState.research };
-                            
-                            Object.keys(updates.research).forEach(researchId => {
-                                const researchState = updates.research[researchId];
-                                const isCompleted = researchState === true || (researchState && researchState.completed);
-                                const isActive = researchState === true || (researchState && researchState.active);
-
-                                if (isCompleted && !isActive) {
-                                    const researchInfo = researchConfig[researchId];
-                                    if (researchInfo && researchInfo.requirements.academy <= newAcademyLevel) {
-                                        updates.research[researchId] = { completed: true, active: true };
-                                    }
-                                }
-                            });
-                        }
                     }
                 });
             });
-
-            processSingleQueue('barracksQueue', (completed, updates) => {
-                updates.units = updates.units || { ...currentState.units };
-                completed.forEach(task => {
-                    updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+    
+            const unitQueues = ['barracksQueue', 'shipyardQueue', 'divineTempleQueue'];
+            unitQueues.forEach(qName => {
+                processSingleQueue(qName, (completed, updates) => {
+                    updates.units = { ...currentState.units, ...(updates.units || {}) };
+                    completed.forEach(task => {
+                        updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
+                    });
                 });
             });
-
-            processSingleQueue('shipyardQueue', (completed, updates) => {
-                updates.units = updates.units || { ...currentState.units };
-                completed.forEach(task => {
-                    updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                });
-            });
-
-            processSingleQueue('divineTempleQueue', (completed, updates) => {
-                updates.units = updates.units || { ...currentState.units };
-                completed.forEach(task => {
-                    updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
-                });
-            });
-
+    
             processSingleQueue('researchQueue', (completed, updates) => {
-                updates.research = updates.research || { ...currentState.research };
+                updates.research = { ...currentState.research, ...(updates.research || {}) };
                 completed.forEach(task => {
-                    // #comment Set research state to new object format
-                    updates.research[task.researchId] = { completed: true, active: true };
+                    updates.research[task.researchId] = true;
                 });
             });
-
+    
             processSingleQueue('healQueue', (completed, updates) => {
-                updates.units = updates.units || { ...currentState.units };
+                updates.units = { ...currentState.units, ...(updates.units || {}) };
                 completed.forEach(task => {
                     updates.units[task.unitId] = (updates.units[task.unitId] || 0) + task.amount;
                 });
             });
-
+    
             if (hasUpdates) {
                 const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
-                await setDoc(cityDocRef, { 
-                    ...updates, 
-                    lastUpdated: serverTimestamp()
-                }, { merge: true });
+                await setDoc(cityDocRef, { ...updates, lastUpdated: serverTimestamp() }, { merge: true });
             }
-        } catch (error) {
-            console.error("Error in queue processing:", error);
-        }
+        };
+    
+        const interval = setInterval(processQueue, 1000);
+        return () => clearInterval(interval);
+    }, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
+
+    return { 
+        cityGameState, 
+        setCityGameState, 
+        getUpgradeCost, 
+        getFarmCapacity,
+        getWarehouseCapacity, 
+        getHospitalCapacity, 
+        getProductionRates,
+        calculateUsedPopulation, 
+        saveGameState, 
+        getResearchCost,
+        calculateTotalPoints, 
+        calculateHappiness,
+        getHappinessDetails, 
+        getMaxWorkerSlots, 
+        getMarketCapacity
     };
-
-    const interval = setInterval(processQueue, 1000);
-    return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
-
-useEffect(() => {
-    const autoSave = async () => {
-        if (gameStateRef.current) {
-            try {
-                await saveGameState(gameStateRef.current);
-            } catch (error) {
-                console.error("Auto-save failed:", error);
-            }
-        }
-    };
-
-    const saveInterval = setInterval(autoSave, 30000);
-    return () => clearInterval(saveInterval);
-}, [saveGameState]);
-
-return { 
-    cityGameState, 
-    setCityGameState, 
-    getUpgradeCost, 
-    getFarmCapacity,
-    getWarehouseCapacity, 
-    getHospitalCapacity, 
-    getProductionRates,
-    calculateUsedPopulation, 
-    saveGameState, 
-    getResearchCost,
-    calculateTotalPoints, 
-    calculateHappiness,
-    getHappinessDetails, 
-    getMaxWorkerSlots, 
-    getMarketCapacity
-}
 };
