@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
-const CHUNK_SIZE = 50;
+const CHUNK_SIZE = 10; // #comment Reduced chunk size for more efficient, targeted data fetching.
 const TILE_SIZE = 32;
 
 export const useMapData = (currentUser, worldId, worldState, pan, zoom, viewportSize) => {
