@@ -28,8 +28,17 @@ export const GameProvider = ({ children, worldId }) => {
         hideReturningReports: false,
         hideCompletedQuestsIcon: false,
     });
-    
+    const [instantBuild, setInstantBuild] = useState(() => {
+        return localStorage.getItem("instantBuild") === "true" // restore on refresh
+    });
 
+
+    // Save to localStorage whenever it changes
+    const toggleInstantBuild = (value) => {
+        setInstantBuild(value);
+        localStorage.setItem("instantBuild", value.toString());
+    };
+    
     useEffect(() => {
         if (!currentUser || !worldId) {
             setLoading(false);
@@ -208,5 +217,5 @@ export const GameProvider = ({ children, worldId }) => {
         }
     };
 
-    return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+    return <GameContext.Provider value={{...value, instantBuild, setInstantBuild: toggleInstantBuild }}>{children}</GameContext.Provider>;
 };

@@ -134,11 +134,12 @@ export const useBuildingActions = ({
                 cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
             }
     
+            // #comment Refund 50% of the resources when cancelling a build
             newGameState.resources = {
                 ...currentState.resources,
-                wood: currentState.resources.wood + cost.wood,
-                stone: currentState.resources.stone + cost.stone,
-                silver: currentState.resources.silver + cost.silver,
+                wood: currentState.resources.wood + Math.floor(cost.wood * 0.5),
+                stone: currentState.resources.stone + Math.floor(cost.stone * 0.5),
+                silver: currentState.resources.silver + Math.floor(cost.silver * 0.5),
             };
     
             if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
