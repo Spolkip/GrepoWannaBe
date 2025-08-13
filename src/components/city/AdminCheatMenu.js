@@ -4,7 +4,7 @@ import unitConfig from '../../gameData/units.json';
 import researchConfig from '../../gameData/research.json'; // Import research config
 
 const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
-    const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0, population: 0 });
+    const [amounts, setAmounts] = useState({ wood: 0, stone: 0, silver: 0});
     const [troop, setTroop] = useState({ unit: 'swordsman', amount: 0 });
     const [warehouseLevels, setWarehouseLevels] = useState(0);
     const [instantBuild, setInstantBuild] = useState(isInstantBuildActive);
@@ -12,9 +12,10 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
     const [isInstantResearch, setIsInstantResearch] = useState(false); // New state for instant research
     const [isInstantUnits, setIsInstantUnits] = useState(false); // New state for instant units
     const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
+    const [farmLevels, SetFarmLevel] = useState(0);
 
     const handleCheat = () => {
-        onCheat(amounts, troop, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
+        onCheat(amounts, troop, farmLevels, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
         onClose();
     };
 
@@ -71,6 +72,16 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
                             min="1"
                             value={warehouseLevels}
                             onChange={(e) => setWarehouseLevels(parseInt(e.target.value, 10) || 0)}
+                            className="bg-gray-700 text-white rounded p-2 w-32" 
+                        />
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <label className="text-white capitalize">Set Farm Level</label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={farmLevels}
+                            onChange={(e) => SetFarmLevel(parseInt(e.target.value, 10) || 0)}
                             className="bg-gray-700 text-white rounded p-2 w-32" 
                         />
                     </div>

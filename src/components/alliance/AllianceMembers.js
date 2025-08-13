@@ -84,11 +84,11 @@ const AllianceMembers = () => {
         };
 
         const now = Date.now();
-        // #comment Increased cache time to 10 minutes.
-        const tenMinutes = 10 * 60 * 1000;
+        // #comment Reduced cache time to 2 minutes for more accurate status
+        const twoMinutes = 2 * 60 * 1000;
         const allianceId = playerAlliance?.id;
 
-        if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < tenMinutes)) {
+        if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < twoMinutes)) {
             setDetailedMembers(memberCache[allianceId].data);
             setLoading(false);
         } else {

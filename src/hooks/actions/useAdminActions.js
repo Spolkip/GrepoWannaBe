@@ -39,7 +39,7 @@ export const useAdminActions = ({
         }
     };
 
-    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity, forceRefresh) => {
+    const handleCheat = async (amounts, troop, farmLevels, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity, forceRefresh) => {
         if (!cityGameState || !userProfile?.is_admin) return;
 
         // #comment Handle the new force refresh action
@@ -162,9 +162,8 @@ export const useAdminActions = ({
         newGameState.resources.stone += amounts.stone;
         newGameState.resources.silver += amounts.silver;
 
-        if (amounts.population > 0) {
-            const farmLevel = newGameState.buildings.farm.level;
-            newGameState.buildings.farm.level = amounts.population;
+        if (farmLevels > 0) {
+            newGameState.buildings.farm.level = farmLevels;
         }
         if (troop.amount > 0) {
             newGameState.units[troop.unit] = (newGameState.units[troop.unit] || 0) + troop.amount;

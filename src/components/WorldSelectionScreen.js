@@ -1,5 +1,5 @@
 // src/components/WorldSelectionScreen.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect} from 'react';
 import { collection, getDocs, doc, writeBatch, serverTimestamp, getDoc, deleteDoc, query, limit, onSnapshot } from 'firebase/firestore';
 import { signOut } from "firebase/auth";
 import { db, auth } from '../firebase/config';
