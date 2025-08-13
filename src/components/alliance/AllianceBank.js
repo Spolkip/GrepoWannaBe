@@ -124,9 +124,9 @@ const AllianceBank = () => {
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
                     <h4 className="font-bold text-lg mb-2">Bank Holdings</h4>
                     <p className="text-sm text-gray-600">Capacity: {bankCapacity.toLocaleString()} per resource</p>
-                    <p>Wood: {bank.wood.toLocaleString()}</p>
-                    <p>Stone: {bank.stone.toLocaleString()}</p>
-                    <p>Silver: {bank.silver.toLocaleString()}</p>
+                    <p>Wood: {(bank.wood || 0).toLocaleString()}</p>
+                    <p>Stone: {(bank.stone || 0).toLocaleString()}</p>
+                    <p>Silver: {(bank.silver || 0).toLocaleString()}</p>
                 </div>
 
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
@@ -134,15 +134,15 @@ const AllianceBank = () => {
                     <p className="text-xs text-gray-500 mb-2">5 min cooldown | 50,000 daily limit</p>
                     <div className="space-y-2">
                         <div>
-                            <label>Wood (Your: {Math.floor(gameState.resources.wood)})</label>
+                            <label>Wood (Your: {Math.floor(gameState.resources.wood || 0)})</label>
                             <input type="number" name="wood" value={donation.wood} onChange={handleDonationChange} className="w-full p-1 rounded border border-amber-300" />
                         </div>
                         <div>
-                            <label>Stone (Your: {Math.floor(gameState.resources.stone)})</label>
+                            <label>Stone (Your: {Math.floor(gameState.resources.stone || 0)})</label>
                             <input type="number" name="stone" value={donation.stone} onChange={handleDonationChange} className="w-full p-1 rounded border border-amber-300" />
                         </div>
                         <div>
-                            <label>Silver (Your: {Math.floor(gameState.resources.silver)})</label>
+                            <label>Silver (Your: {Math.floor(gameState.resources.silver || 0)})</label>
                             <input type="number" name="silver" value={donation.silver} onChange={handleDonationChange} className="w-full p-1 rounded border border-amber-300" />
                         </div>
                         <button onClick={handleDonate} className="btn btn-confirm w-full">Donate</button>

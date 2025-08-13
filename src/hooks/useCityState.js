@@ -219,9 +219,9 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             // #comment Apply warehouse capacity limit before saving
             const capacity = getWarehouseCapacity(stateToSave.buildings?.warehouse?.level);
             const cappedResources = {
-                wood: Math.min(capacity, stateToSave.resources.wood),
-                stone: Math.min(capacity, stateToSave.resources.stone),
-                silver: Math.min(capacity, stateToSave.resources.silver),
+                wood: Math.min(capacity, stateToSave.resources.wood || 0),
+                stone: Math.min(capacity, stateToSave.resources.stone || 0),
+                silver: Math.min(capacity, stateToSave.resources.silver || 0),
             };
 
             const dataToSave = { 
@@ -302,9 +302,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                 
                 const productionRates = getProductionRates(newState.buildings);
                 const capacity = getWarehouseCapacity(newState.buildings?.warehouse?.level);
-                newState.resources.wood = Math.min(capacity, prevState.resources.wood + (productionRates.wood / 3600) * elapsedSeconds);
-                newState.resources.stone = Math.min(capacity, prevState.resources.stone + (productionRates.stone / 3600) * elapsedSeconds);
-                newState.resources.silver = Math.min(capacity, prevState.resources.silver + (productionRates.silver / 3600) * elapsedSeconds);
+
+                // #comment Add NaN checks to prevent invalid resource values
+                newState.resources.wood = Math.min(capacity, (prevState.resources.wood || 0) + (productionRates.wood / 3600) * elapsedSeconds);
+                newState.resources.stone = Math.min(capacity, (prevState.resources.stone || 0) + (productionRates.stone / 3600) * elapsedSeconds);
+                newState.resources.silver = Math.min(capacity, (prevState.resources.silver || 0) + (productionRates.silver / 3600) * elapsedSeconds);
 
                 const templeLevel = newState.buildings.temple?.level || 0;
                 if (newState.god && templeLevel > 0) {
