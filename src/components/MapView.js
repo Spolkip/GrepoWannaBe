@@ -44,9 +44,6 @@ const MapView = ({
     setPanToCoords,
     handleGoToCityFromProfile,
     movements,
-    villages,
-    ruins,
-    godTowns,
     onCancelTrain,
     onCancelMovement,
     isUnderAttack,
@@ -69,7 +66,8 @@ const MapView = ({
 
     const { isPlacingDummyCity, setIsPlacingDummyCity } = useMapState();
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
-    const { visibleSlots, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
+    // #comment useMapData now provides visible villages and ruins, removing the need for separate top-level listeners.
+    const { visibleSlots, visibleVillages, visibleRuins, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
     const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity, handleWithdrawTroops } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
@@ -81,6 +79,7 @@ const MapView = ({
     const [wonderBuilderData, setWonderBuilderData] = useState(null);
     const [wonderProgressData, setWonderProgressData] = useState(null);
     const [allCitySlots, setAllCitySlots] = useState(null);
+    const [godTowns, setGodTowns] = useState({}); // God towns are rare, so a single listener is fine.
 
     useEffect(() => {
         if (!worldId) return;
@@ -93,7 +92,19 @@ const MapView = ({
             setAllCitySlots(slots);
         });
 
-        return () => unsubscribe();
+        const godTownsColRef = collection(db, 'worlds', worldId, 'godTowns');
+        const unsubscribeGodTowns = onSnapshot(godTownsColRef, (snapshot) => {
+            const townsData = {};
+            snapshot.docs.forEach(doc => {
+                townsData[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            setGodTowns(townsData);
+        });
+
+        return () => {
+            unsubscribe();
+            unsubscribeGodTowns();
+        };
     }, [worldId]);
 
     useEffect(() => {
@@ -191,7 +202,7 @@ const MapView = ({
 
     const handleOpenAlliance = () => openModal('alliance');
 
-    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...villages, ...ruins }), [playerCities, visibleSlots, villages, ruins]);
+    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...visibleVillages, ...visibleRuins }), [playerCities, visibleSlots, visibleVillages, visibleRuins]);
 
     useEffect(() => {
         if (initialMapAction?.type === 'open_city_modal') {
@@ -379,7 +390,7 @@ const MapView = ({
 
     // #comment Effect to create wonder spots for every island
     useEffect(() => {
-        if (!worldState?.islands || !allCitySlots || !villages) {
+        if (!worldState?.islands || !allCitySlots || !visibleVillages) {
             setWonderSpots({});
             return;
         }
@@ -412,7 +423,7 @@ const MapView = ({
                         const isCitySlot = Object.values(allCitySlots).some(s => s && s.x === x && s.y === y);
                         if (isCitySlot) continue;
     
-                        const isVillage = Object.values(villages).some(v => v && v.x === x && v.y === y);
+                        const isVillage = Object.values(visibleVillages).some(v => v && v.x === x && v.y === y);
     
                         if (!isVillage) {
                             bestSpot = { x, y, islandId: island.id };
@@ -431,7 +442,7 @@ const MapView = ({
             }
         });
         setWonderSpots(newSpots);
-    }, [worldState, allCitySlots, villages, playerAlliance]);
+    }, [worldState, allCitySlots, visibleVillages, playerAlliance]);
 
     const handleWonderSpotClick = (spotData) => {
         if (playerAlliance?.leader?.uid !== currentUser.uid) {
@@ -466,11 +477,11 @@ const MapView = ({
                 if (grid[y]?.[x]) grid[y][x] = { type: 'city_slot', data: slot };
             }
         });
-        Object.values(villages).forEach(village => {
+        Object.values(visibleVillages).forEach(village => {
             const x = Math.round(village.x), y = Math.round(village.y);
             if (grid[y]?.[x]?.type === 'land') grid[y][x] = { type: 'village', data: village };
         });
-        Object.values(ruins).forEach(ruin => {
+        Object.values(visibleRuins).forEach(ruin => {
             const x = Math.round(ruin.x), y = Math.round(ruin.y);
             if (grid[y]?.[x]?.type === 'water') grid[y][x] = { type: 'ruin', data: ruin };
         });
@@ -493,7 +504,7 @@ const MapView = ({
             }
         }
         return grid;
-    }, [worldState, combinedSlotsForGrid, villages, ruins, godTowns, wonderSpots, playerAlliance]);
+    }, [worldState, combinedSlotsForGrid, visibleVillages, visibleRuins, godTowns, wonderSpots, playerAlliance]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -550,7 +561,7 @@ const MapView = ({
                         viewportSize={viewportSize}
                         worldState={worldState}
                         allCities={combinedSlotsForGrid}
-                        ruins={ruins}
+                        ruins={visibleRuins}
                         playerAlliance={playerAlliance}
                     />
 
@@ -577,8 +588,8 @@ const MapView = ({
                                     isPlacingDummyCity={isPlacingDummyCity}
                                     movements={movements}
                                     combinedSlots={combinedSlotsForGrid}
-                                    villages={villages}
-                                    ruins={ruins}
+                                    villages={visibleVillages}
+                                    ruins={visibleRuins}
                                     godTowns={godTowns}
                                     playerAlliance={playerAlliance}
                                     conqueredVillages={conqueredVillages}
@@ -592,7 +603,7 @@ const MapView = ({
                     </div>
                 </div>
             </div>
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={villages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} onSwitchCity={onSwitchCity} onWithdraw={handleOpenWithdrawModal} />
+            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={visibleVillages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} onSwitchCity={onSwitchCity} onWithdraw={handleOpenWithdrawModal} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
             {modalState.isWithdrawModalOpen && (
                 <WithdrawModal
