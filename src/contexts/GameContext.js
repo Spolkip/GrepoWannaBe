@@ -28,6 +28,7 @@ export const GameProvider = ({ children, worldId }) => {
         hideReturningReports: false,
         hideCompletedQuestsIcon: false,
     });
+    
 
     useEffect(() => {
         if (!currentUser || !worldId) {
