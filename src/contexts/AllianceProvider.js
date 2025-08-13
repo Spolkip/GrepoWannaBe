@@ -1,5 +1,5 @@
 // src/contexts/AllianceProvider.js
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useGame } from './GameContext';
@@ -40,7 +40,7 @@ export const AllianceProvider = ({ children }) => {
     const researchActions = useAllianceResearchActions(playerAlliance);
     const wonderActions = useAllianceWonderActions(playerAlliance);
 
-    const value = useMemo(() => ({
+    const value = {
         playerAlliance,
         ...allianceActions,
         ...bankActions,
@@ -48,7 +48,7 @@ export const AllianceProvider = ({ children }) => {
         ...managementActions,
         ...researchActions,
         ...wonderActions
-    }), [playerAlliance, allianceActions, bankActions, diplomacyActions, managementActions, researchActions, wonderActions]);
+    };
 
     return (
         <AllianceContext.Provider value={value}>

@@ -5,13 +5,6 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import TextEditor from '../shared/TextEditor';
 
-// #comment Shared cache for world-level data
-const worldDataCache = {
-    alliances: { data: [], timestamp: 0 },
-    cities: { data: [], timestamp: 0 },
-    allianceCities: { data: [], timestamp: 0, allianceId: null }, // #comment Cache for alliance-specific cities
-};
-
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
     const { worldId} = useGame();
@@ -45,43 +38,23 @@ const AllianceDiplomacy = () => {
     useEffect(() => {
         if (!worldId || !playerAlliance) return;
 
-        const now = Date.now();
-        const twentyMinutes = 20 * 60 * 1000;
-
         const fetchAlliances = async () => {
-            if (now - worldDataCache.alliances.timestamp < twentyMinutes && worldDataCache.alliances.data.length > 0) {
-                const filteredAlliances = worldDataCache.alliances.data.filter(tag => tag !== playerAlliance.tag);
-                setAllAlliances(filteredAlliances);
-                return;
-            }
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
             const snapshot = await getDocs(alliancesRef);
-            const alliances = snapshot.docs.map(doc => doc.data().tag);
-            worldDataCache.alliances = { data: alliances, timestamp: now };
-            const filteredAlliances = alliances.filter(tag => tag !== playerAlliance.tag);
-            setAllAlliances(filteredAlliances);
+            const alliances = snapshot.docs
+                .map(doc => doc.data().tag)
+                .filter(tag => tag !== playerAlliance.tag);
+            setAllAlliances(alliances);
         };
 
         const fetchAllCities = async () => {
-            if (now - worldDataCache.cities.timestamp < twentyMinutes && worldDataCache.cities.data.length > 0) {
-                setAllCities(worldDataCache.cities.data);
-                return;
-            }
             const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
             const q = query(citiesRef, where("ownerId", "!=", null));
             const snapshot = await getDocs(q);
-            const citiesData = snapshot.docs.map(doc => ({ name: doc.data().cityName, x: doc.data().x, y: doc.data().y }));
-            setAllCities(citiesData);
-            worldDataCache.cities = { data: citiesData, timestamp: now };
+            setAllCities(snapshot.docs.map(doc => ({ name: doc.data().cityName, x: doc.data().x, y: doc.data().y })));
         };
 
         const fetchAllianceCities = async () => {
-            // #comment Use cache for alliance cities
-            if (now - worldDataCache.allianceCities.timestamp < twentyMinutes && worldDataCache.allianceCities.allianceId === playerAlliance.id) {
-                setAllAllianceCities(worldDataCache.allianceCities.data);
-                return;
-            }
-
             const cities = [];
             for (const member of playerAlliance.members) {
                 const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
@@ -91,8 +64,6 @@ const AllianceDiplomacy = () => {
                 });
             }
             setAllAllianceCities(cities);
-            // #comment Update cache for alliance cities
-            worldDataCache.allianceCities = { data: cities, timestamp: now, allianceId: playerAlliance.id };
         };
 
         fetchAlliances();

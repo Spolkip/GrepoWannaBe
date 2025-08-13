@@ -1,17 +1,12 @@
 // src/hooks/actions/useBuildingActions.js
 import { v4 as uuidv4 } from 'uuid';
 import buildingConfig from '../../gameData/buildings.json';
-import { doc, runTransaction } from 'firebase/firestore';
-import { db } from '../../firebase/config';
-import { useAuth } from '../../contexts/AuthContext';
 
 export const useBuildingActions = ({
     cityGameState, setCityGameState, saveGameState, worldId,
     getUpgradeCost, getFarmCapacity, calculateUsedPopulation, isInstantBuild,
-    setMessage, closeModal, getWarehouseCapacity // #comment Import getWarehouseCapacity
+    setMessage, closeModal
 }) => {
-    const { currentUser } = useAuth();
-
     const handleUpgrade = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
@@ -53,11 +48,13 @@ export const useBuildingActions = ({
         const newTotalPopulation = currentUsedPopulation + cost.population;
         const hasEnoughPopulation = newTotalPopulation <= maxPopulation;
 
+        // #comment Allow farm and warehouse upgrades regardless of population status.
         if (!hasEnoughPopulation && buildingId !== 'farm' && buildingId !== 'warehouse') {
             setMessage('Not enough population capacity!');
             return;
         }
 
+        // All checks passed, proceed with upgrade
         const newGameState = JSON.parse(JSON.stringify(currentState));
         newGameState.resources.wood -= cost.wood;
         newGameState.resources.stone -= cost.stone;
@@ -97,58 +94,72 @@ export const useBuildingActions = ({
     };
 
     const handleCancelBuild = async (itemToCancel) => {
-        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', cityGameState.id);
-        try {
-            await runTransaction(db, async (transaction) => {
-                const cityDoc = await transaction.get(cityDocRef);
-                if (!cityDoc.exists()) {
-                    throw new Error("City data not found.");
-                }
-                const currentState = cityDoc.data();
-                const currentQueue = currentState.buildQueue || [];
-                const itemIndex = currentQueue.findIndex(item => item.id === itemToCancel.id);
-
-                if (itemIndex === -1) {
-                    throw new Error("Item not found in queue.");
-                }
-                if (itemIndex !== currentQueue.length - 1) {
-                    throw new Error("You can only cancel the last item in the queue.");
-                }
-
-                const newQueue = [...currentQueue];
-                const canceledTask = newQueue.splice(itemIndex, 1)[0];
-                const newResources = { ...currentState.resources };
-                let newResearchPoints = currentState.researchPoints || 0;
-
-                if (canceledTask.type !== 'demolish') {
-                    let cost;
-                    if (canceledTask.isSpecial) {
-                        cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
-                    } else {
-                        cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
-                    }
-                    
-                    // #comment Add warehouse capacity check before refunding
-                    const capacity = getWarehouseCapacity(currentState.buildings.warehouse.level);
-                    newResources.wood = Math.min(capacity, newResources.wood + cost.wood);
-                    newResources.stone = Math.min(capacity, newResources.stone + cost.stone);
-                    newResources.silver = Math.min(capacity, newResources.silver + cost.silver);
-
-                    if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
-                        newResearchPoints -= 4;
-                    }
-                }
-
-                transaction.update(cityDocRef, {
-                    buildQueue: newQueue,
-                    resources: newResources,
-                    researchPoints: newResearchPoints
-                });
-            });
-        } catch (error) {
-            console.error("Error cancelling build:", error);
-            setMessage(error.message);
+        const currentState = cityGameState;
+        if (!currentState || !currentState.buildQueue) {
+            return;
         }
+    
+        const itemIndex = currentState.buildQueue.findIndex(item => item.id === itemToCancel.id);
+    
+        if (itemIndex === -1) {
+            console.error("Could not find item to cancel in build queue.");
+            return;
+        }
+    
+        if (itemIndex !== currentState.buildQueue.length - 1) {
+            setMessage("You can only cancel the last item in the queue.");
+            return;
+        }
+
+        const newQueue = [...currentState.buildQueue];
+        const canceledTask = newQueue.splice(itemIndex, 1)[0];
+        
+        const newGameState = { ...currentState, buildQueue: newQueue };
+    
+        if (canceledTask.type !== 'demolish') {
+            let cost;
+            if (canceledTask.isSpecial) {
+                cost = { wood: 15000, stone: 15000, silver: 15000, population: 60 };
+            } else {
+                cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
+            }
+    
+            newGameState.resources = {
+                ...currentState.resources,
+                wood: currentState.resources.wood + cost.wood,
+                stone: currentState.resources.stone + cost.stone,
+                silver: currentState.resources.silver + cost.silver,
+            };
+    
+            if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
+                newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
+            }
+        }
+        
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
+            const taskToUpdate = newQueue[i];
+            
+            let taskTime;
+            if (taskToUpdate.isSpecial) {
+                taskTime = 7200;
+            } else if (taskToUpdate.type === 'demolish') {
+                const costConfig = buildingConfig[taskToUpdate.buildingId].baseCost;
+                const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, taskToUpdate.currentLevel - 1));
+                taskTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
+            }
+            else {
+                taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
+            }
+            
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+        
+        await saveGameState(newGameState);
+        setCityGameState(newGameState);
     };
     
     const handleDemolish = async (buildingId) => {
@@ -297,10 +308,9 @@ export const useBuildingActions = ({
 
         const newGameState = JSON.parse(JSON.stringify(currentState));
         
-        const capacity = getWarehouseCapacity(currentState.buildings.warehouse.level);
-        newGameState.resources.wood = Math.min(capacity, newGameState.resources.wood + refund.wood);
-        newGameState.resources.stone = Math.min(capacity, newGameState.resources.stone + refund.stone);
-        newGameState.resources.silver = Math.min(capacity, newGameState.resources.silver + refund.silver);
+        newGameState.resources.wood += refund.wood;
+        newGameState.resources.stone += refund.stone;
+        newGameState.resources.silver += refund.silver;
         
         delete newGameState.specialBuilding;
 

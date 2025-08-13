@@ -17,10 +17,8 @@ export const useQuestTracker = (cityState) => {
     useEffect(() => {
         if (!currentUser || !worldId) return;
 
-        let unsubscribe = () => {}; // #comment Initialize with an empty function
-
         const questDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/quests`, 'progress');
-        unsubscribe = onSnapshot(questDocRef, (docSnap) => {
+        const unsubscribe = onSnapshot(questDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 setQuestProgress(docSnap.data());
             } else {
@@ -32,12 +30,7 @@ export const useQuestTracker = (cityState) => {
             }
         });
 
-        // #comment Return a cleanup function that safely calls the unsubscribe function
-        return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe();
-            }
-        };
+        return () => unsubscribe();
     }, [currentUser, worldId]);
 
     // Update quest status when cityState or progress changes

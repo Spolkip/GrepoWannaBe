@@ -131,9 +131,6 @@ const TopBar = ({
     const [lockCountdown, setLockCountdown] = useState(5);
     const countdownIntervalRef = useRef(null);
 
-    // #comment Helper to prevent rendering NaN values
-    const displayValue = (value) => isNaN(value) ? 0 : Math.floor(value);
-
     // #comment This hook handles clicks outside the activity tracker to close a locked tooltip.
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -438,8 +435,8 @@ const TopBar = ({
                     onClick={(e) => handleTooltipClick(e, 'wood')}
                 >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/> 
-                    <span className="text-yellow-800 font-bold">{displayValue(resources.wood)}</span>
-                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{displayValue(productionRates.wood)}/hr)</span>}
+                    <span className="text-yellow-800 font-bold">{Math.floor(resources.wood)}</span>
+                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
                     {activeTooltip === 'wood' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="wood"
@@ -456,8 +453,8 @@ const TopBar = ({
                     onClick={(e) => handleTooltipClick(e, 'stone')}
                 >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/> 
-                    <span className="text-gray-600 font-bold">{displayValue(resources.stone)}</span>
-                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{displayValue(productionRates.stone)}/hr)</span>}
+                    <span className="text-gray-600 font-bold">{Math.floor(resources.stone)}</span>
+                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
                      {activeTooltip === 'stone' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="stone"
@@ -474,8 +471,8 @@ const TopBar = ({
                     onClick={(e) => handleTooltipClick(e, 'silver')}
                 >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/> 
-                    <span className="text-blue-800 font-bold">{displayValue(resources.silver)}</span>
-                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{displayValue(productionRates.silver)}/hr)</span>}
+                    <span className="text-blue-800 font-bold">{Math.floor(resources.silver)}</span>
+                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
                      {activeTooltip === 'silver' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="silver"
@@ -488,7 +485,7 @@ const TopBar = ({
                 </div>
                 <div className="resource-display">
                     <img src={populationImage} alt="Population" className="w-6 h-6 mr-2"/>
-                    <span className="font-bold text-red-800">{displayValue(availablePopulation)}</span>
+                    <span className="font-bold text-red-800">{Math.floor(availablePopulation)}</span>
                 </div>
                 <div 
                     className="resource-display relative" 

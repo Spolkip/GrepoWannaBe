@@ -41,11 +41,6 @@ export const calculateTotalPointsForCity = (gameState, playerAlliance) => {
     return Math.floor(points);
 };
 
-// #comment Moved outside the hook to be a pure, exportable function
-export const getWarehouseCapacity = (level) => {
-    if (!level) return 0;
-    return Math.floor(1500 * Math.pow(1.4, level - 1));
-};
 
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
@@ -123,6 +118,12 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
         return rates;
     }, [calculateHappiness]);
+
+    // #comment Adjusted warehouse capacity for better resource balance.
+    const getWarehouseCapacity = useCallback((level) => {
+        if (!level) return 0;
+        return Math.floor(1500 * Math.pow(1.4, level - 1));
+    }, []);
 
     // #comment Adjusted farm capacity for better population balance.
     const getFarmCapacity = useCallback((level) => {
@@ -233,7 +234,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         } catch (error) {
             console.error('Failed to save game state:', error);
         }
-    }, [currentUser, worldId, activeCityId]);
+    }, [currentUser, worldId, activeCityId, getWarehouseCapacity]);
 
     useEffect(() => {
         if (!currentUser || !worldId || !activeCityId) {
@@ -409,14 +410,16 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
             processSingleQueue('buildQueue', (completed, updates) => {
                 updates.buildings = updates.buildings || { ...currentState.buildings };
+                updates.resources = updates.resources || { ...currentState.resources };
             
                 completed.forEach(task => {
                     if (task.type === 'demolish') {
-                        updates.resources = updates.resources || { ...currentState.resources };
+                        // #comment Handle demolition completion
                         if (updates.buildings[task.buildingId]) {
-                            updates.buildings[task.buildingId].level = task.level;
+                            updates.buildings[task.buildingId].level = task.level; // task.level is currentLevel - 1
                         }
                         
+                        // #comment If academy is demolished, check and deactivate now-invalid research
                         if (task.buildingId === 'academy') {
                             const newAcademyLevel = task.level;
                             updates.research = updates.research || { ...currentState.research };
@@ -428,12 +431,14 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                                 if (isCompleted) {
                                     const researchInfo = researchConfig[researchId];
                                     if (researchInfo && researchInfo.requirements.academy > newAcademyLevel) {
+                                        // Deactivate instead of deleting and refunding
                                         updates.research[researchId] = { completed: true, active: false };
                                     }
                                 }
                             });
                         }
             
+                        // #comment Calculate and apply resource refund
                         const costToBuildLastLevel = getUpgradeCost(task.buildingId, task.currentLevel);
                         const refund = {
                             wood: Math.floor(costToBuildLastLevel.wood * 0.5),
@@ -441,20 +446,19 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
                             silver: Math.floor(costToBuildLastLevel.silver * 0.5),
                         };
             
-                        // #comment Add warehouse capacity check for demolition refund
-                        const capacity = getWarehouseCapacity(updates.buildings?.warehouse?.level || currentState.buildings.warehouse.level);
-                        updates.resources.wood = Math.min(capacity, updates.resources.wood + refund.wood);
-                        updates.resources.stone = Math.min(capacity, updates.resources.stone + refund.stone);
-                        updates.resources.silver = Math.min(capacity, updates.resources.silver + refund.silver);
+                        updates.resources.wood += refund.wood;
+                        updates.resources.stone += refund.stone;
+                        updates.resources.silver += refund.silver;
             
                     } else if (task.isSpecial) {
                         updates.specialBuilding = task.buildingId;
-                    } else { 
+                    } else { // This is an upgrade completion
                         if (!updates.buildings[task.buildingId]) {
                             updates.buildings[task.buildingId] = { level: 0 };
                         }
                         updates.buildings[task.buildingId].level = task.level;
 
+                        // #comment If academy is upgraded, check for research to reactivate
                         if (task.buildingId === 'academy') {
                             const newAcademyLevel = task.level;
                             updates.research = updates.research || { ...currentState.research };
@@ -500,6 +504,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             processSingleQueue('researchQueue', (completed, updates) => {
                 updates.research = updates.research || { ...currentState.research };
                 completed.forEach(task => {
+                    // #comment Set research state to new object format
                     updates.research[task.researchId] = { completed: true, active: true };
                 });
             });
@@ -525,7 +530,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     const interval = setInterval(processQueue, 1000);
     return () => clearInterval(interval);
-}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification, getWarehouseCapacity]);
+}, [currentUser, worldId, activeCityId, getUpgradeCost, addNotification]);
 
 useEffect(() => {
     const autoSave = async () => {

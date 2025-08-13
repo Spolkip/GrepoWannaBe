@@ -7,7 +7,7 @@ import unitConfig from '../../gameData/units.json';
 export const useUnitActions = ({
     cityGameState, setCityGameState, saveGameState, worldId, currentUser,
     getFarmCapacity, calculateUsedPopulation, isInstantUnits,
-    setMessage, getWarehouseCapacity // #comment Import getWarehouseCapacity
+    setMessage
 }) => {
     const handleTrainTroops = async (unitId, amount) => {
         const currentState = cityGameState;
@@ -132,74 +132,90 @@ export const useUnitActions = ({
     };
 
     const handleCancelTrain = async (canceledItem, queueType) => {
-        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', cityGameState.id);
+        const currentState = cityGameState;
+        let queueName;
+        let costField;
+        let refundField;
+    
+        switch (queueType) {
+            case 'barracks':
+            case 'shipyard':
+            case 'divineTemple':
+                queueName = `${queueType}Queue`;
+                costField = 'cost';
+                refundField = 'units';
+                break;
+            case 'heal':
+                queueName = 'healQueue';
+                costField = 'heal_cost';
+                refundField = 'wounded';
+                break;
+            default:
+                console.error("Invalid queueType for cancellation:", queueType);
+                setMessage("Error: Invalid queue type for cancellation.");
+                return;
+        }
+    
+        if (!currentState || !currentState[queueName]) {
+            return;
+        }
+    
+        const currentQueue = [...currentState[queueName]];
+        const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
+    
+        if (itemIndex === -1) {
+            console.error("Item not found in queue for cancellation:", canceledItem);
+            setMessage("Error: Item not found in queue.");
+            return;
+        }
+
+        if (itemIndex !== currentQueue.length - 1) {
+            setMessage("You can only cancel the last item in the queue.");
+            return;
+        }
+    
+        const newQueue = [...currentQueue];
+        const removedTask = newQueue.splice(itemIndex, 1)[0];
+        const unit = unitConfig[removedTask.unitId];
+    
+        if (!unit) {
+            console.error("Unit not found for canceled task:", removedTask.unitId);
+            setMessage("Error: Unit data missing for canceled task.");
+            return;
+        }
+    
+        const newResources = {
+            ...currentState.resources,
+            wood: currentState.resources.wood + (unit[costField]?.wood || 0) * removedTask.amount,
+            stone: currentState.resources.stone + (unit[costField]?.stone || 0) * removedTask.amount,
+            silver: currentState.resources.silver + (unit[costField]?.silver || 0) * removedTask.amount,
+        };
+    
+        const newRefundUnits = { ...currentState[refundField] };
+        if (queueType === 'heal') {
+            newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
+        }
+    
+        for (let i = itemIndex; i < newQueue.length; i++) {
+            const previousTaskEndTime = (i === 0)
+                ? Date.now()
+                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+            
+            const taskToUpdate = newQueue[i];
+            const taskUnit = unitConfig[taskToUpdate.unitId];
+            const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
+            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+        }
+    
+        const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
     
         try {
-            await runTransaction(db, async (transaction) => {
-                const cityDoc = await transaction.get(cityDocRef);
-                if (!cityDoc.exists()) {
-                    throw new Error("City data not found.");
-                }
-    
-                const currentState = cityDoc.data();
-                let queueName, costField, refundField;
-    
-                switch (queueType) {
-                    case 'barracks':
-                    case 'shipyard':
-                    case 'divineTemple':
-                        queueName = `${queueType}Queue`;
-                        costField = 'cost';
-                        refundField = 'units';
-                        break;
-                    case 'heal':
-                        queueName = 'healQueue';
-                        costField = 'heal_cost';
-                        refundField = 'wounded';
-                        break;
-                    default:
-                        throw new Error("Invalid queueType for cancellation.");
-                }
-    
-                const currentQueue = currentState[queueName] || [];
-                const itemIndex = currentQueue.findIndex((item) => item.id === canceledItem.id);
-    
-                if (itemIndex === -1) {
-                    throw new Error("Item not found in queue.");
-                }
-                if (itemIndex !== currentQueue.length - 1) {
-                    throw new Error("You can only cancel the last item in the queue.");
-                }
-    
-                const newQueue = [...currentQueue];
-                const removedTask = newQueue.splice(itemIndex, 1)[0];
-                const unit = unitConfig[removedTask.unitId];
-    
-                const newResources = { ...currentState.resources };
-                const capacity = getWarehouseCapacity(currentState.buildings.warehouse.level);
-
-                newResources.wood = Math.min(capacity, newResources.wood + (unit[costField]?.wood || 0) * removedTask.amount);
-                newResources.stone = Math.min(capacity, newResources.stone + (unit[costField]?.stone || 0) * removedTask.amount);
-                newResources.silver = Math.min(capacity, newResources.silver + (unit[costField]?.silver || 0) * removedTask.amount);
-    
-                const newRefundUnits = { ...currentState[refundField] };
-                if (queueType === 'heal') {
-                    newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
-                }
-    
-                const updates = {
-                    resources: newResources,
-                    [queueName]: newQueue,
-                };
-                if (queueType === 'heal') {
-                    updates.wounded = newRefundUnits;
-                }
-    
-                transaction.update(cityDocRef, updates);
-            });
+            await saveGameState(newGameState);
+            setCityGameState(newGameState);
         } catch (error) {
             console.error("Error cancelling training/healing:", error);
-            setMessage(`Could not cancel: ${error.message}`);
+            setMessage("Could not cancel. Please try again.");
         }
     };
 

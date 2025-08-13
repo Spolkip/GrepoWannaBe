@@ -57,12 +57,11 @@ const AuthScreen = () => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, registerEmail, registerPassword);
             const user = userCredential.user;
-            // #comment Use setDoc with merge: true to prevent a race condition with AuthContext creating a separate document.
             await setDoc(doc(db, "users", user.uid), {
                 username: registerUsername,
                 email: user.email,
                 is_admin: false
-            }, { merge: true });
+            });
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
                 setMessage("An account with this email already exists.");
