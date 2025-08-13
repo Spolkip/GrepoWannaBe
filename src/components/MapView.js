@@ -6,6 +6,10 @@ import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
 import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot } from 'firebase/firestore';
 
+// Import island images
+import island1 from '../images/islands/island_1.png';
+import island2 from '../images/islands/island_2.png';
+
 
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
@@ -29,6 +33,14 @@ import { useMapClickHandler } from '../hooks/useMapClickHandler';
 
 
 import buildingConfig from '../gameData/buildings.json';
+
+const TILE_SIZE = 32;
+
+// Map island image names to imported image files
+const islandImageMap = {
+    'island1.png': island1,
+    'island2.png': island2,
+};
 
 const MapView = ({
     showCity,
@@ -573,6 +585,22 @@ const MapView = ({
 
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
+                                {worldState?.islands && gameSettings.showVisuals && worldState.islands.map(island => (
+                                    <img
+                                        key={island.id}
+                                        src={islandImageMap[island.imageName]}
+                                        alt={island.name}
+                                        style={{
+                                            position: 'absolute',
+                                            left: (island.x - island.radius) * TILE_SIZE,
+                                            top: (island.y - island.radius) * TILE_SIZE,
+                                            width: island.radius * 2 * TILE_SIZE,
+                                            height: island.radius * 2 * TILE_SIZE,
+                                            pointerEvents: 'none',
+                                            zIndex: 1,
+                                        }}
+                                    />
+                                ))}
                                 <MapGrid
                                     mapGrid={mapGrid}
                                     worldState={worldState}

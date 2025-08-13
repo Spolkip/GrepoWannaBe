@@ -1,5 +1,5 @@
 // src/components/city/AdminCheatMenu.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import unitConfig from '../../gameData/units.json';
 import researchConfig from '../../gameData/research.json'; // Import research config
 import { useGame } from '../../contexts/GameContext';
@@ -15,6 +15,10 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
     const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
     const [farmLevels, SetFarmLevel] = useState(0);
     
+      // Debug log
+    useEffect(() => {
+        console.log("instantBuild from context:", instantBuild);
+    }, [instantBuild]);
 
     const handleCheat = () => {
         onCheat(amounts, troop, farmLevels, warehouseLevels, instantBuild, unresearchId, isInstantResearch, isInstantUnits, favorAmount, false); // #comment Pass false for foundSecondCity
