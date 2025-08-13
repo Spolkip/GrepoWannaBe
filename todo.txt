@@ -30,6 +30,5 @@ For a player to found a city we need the second agent to go inside the city with
 Bugs:
 - Reasources are going beyong the cap of the wearhouse even of says 15k it will have on the background 90k or how much you have be given
 - reasources doublicate still happends when given
-- spamming building before they reach their max level can bypass it
 - Building can be build and going population negative it does not stop before going negative
 - Can have the same allince in to allies and Enemies

@@ -20,7 +20,7 @@ export const useBuildingActions = ({
         const building = currentState.buildings[buildingId] || { level: 0 };
         let effectiveCurrentLevel = building.level;
         currentQueue.forEach(task => {
-            if (task.buildingId === buildingId && task.level > effectiveCurrentLevel) {
+            if (task.buildingId === buildingId && task.type !== 'demolish' && task.level > effectiveCurrentLevel) {
                 effectiveCurrentLevel = task.level;
             }
         });
@@ -43,10 +43,20 @@ export const useBuildingActions = ({
             return;
         }
 
+        // #comment Calculate population cost of items already in the build queue.
+        let populationInQueue = 0;
+        currentQueue.forEach(task => {
+            if (task.type !== 'demolish') {
+                const taskCost = getUpgradeCost(task.buildingId, task.level);
+                populationInQueue += taskCost.population;
+            }
+        });
+
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
-        const newTotalPopulation = currentUsedPopulation + cost.population;
+        const newTotalPopulation = currentUsedPopulation + populationInQueue + cost.population;
         const hasEnoughPopulation = newTotalPopulation <= maxPopulation;
+
 
         // #comment Allow farm and warehouse upgrades regardless of population status.
         if (!hasEnoughPopulation && buildingId !== 'farm' && buildingId !== 'warehouse') {
