@@ -8,6 +8,16 @@ import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import { useAuth } from '../../contexts/AuthContext';
 
+// #comment Cache for alliance member data.
+const memberCache = {};
+
+// #comment Function to clear the member cache, exported for admin use.
+export const clearMemberCache = () => {
+    for (const key in memberCache) {
+        delete memberCache[key];
+    }
+};
+
 const AllianceMembers = () => {
     const { playerAlliance } = useAlliance();
     const { worldId } = useGame();
@@ -77,10 +87,24 @@ const AllianceMembers = () => {
 
             const details = await Promise.all(memberDetailsPromises);
             setDetailedMembers(details);
+            // #comment Update cache
+            memberCache[playerAlliance.id] = {
+                data: details,
+                timestamp: Date.now(),
+            };
             setLoading(false);
         };
 
-        fetchMemberDetails();
+        const now = Date.now();
+        const twentyMinutes = 20 * 60 * 1000;
+        const allianceId = playerAlliance?.id;
+
+        if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < twentyMinutes)) {
+            setDetailedMembers(memberCache[allianceId].data);
+            setLoading(false);
+        } else {
+            fetchMemberDetails();
+        }
     }, [playerAlliance, worldId, calculateTotalPoints, canViewActivity]);
 
     const sortedMembers = useMemo(() => {

@@ -4,6 +4,9 @@ import { useGame } from '../../contexts/GameContext';
 import { generateGodTowns } from '../../utils/worldGeneration';
 import researchConfig from '../../gameData/research.json';
 import buildingConfig from '../../gameData/buildings.json';
+import { clearProfileCache } from '../../components/profile/ProfileView';
+import { clearMemberCache } from '../../components/alliance/AllianceMembers';
+import { clearLeaderboardCache } from '../../components/leaderboard/Leaderboard';
 
 export const useAdminActions = ({
     userProfile, worldId, cityGameState, currentUser,
@@ -36,8 +39,17 @@ export const useAdminActions = ({
         }
     };
 
-    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity) => {
+    const handleCheat = async (amounts, troop, warehouseLevels, instantBuild, unresearchId, instantResearch, instantUnits, favorAmount, foundSecondCity, forceRefresh) => {
         if (!cityGameState || !userProfile?.is_admin) return;
+
+        // #comment Handle the new force refresh action
+        if (forceRefresh) {
+            clearProfileCache();
+            clearMemberCache();
+            clearLeaderboardCache();
+            setMessage("All data caches have been cleared successfully!");
+            return;
+        }
 
         if (foundSecondCity) {
             if (!worldId) {

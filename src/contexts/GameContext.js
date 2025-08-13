@@ -1,8 +1,9 @@
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
-import { doc, onSnapshot, collection, writeBatch, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, writeBatch, updateDoc, getDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
 import { useAuth } from './AuthContext';
-import { useNotification } from './NotificationContext'; // Import useNotification
+import { useNotification } from './NotificationContext';
+import { calculateTotalPointsForCity } from '../hooks/useCityState';
 
 const GameContext = createContext();
 
@@ -10,7 +11,7 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children, worldId }) => {
     const { currentUser } = useAuth();
-    const { addNotification } = useNotification(); // Get addNotification from context
+    const { addNotification } = useNotification();
     const [playerGameData, setPlayerGameData] = useState(null);
     const [playerCities, setPlayerCities] = useState({});
     const [activeCityId, setActiveCityId] = useState(null);
@@ -44,23 +45,10 @@ export const GameProvider = ({ children, worldId }) => {
 
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
         const unsubscribeGameData = onSnapshot(gameDocRef, (docSnap) => {
-            console.log("GameContext: gameDocRef snapshot triggered.");
             if (docSnap.exists()) {
-                console.log("GameContext: Game document exists.");
                 const data = docSnap.data();
-                console.log("GameContext: Fetched game data:", data);
-
-                if (data.battlePoints === undefined) {
-                    console.log("GameContext: 'battlePoints' is undefined. Updating document...");
-
-
-                    updateDoc(gameDocRef, { battlePoints: 0 });
-                } else {
-                    console.log("GameContext: Setting playerGameData with battlePoints:", data.battlePoints);
-                    setPlayerGameData(data);
-                }
+                setPlayerGameData(data);
             } else {
-                console.log("GameContext: Game document does not exist.");
                 setPlayerGameData(null);
             }
         });
@@ -77,14 +65,11 @@ export const GameProvider = ({ children, worldId }) => {
             const hasCities = !snapshot.empty;
             setPlayerHasCities(hasCities);
 
-            // #comment Use functional update to avoid dependency on activeCityId
             setActiveCityId(currentId => {
                 if (hasCities && !currentId) {
-                    console.log("GameContext: Setting initial active city ID:", firstCityId);
                     return firstCityId;
                 }
                 if (!hasCities) {
-                    console.log("GameContext: No cities found, setting activeCityId to null.");
                     return null;
                 }
                 return currentId;
@@ -119,6 +104,44 @@ export const GameProvider = ({ children, worldId }) => {
             unsubscribeRuins();
         };
     }, [currentUser, worldId]);
+
+    // #comment This effect recalculates and saves the player's total points whenever their cities change.
+    useEffect(() => {
+        if (!currentUser || !worldId || !playerCities || Object.keys(playerCities).length === 0) {
+            return;
+        }
+
+        const recalculateAndSaveTotalPoints = async () => {
+            let playerAlliance = null;
+            // Fetch alliance data if the player is in an alliance
+            if (playerGameData?.alliance) {
+                const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerGameData.alliance);
+                const allianceSnap = await getDoc(allianceDocRef);
+                if (allianceSnap.exists()) {
+                    playerAlliance = { id: allianceSnap.id, ...allianceSnap.data() };
+                }
+            }
+
+            let totalPoints = 0;
+            for (const cityId in playerCities) {
+                // Use the pure function, passing the alliance data
+                totalPoints += calculateTotalPointsForCity(playerCities[cityId], playerAlliance);
+            }
+
+            // Only write to the database if the points have actually changed.
+            if (playerGameData?.totalPoints !== totalPoints) {
+                const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+                try {
+                    await updateDoc(gameDocRef, { totalPoints });
+                } catch (error) {
+                    console.error("Error updating total points:", error);
+                }
+            }
+        };
+
+        recalculateAndSaveTotalPoints();
+    }, [playerCities, currentUser, worldId, playerGameData]);
+
 
     const activeCity = playerCities[activeCityId] || null;
 

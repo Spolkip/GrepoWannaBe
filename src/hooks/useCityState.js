@@ -11,6 +11,37 @@ import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
 import { useAlliance } from '../contexts/AllianceContext';
 import allianceWonders from '../gameData/alliance_wonders.json';
 
+// #comment This is now a pure utility function that can be imported anywhere.
+export const calculateTotalPointsForCity = (gameState, playerAlliance) => {
+    if (!gameState) return 0;
+    let points = 0;
+    if (gameState.buildings) {
+        for (const buildingId in gameState.buildings) {
+            const buildingData = gameState.buildings[buildingId];
+            const buildingInfo = buildingConfig[buildingId];
+            if (buildingInfo && buildingInfo.points) {
+                const level = buildingData.level;
+                points += buildingInfo.points * (level * (level + 1) / 2);
+            }
+        }
+    }
+    if (gameState.units) {
+        for (const unitId in gameState.units) {
+            const unit = unitConfig[unitId];
+            if (unit) points += gameState.units[unitId] * (unit.cost.population || 1);
+        }
+    }
+    if (gameState.research) {
+        points += Object.keys(gameState.research).length * 50;
+    }
+    
+    if (playerAlliance?.allianceWonder) {
+        points += 500;
+    }
+    return Math.floor(points);
+};
+
+
 const getMarketCapacity = (level) => {
     if (!level || level < 1) return 0;
     const capacity = 500 + (level - 1) * 200;
@@ -177,33 +208,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
     // #comment Calculates total points from buildings, units, and research.
     const calculateTotalPoints = useCallback((gameState) => {
-        if (!gameState) return 0;
-        let points = 0;
-        if (gameState.buildings) {
-            for (const buildingId in gameState.buildings) {
-                const buildingData = gameState.buildings[buildingId];
-                const buildingInfo = buildingConfig[buildingId];
-                if (buildingInfo && buildingInfo.points) {
-                    // #comment Points now increase with each level, using the sum of an arithmetic series.
-                    const level = buildingData.level;
-                    points += buildingInfo.points * (level * (level + 1) / 2);
-                }
-            }
-        }
-        if (gameState.units) {
-            for (const unitId in gameState.units) {
-                const unit = unitConfig[unitId];
-                if (unit) points += gameState.units[unitId] * (unit.cost.population || 1); // Points for units based on population cost
-            }
-        }
-        if (gameState.research) {
-            points += Object.keys(gameState.research).length * 50; // Points for research
-        }
-        
-        if (playerAlliance?.allianceWonder) {
-            points += 500;
-        }
-        return Math.floor(points);
+        return calculateTotalPointsForCity(gameState, playerAlliance);
     }, [playerAlliance]);
 
     const saveGameState = useCallback(async (stateToSave) => {

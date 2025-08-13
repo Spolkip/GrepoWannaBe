@@ -25,6 +25,12 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
         onClose();
     };
 
+    // #comment Handler for the "Force Refresh Data" button
+    const handleForceRefresh = () => {
+        onCheat({}, {}, 0, false, '', false, false, 0, false, true); // Pass true for forceRefresh
+        onClose();
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md border-2 border-gray-600" onClick={e => e.stopPropagation()}>
@@ -135,6 +141,9 @@ const AdminCheatMenu = ({ onCheat, onClose, isInstantBuildActive}) => {
                 </button>
                 <button onClick={handleCheat} className="btn btn-primary w-full py-2 mt-2">
                     Apply Cheats
+                </button>
+                <button onClick={handleForceRefresh} className="btn btn-secondary w-full py-2 mt-2 bg-blue-600 hover:bg-blue-500">
+                    Force Refresh Data
                 </button>
             </div>
         </div>

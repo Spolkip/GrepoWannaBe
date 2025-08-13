@@ -10,6 +10,16 @@ import './ProfileView.css';
 import TextEditor from '../shared/TextEditor';
 import placeholder_profile from '../../images/placeholder_profile.png';
 
+// #comment Cache for player profile data.
+const profileCache = {};
+
+// #comment Function to clear the profile cache, exported for admin use.
+export const clearProfileCache = () => {
+    for (const key in profileCache) {
+        delete profileCache[key];
+    }
+};
+
 const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOpenAllianceProfile }) => {
     const { currentUser, userProfile: ownUserProfile, updateUserProfile } = useAuth();
     const { worldId } = useGame();
@@ -39,8 +49,9 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                 // Fetch user profile
                 const userDocRef = doc(db, "users", userId);
                 const userDocSnap = await getDoc(userDocRef);
+                let userData = null;
                 if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
+                    userData = userDocSnap.data();
                     setProfileData(userData);
                     setNewDescription(userData.description || '');
                     setNewImageUrl(userData.imageUrl || '');
@@ -49,9 +60,8 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                 // Fetch top-level game data (for alliance info)
                 const gameDocRef = doc(db, `users/${userId}/games`, worldId);
                 const gameDocSnap = await getDoc(gameDocRef);
-                if (gameDocSnap.exists()) {
-                    setGameData(gameDocSnap.data());
-                }
+                const gameData = gameDocSnap.exists() ? gameDocSnap.data() : null;
+                setGameData(gameData);
 
                 // Fetch all cities for the user in this world
                 const citiesColRef = collection(db, `users/${userId}/games`, worldId, 'cities');
@@ -79,13 +89,43 @@ const ProfileView = ({ onClose, viewUserId, onGoToCity, onInviteToAlliance, onOp
                 setTotalAttack(calculatedAttack);
                 setTotalDefense(calculatedDefense);
 
+                // #comment Update cache
+                profileCache[userId] = {
+                    data: {
+                        profileData: userData,
+                        gameData,
+                        cities: citiesList,
+                        points: calculatedPoints,
+                        totalAttack: calculatedAttack,
+                        totalDefense: calculatedDefense,
+                    },
+                    timestamp: Date.now(),
+                };
+
             } catch (error) {
                 console.error("Error fetching user data:", error);
             }
             setLoading(false);
         };
 
-        fetchData();
+        const userId = viewUserId || currentUser.uid;
+        const now = Date.now();
+        const twentyMinutes = 20 * 60 * 1000;
+
+        if (profileCache[userId] && (now - profileCache[userId].timestamp < twentyMinutes)) {
+            const cached = profileCache[userId].data;
+            setProfileData(cached.profileData);
+            setGameData(cached.gameData);
+            setCities(cached.cities);
+            setPoints(cached.points);
+            setTotalAttack(cached.totalAttack);
+            setTotalDefense(cached.totalDefense);
+            setNewDescription(cached.profileData.description || '');
+            setNewImageUrl(cached.profileData.imageUrl || '');
+            setLoading(false);
+        } else {
+            fetchData();
+        }
     }, [viewUserId, currentUser.uid, worldId, calculateTotalPoints]);
 
     const handleUpdateProfile = async (e) => {
