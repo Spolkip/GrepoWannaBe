@@ -11,12 +11,12 @@ const islandImages = ['island_1.png'];
 const islandLayouts = {
     'island_1.png': {
         citySlots: [
-            { x: 0, y: 3 }, { x: 5, y: 1 }, { x: 2, y: 5 }, { x: 6, y: 0 },
-            { x: -5, y: 2 }, { x: -3, y: 3 }, { x: -6, y: -5 }, { x: -6, y: 0 },
-            { x: 5, y: -6 }, { x: -2, y: -8 }
+            { x: 0, y: 2 }, { x: 3, y: 1 }, { x: 1, y: 3 }, { x: 4, y: 0 },
+            { x: -3, y: 1 }, { x: -3, y: 4 }, { x: -5, y: -2 }, { x: -5, y: 0 },
+            { x: 2, y: -3 }, { x: -1, y: -4 }
         ],
         villages: [
-            { x: -3, y: -3 }, { x: 1, y: -2}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
+            { x: -3, y: -1 }, { x: 1, y: -1}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
         ]
     },
 };
@@ -90,7 +90,7 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
     islands.forEach(island => {
         const layout = islandLayouts[island.imageName];
         if (layout) {
-            // #comment Use predefined layout for cities
+            // Αν υπάρχει προεπιλεγμένο layout, χρησιμοποίησέ το
             layout.citySlots.forEach(relativePos => {
                 const slotId = `${island.id}-slot-${slotIndex++}`;
                 citySlots[slotId] = {
@@ -105,24 +105,37 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
                 };
             });
         } else {
-            // #comment Fallback procedural generation for islands without a predefined layout
+            // Γενετική τοποθέτηση πόλεων στην ΠΕΡΙΜΕΤΡΟ του νησιού
             const centerX = Math.round(island.x);
             const centerY = Math.round(island.y);
-            const numSlots = Math.floor(island.radius * 2);
+            const numSlots = Math.floor(island.radius * 2.5); // Περισσότερες πόλεις για μεγαλύτερα νησιά
+
+            console.log(`🌴 Generating cities for ${island.name} (radius: ${island.radius})`);
+
             for (let i = 0; i < numSlots; i++) {
                 const angle = (i / numSlots) * 2 * Math.PI;
-                const x = Math.round(centerX + (island.radius - 1) * Math.cos(angle));
-                const y = Math.round(centerY + (island.radius - 1) * Math.sin(angle));
-                const slotId = `${island.id}-slot-${i}`;
+                const edgeOffset = island.radius - 1;
+                const x = Math.round(centerX + edgeOffset * Math.cos(angle));
+                const y = Math.round(centerY + edgeOffset * Math.sin(angle));
+
                 if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
+                    const slotId = `${island.id}-slot-${slotIndex++}`;
                     citySlots[slotId] = {
-                        islandId: island.id, x, y, ownerId: null, cityName: 'Unclaimed',
-                        ownerEmail: null, ownerUsername: null, ownerFaction: null
+                        islandId: island.id,
+                        x,
+                        y,
+                        ownerId: null,
+                        cityName: 'Unclaimed',
+                        ownerEmail: null,
+                        ownerUsername: null,
+                        ownerFaction: null
                     };
+                    console.log(`🏙️ Slot at [${x}, ${y}] on island ${island.id}`);
                 }
             }
         }
     });
+
     return citySlots;
 };
 
