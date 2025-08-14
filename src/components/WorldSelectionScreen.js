@@ -8,7 +8,7 @@ import Modal from './shared/Modal';
 import { generateIslands, generateCitySlots, generateFarmingVillages, generateRuins } from '../utils/worldGeneration';
 import logoutIcon from '../images/logout.png';
 import worldIcon from '../images/world_selection.png';
-import worldSelectionBackground from '../images/world_selection_screen.png'; // #comment Import the background image
+import './WorldSelectionScreen.css'; // Import the new CSS file
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
     if (!message) return null;
@@ -75,6 +75,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 setLoading(false);
             });
         } else {
+            setUserGames([]); // #comment Explicitly clear user's games when logged out
             setLoading(false);
         }
 
@@ -242,13 +243,22 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
         return <div className="text-white text-center p-10">Loading Worlds...</div>;
     }
 
+    // #comment A wrapper function to safely handle world selection clicks
+    const handleWorldSelect = (worldId) => {
+        if (typeof onWorldSelected === 'function') {
+            onWorldSelected(worldId);
+        } else {
+            console.error("onWorldSelected prop is not a function.", { onWorldSelected });
+            setMessage("A critical error occurred. Please refresh the page.");
+        }
+    };
+
     const availableWorlds = worlds.filter(world => !userGames.includes(world.id));
     const joinedWorlds = worlds.filter(world => userGames.includes(world.id));
 
     return (
         <div 
-            className="w-full min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
-            style={{ backgroundImage: `url(${worldSelectionBackground})` }}
+            className="w-full min-h-screen flex items-center justify-center p-4 world-selection-container"
         >
             <Modal message={message} onClose={() => setMessage('')} />
             {worldToDelete && (
@@ -260,22 +270,22 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 />
             )}
             <div className="w-full max-w-4xl">
-                <div className="bg-gray-800 bg-opacity-75 p-8 rounded-lg shadow-2xl relative">
+                <div className="world-selection-window p-8">
                     <button
                         onClick={() => signOut(auth)}
                         className="absolute top-4 right-4 text-sm text-red-400 hover:text-red-300 px-3 py-1 rounded"
                     >
                         <img src={logoutIcon} alt="Logout" className="w-8 h-8" />
                     </button>
-                    <h1 className="font-title text-4xl text-center text-gray-300 mb-8">Select a World</h1>
+                    <h1 className="font-title text-4xl text-center mb-8">Select a World</h1>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <h2 className="font-title text-2xl text-gray-300 mb-4">Your Worlds</h2>
+                            <h2 className="font-title text-2xl mb-4">Your Worlds</h2>
                             {joinedWorlds.length > 0 ? (
                                 joinedWorlds.map(world => (
                                     <div key={world.id} className="selection-card p-4 rounded-lg text-center mb-2 flex justify-between items-center">
-                                        <div className="flex items-center cursor-pointer" onClick={() => onWorldSelected(world.id)}>
+                                        <div className="flex items-center cursor-pointer" onClick={() => handleWorldSelect(world.id)}>
                                             <img src={worldIcon} alt="World" className="w-8 h-8 mr-4" />
                                             <h3 className="text-xl font-bold flex-grow text-left">{world.name}</h3>
                                         </div>
@@ -290,16 +300,16 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-gray-400">You have not joined any worlds yet.</p>
+                                <p>You have not joined any worlds yet.</p>
                             )}
                         </div>
 
                         <div>
-                            <h2 className="font-title text-2xl text-gray-300 mb-4">Join a New World</h2>
+                            <h2 className="font-title text-2xl mb-4">Join a New World</h2>
                             {availableWorlds.length > 0 ? (
                                 availableWorlds.map(world => (
                                     <div key={world.id} className="selection-card p-4 rounded-lg text-center mb-2 flex justify-between items-center">
-                                        <div className="flex items-center cursor-pointer" onClick={() => onWorldSelected(world.id)}>
+                                        <div className="flex items-center cursor-pointer" onClick={() => handleWorldSelect(world.id)}>
                                             <img src={worldIcon} alt="World" className="w-8 h-8 mr-4" />
                                             <h3 className="text-xl font-bold flex-grow text-left">{world.name}</h3>
                                         </div>
@@ -314,14 +324,14 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-gray-400">No new worlds are available to join.</p>
+                                <p>No new worlds are available to join.</p>
                             )}
                         </div>
                     </div>
 
                     {userProfile?.is_admin && (
                         <div className="mt-12 border-t border-gray-700 pt-8">
-                            <h2 className="font-title text-2xl text-gray-300 mb-4">Admin Panel</h2>
+                            <h2 className="font-title text-2xl mb-4">Admin Panel</h2>
                             <form onSubmit={handleCreateWorld} className="flex flex-col sm:flex-row gap-4 mb-4">
                                 <input
                                     type="text"

@@ -1,0 +1,7 @@
+/* src/components/AuthScreen.css */
+.auth-screen-container {
+    background-image: url('../images/login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
