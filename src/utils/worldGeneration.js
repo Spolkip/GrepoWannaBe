@@ -12,7 +12,7 @@ const islandLayouts = {
     'island_1.png': {
         citySlots: [
             { x: -1, y: 4 },    // Bottom bay
-            { x: 4, y: 2 },    // Right side
+            { x: 5, y: 1 },    // Right side
             { x: 2, y: 5 },    // Bottom right
             { x: 5, y: -1 },   // Far right peninsula
             { x: -6, y: 1 },   // Far left
