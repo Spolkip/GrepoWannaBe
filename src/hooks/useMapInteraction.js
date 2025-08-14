@@ -1,7 +1,8 @@
+// src/hooks/useMapInteraction.js
 import { useState, useCallback, useEffect } from 'react';
 
 const TILE_SIZE = 32;
-const OVERSCROLL_AMOUNT = 100;
+const OVERSCROLL_AMOUNT = 0;
 
 export const useMapInteraction = (viewportRef, mapContainerRef, worldState, playerCity) => {
     const [pan, setPan] = useState({ x: 0, y: 0 });

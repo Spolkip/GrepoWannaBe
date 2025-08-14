@@ -11,9 +11,9 @@ const islandImages = ['island_1.png'];
 const islandLayouts = {
     'island_1.png': {
         citySlots: [
-            { x: -5, y: -4 }, { x: -2, y: -7 }, { x: 2, y: -7 }, { x: 6, y: -5 },
-            { x: 7, y: 0 }, { x: 5, y: 5 }, { x: 0, y: 7 }, { x: -4, y: 6 },
-            { x: -7, y: 2 }, { x: -8, y: -2 }
+            { x: 0, y: 3 }, { x: 5, y: 1 }, { x: 2, y: 5 }, { x: 6, y: 0 },
+            { x: -5, y: 2 }, { x: -3, y: 3 }, { x: -6, y: -5 }, { x: -6, y: 0 },
+            { x: 5, y: -6 }, { x: -2, y: -8 }
         ],
         villages: [
             { x: -3, y: -3 }, { x: 1, y: -2}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
@@ -27,6 +27,20 @@ export const generateIslands = (width, height, count) => {
     const minMargin = 10;
     const maxMargin = 12;
     const maxAttempts = 20;
+
+    // #comment If only one island is to be generated, create a large central one.
+    if (count === 1) {
+        const radius = Math.min(width, height) / 2.5; // Make it large
+        islands.push({
+            id: `island-0`,
+            name: `The Central Isle`,
+            x: Math.floor(width / 2),
+            y: Math.floor(height / 2),
+            radius: radius,
+            imageName: islandImages[Math.floor(Math.random() * islandImages.length)],
+        });
+        return islands;
+    }
 
     const checkCollision = (newIsland, existingIslands) => {
         for (const existing of existingIslands) {
