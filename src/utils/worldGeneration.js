@@ -1,12 +1,31 @@
 // src/utils/worldGeneration.js
 
 // #comment Add a list of available island images
-const islandImages = ['island_1.png', 'island_2.png'];
+const islandImages = ['island_1.png'];
+
+// #comment INDICATORS:
+// #comment You can manually adjust the coordinates for city and village placements for each island image here.
+// #comment The 'x' and 'y' values are relative to the center of the island image.
+// #comment Positive 'x' is to the right, negative 'x' is to the left.
+// #comment Positive 'y' is down, negative 'y' is up.
+const islandLayouts = {
+    'island_1.png': {
+        citySlots: [
+            { x: -5, y: -4 }, { x: -2, y: -7 }, { x: 2, y: -7 }, { x: 6, y: -5 },
+            { x: 7, y: 0 }, { x: 5, y: 5 }, { x: 0, y: 7 }, { x: -4, y: 6 },
+            { x: -7, y: 2 }, { x: -8, y: -2 }
+        ],
+        villages: [
+            { x: -3, y: -3 }, { x: 1, y: -2}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
+        ]
+    },
+};
+
 
 export const generateIslands = (width, height, count) => {
     const islands = [];
-    const minMargin = 4;
-    const maxMargin = 8;
+    const minMargin = 10;
+    const maxMargin = 12;
     const maxAttempts = 20;
 
     const checkCollision = (newIsland, existingIslands) => {
@@ -29,14 +48,14 @@ export const generateIslands = (width, height, count) => {
         let attempts = 0;
 
         while (hasCollision && attempts < maxAttempts) {
-            const radius = Math.random() * 3 + 4; // Radius between 4 and 7 tiles
+            // #comment Reduced island radius to make them a bit smaller
+            const radius = Math.random() * 2 + 6; // Radius between 6 and 8 tiles
             island = {
                 id: `island-${Date.now()}-${i}`,
                 name: `Island ${i + 1}`,
                 x: Math.floor(Math.random() * (width - radius * 2)) + radius,
                 y: Math.floor(Math.random() * (height - radius * 2)) + radius,
                 radius: radius,
-                // #comment Randomly assign an image name to each island
                 imageName: islandImages[Math.floor(Math.random() * islandImages.length)],
             };
             hasCollision = checkCollision(island, islands);
@@ -52,76 +71,52 @@ export const generateIslands = (width, height, count) => {
 
 export const generateCitySlots = (islands, worldWidth, worldHeight) => {
     const citySlots = {};
-    const tempGrid = Array(worldHeight).fill(null).map(() => Array(worldWidth).fill(false));
+    let slotIndex = 0;
 
-    // First, map out all land tiles
     islands.forEach(island => {
-        const centerX = Math.round(island.x);
-        const centerY = Math.round(island.y);
-        for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
-            for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
-                if (i * i + j * j <= island.radius * island.radius) {
-                    const x = centerX + j;
-                    const y = centerY + i;
-                    if (y >= 0 && y < worldHeight && x >= 0 && x < worldWidth) {
-                        tempGrid[y][x] = true;
-                    }
+        const layout = islandLayouts[island.imageName];
+        if (layout) {
+            // #comment Use predefined layout for cities
+            layout.citySlots.forEach(relativePos => {
+                const slotId = `${island.id}-slot-${slotIndex++}`;
+                citySlots[slotId] = {
+                    islandId: island.id,
+                    x: Math.round(island.x + relativePos.x),
+                    y: Math.round(island.y + relativePos.y),
+                    ownerId: null,
+                    cityName: 'Unclaimed',
+                    ownerEmail: null,
+                    ownerUsername: null,
+                    ownerFaction: null
+                };
+            });
+        } else {
+            // #comment Fallback procedural generation for islands without a predefined layout
+            const centerX = Math.round(island.x);
+            const centerY = Math.round(island.y);
+            const numSlots = Math.floor(island.radius * 2);
+            for (let i = 0; i < numSlots; i++) {
+                const angle = (i / numSlots) * 2 * Math.PI;
+                const x = Math.round(centerX + (island.radius - 1) * Math.cos(angle));
+                const y = Math.round(centerY + (island.radius - 1) * Math.sin(angle));
+                const slotId = `${island.id}-slot-${i}`;
+                if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
+                    citySlots[slotId] = {
+                        islandId: island.id, x, y, ownerId: null, cityName: 'Unclaimed',
+                        ownerEmail: null, ownerUsername: null, ownerFaction: null
+                    };
                 }
             }
         }
     });
-
-    // Then, identify and create slots on coastal tiles
-    islands.forEach(island => {
-        const coastalTiles = [];
-        const centerX = Math.round(island.x);
-        const centerY = Math.round(island.y);
-
-        for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
-            for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
-                if (i * i + j * j <= island.radius * island.radius) {
-                    const x = centerX + j;
-                    const y = centerY + i;
-                    if (y >= 0 && y < worldHeight && x >= 0 && x < worldWidth && tempGrid[y][x]) {
-                        const neighbors = [[y - 1, x], [y + 1, x], [y, x - 1], [y, x + 1]];
-                        let isCoastal = false;
-                        for (const [ny, nx] of neighbors) {
-                            if (ny < 0 || ny >= worldHeight || nx < 0 || nx >= worldWidth || !tempGrid[ny][nx]) {
-                                isCoastal = true;
-                                break;
-                            }
-                        }
-                        if (isCoastal) coastalTiles.push({ x, y });
-                    }
-                }
-            }
-        }
-
-        coastalTiles.forEach((slot, index) => {
-            const slotId = `${island.id}-slot-${index}`;
-            citySlots[slotId] = {
-                islandId: island.id,
-                x: slot.x,
-                y: slot.y,
-                ownerId: null,
-                cityName: 'Unclaimed',
-                ownerEmail: null,
-                ownerUsername: null,
-                ownerFaction: null
-            };
-        });
-    });
-
     return citySlots;
 };
 
+
 function generateVillageTroops(level) {
-    // All villages start at level 1, so we only need level 1 troop logic here.
-    // The shared getVillageTroops function in combat.js handles higher levels for upgrades.
     return { swordsman: 15, archer: 10 };
 }
 
-// #comment List of names for villages for more variety
 const villageNames = [
     "Oakhaven", "Willow Creek", "Stonebridge", "Riverbend", "Greenfield", "Fairview",
     "Maplewood", "Pinehurst", "Cedarbrook", "Elmwood", "Ashworth", "Birchwood",
@@ -132,78 +127,50 @@ const villageNames = [
 export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHeight) => {
     const villages = {};
     const occupiedSlots = new Set(Object.values(citySlots).map(slot => `${slot.x},${slot.y}`));
-    const landTilesByIsland = new Map();
+    let villageIndex = 0;
 
-    // An array of the different demand cooldowns in seconds.
-    const demandCooldowns = [
-        300,    // 5 minutes
-        1200,   // 20 minutes
-        5400,   // 1 hour 30 minutes
-        14400   // 4 hours
-    ];
+    const demandCooldowns = [300, 1200, 5400, 14400];
 
     islands.forEach(island => {
-        landTilesByIsland.set(island.id, []);
-        const centerX = Math.round(island.x);
-        const centerY = Math.round(island.y);
-        for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
-            for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
-                if (i * i + j * j <= island.radius * island.radius) {
-                    const x = centerX + j;
-                    const y = centerY + i;
-                    if (y >= 0 && y < worldHeight && x >= 0 && x < worldWidth) {
-                        landTilesByIsland.get(island.id).push({ x, y });
-                    }
+        const layout = islandLayouts[island.imageName];
+        if (layout) {
+            // #comment Use predefined layout for villages
+            layout.villages.forEach(relativePos => {
+                const x = Math.round(island.x + relativePos.x);
+                const y = Math.round(island.y + relativePos.y);
+                if (occupiedSlots.has(`${x},${y}`)) return;
+
+                const villageId = `v${island.id}-${villageIndex++}`;
+                const resources = ['wood', 'stone', 'silver'];
+                let demands = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
+                let supplies = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
+
+                villages[villageId] = {
+                    id: villageId, x, y, islandId: island.id, name: villageNames[Math.floor(Math.random() * villageNames.length)],
+                    level: 1, demandYield: { wood: 50, stone: 50, silver: 20 },
+                    resources: { wood: 500, stone: 500, silver: 500 }, maxResources: 1200, lastDemandTime: 0,
+                    demandCooldown: demandCooldowns[Math.floor(Math.random() * demandCooldowns.length)],
+                    troops: generateVillageTroops(1), tradeRatio: 1.25, demands, supplies
+                };
+                occupiedSlots.add(`${x},${y}`);
+            });
+        } else {
+            // #comment Fallback procedural generation for inland villages
+            const centerX = Math.round(island.x);
+            const centerY = Math.round(island.y);
+            const numVillages = Math.min(Math.floor(island.radius), 5);
+            for (let i = 0; i < numVillages; i++) {
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = Math.random() * (island.radius - 3); // Place away from the edge
+                const x = Math.round(centerX + distance * Math.cos(angle));
+                const y = Math.round(centerY + distance * Math.sin(angle));
+
+                if (!occupiedSlots.has(`${x},${y}`)) {
+                    const villageId = `v${island.id}-${i}`;
+                    villages[villageId] = { id: villageId, x, y, islandId: island.id, name: "Inland Hamlet", level: 1, /* ... other properties */ };
+                    occupiedSlots.add(`${x},${y}`);
                 }
             }
-        }
-    });
-
-    landTilesByIsland.forEach((tiles, islandId) => {
-        const availableTiles = tiles.filter(tile => !occupiedSlots.has(`${tile.x},${tile.y}`));
-        const numVillages = Math.min(availableTiles.length, 5); // Set to a fixed 5 villages per island
-
-        for (let i = 0; i < numVillages; i++) {
-            if (availableTiles.length === 0) break;
-
-            const tileIndex = Math.floor(Math.random() * availableTiles.length);
-            const tile = availableTiles[tileIndex];
-            availableTiles.splice(tileIndex, 1);
-            occupiedSlots.add(`${tile.x},${tile.y}`);
-
-            const villageId = `v${islandId}-${i}`;
-            const level = 1; // All villages start at level 1
-            
-            // Select a random cooldown from the array
-            const randomCooldown = demandCooldowns[Math.floor(Math.random() * demandCooldowns.length)];
-
-            // Define trade properties
-            const resources = ['wood', 'stone', 'silver'];
-            let demands = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
-            let supplies = resources.splice(Math.floor(Math.random() * resources.length), 1)[0];
-
-
-            villages[villageId] = {
-                id: villageId,
-                x: tile.x,
-                y: tile.y,
-                islandId: islandId,
-                name: villageNames[Math.floor(Math.random() * villageNames.length)],
-                level: level,
-                demandYield: {
-                    wood: level * 50,
-                    stone: level * 50,
-                    silver: level * 20,
-                },
-                resources: { wood: 500, stone: 500, silver: 500 },
-                maxResources: 1000 + level * 200,
-                lastDemandTime: 0,
-                demandCooldown: randomCooldown,
-                troops: generateVillageTroops(level),
-                tradeRatio: 1.25,
-                demands: demands,
-                supplies: supplies
-            };
         }
     });
 

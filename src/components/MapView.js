@@ -472,15 +472,18 @@ const MapView = ({
     const mapGrid = useMemo(() => {
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
+        
+        // #comment Only generate procedural land for islands WITHOUT an image
         worldState.islands.forEach(island => {
-            const hasImage = !!island.imageName;
-            const centerX = Math.round(island.x), centerY = Math.round(island.y);
-            for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
-                for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
-                    if (i * i + j * j <= island.radius * island.radius) {
-                        const x = centerX + j, y = centerY + i;
-                        if (y >= 0 && y < worldState.height && x >= 0 && x < worldState.width) {
-                            grid[y][x] = { type: 'land', data: { hasImage } };
+            if (!island.imageName) {
+                const centerX = Math.round(island.x), centerY = Math.round(island.y);
+                for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
+                    for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
+                        if (i * i + j * j <= island.radius * island.radius) {
+                            const x = centerX + j, y = centerY + i;
+                            if (y >= 0 && y < worldState.height && x >= 0 && x < worldState.width) {
+                                grid[y][x] = { type: 'land', data: { hasImage: false } };
+                            }
                         }
                     }
                 }
@@ -491,9 +494,11 @@ const MapView = ({
             Object.values(items).forEach(item => {
                 if (item.x !== undefined && item.y !== undefined) {
                     const x = Math.round(item.x), y = Math.round(item.y);
-                    if (grid[y]?.[x]) {
-                        const originalData = grid[y][x].data || {};
-                        grid[y][x] = { type, data: { ...item, ...originalData } };
+                    if (y >= 0 && y < worldState.height && x >= 0 && x < worldState.width) {
+                         if (!grid[y][x] || grid[y][x].type === 'water') {
+                            grid[y][x] = { type: 'land', data: { hasImage: true } }; // Mark as land for interaction
+                        }
+                        grid[y][x] = { type, data: { ...item, ...grid[y][x].data } };
                     }
                 }
             });
@@ -609,31 +614,33 @@ const MapView = ({
                                         }}
                                     />
                                 ))}
-                                <MapGrid
-                                    mapGrid={mapGrid}
-                                    worldState={worldState}
-                                    pan={pan}
-                                    zoom={zoom}
-                                    viewportSize={viewportSize}
-                                    onCitySlotClick={onCitySlotClick}
-                                    onVillageClick={onVillageClick}
-                                    onRuinClick={onRuinClick}
-                                    onGodTownClick={onGodTownClick}
-                                    onWonderSpotClick={handleWonderSpotClick}
-                                    onConstructingWonderClick={handleConstructingWonderClick}
-                                    isPlacingDummyCity={isPlacingDummyCity}
-                                    movements={movements}
-                                    combinedSlots={combinedSlotsForGrid}
-                                    villages={visibleVillages}
-                                    ruins={visibleRuins}
-                                    godTowns={godTowns}
-                                    playerAlliance={playerAlliance}
-                                    conqueredVillages={conqueredVillages}
-                                    gameSettings={gameSettings}
-                                    cityPoints={cityPoints}
-                                    scoutedCities={scoutedCities}
-                                    controlledIslands={controlledIslands}
-                                />
+                                <div style={{ position: 'relative', zIndex: 2 }}>
+                                    <MapGrid
+                                        mapGrid={mapGrid}
+                                        worldState={worldState}
+                                        pan={pan}
+                                        zoom={zoom}
+                                        viewportSize={viewportSize}
+                                        onCitySlotClick={onCitySlotClick}
+                                        onVillageClick={onVillageClick}
+                                        onRuinClick={onRuinClick}
+                                        onGodTownClick={onGodTownClick}
+                                        onWonderSpotClick={handleWonderSpotClick}
+                                        onConstructingWonderClick={handleConstructingWonderClick}
+                                        isPlacingDummyCity={isPlacingDummyCity}
+                                        movements={movements}
+                                        combinedSlots={combinedSlotsForGrid}
+                                        villages={visibleVillages}
+                                        ruins={visibleRuins}
+                                        godTowns={godTowns}
+                                        playerAlliance={playerAlliance}
+                                        conqueredVillages={conqueredVillages}
+                                        gameSettings={gameSettings}
+                                        cityPoints={cityPoints}
+                                        scoutedCities={scoutedCities}
+                                        controlledIslands={controlledIslands}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
