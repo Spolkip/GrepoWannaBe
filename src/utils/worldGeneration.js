@@ -7,13 +7,12 @@ const islandImages = ['island_1.png'];
 // #comment You can manually adjust the coordinates for city and village placements for each island image here.
 // #comment The 'x' and 'y' values are relative to the center of the island image.
 // #comment Positive 'x' is to the right, negative 'x' is to the left.
-// #comment Positive 'y' is down, negative 'y' is up.
+// #comment Positive 'y' is down, negative 'y' is down.
 const islandLayouts = {
     'island_1.png': {
         citySlots: [
-            { x: 0, y: 2 }, { x: 3, y: 1 }, { x: 1, y: 3 }, { x: 4, y: 0 },
-            { x: -3, y: 1 }, { x: -3, y: 4 }, { x: -5, y: -2 }, { x: -5, y: 0 },
-            { x: 2, y: -3 }, { x: -1, y: -4 }
+            { x: 0, y: 4 }, { x: 3, y: 1 }, { x: 1, y: 3 }, { x: 5, y: 0 },{ x: -5, y: 0 },
+            { x: -3, y: 1 }, { x: -3, y: 4 }, { x: -6, y: -2 },{ x: 2, y: -2 }, { x: 0, y: -5 }
         ],
         villages: [
             { x: -3, y: -1 }, { x: 1, y: -1}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
@@ -88,38 +87,24 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
     let slotIndex = 0;
 
     islands.forEach(island => {
-        const layout = islandLayouts[island.imageName];
-        if (layout) {
-            // Αν υπάρχει προεπιλεγμένο layout, χρησιμοποίησέ το
-            layout.citySlots.forEach(relativePos => {
+        // Procedurally place cities on the coastline of the island
+        const centerX = Math.round(island.x);
+        const centerY = Math.round(island.y);
+        const numSlots = Math.floor(island.radius * 2.5); // More cities for larger islands
+
+        for (let i = 0; i < numSlots; i++) {
+            // #comment Remove the slight randomness to the angle to avoid perfect circular placement
+            const angle = (i / numSlots) * 2 * Math.PI;
+            // #comment Vary the distance from the center to simulate a coastline instead of a perfect circle
+            const edgeOffset = island.radius - (1 + Math.random() * 1.5); // Place between 1 and 2.5 units from the edge
+            const x = Math.round(centerX + edgeOffset * Math.cos(angle));
+            const y = Math.round(centerY + edgeOffset * Math.sin(angle));
+
+            if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
                 const slotId = `${island.id}-slot-${slotIndex++}`;
-                citySlots[slotId] = {
-                    islandId: island.id,
-                    x: Math.round(island.x + relativePos.x),
-                    y: Math.round(island.y + relativePos.y),
-                    ownerId: null,
-                    cityName: 'Unclaimed',
-                    ownerEmail: null,
-                    ownerUsername: null,
-                    ownerFaction: null
-                };
-            });
-        } else {
-            // Γενετική τοποθέτηση πόλεων στην ΠΕΡΙΜΕΤΡΟ του νησιού
-            const centerX = Math.round(island.x);
-            const centerY = Math.round(island.y);
-            const numSlots = Math.floor(island.radius * 2.5); // Περισσότερες πόλεις για μεγαλύτερα νησιά
-
-            console.log(`🌴 Generating cities for ${island.name} (radius: ${island.radius})`);
-
-            for (let i = 0; i < numSlots; i++) {
-                const angle = (i / numSlots) * 2 * Math.PI;
-                const edgeOffset = island.radius - 1;
-                const x = Math.round(centerX + edgeOffset * Math.cos(angle));
-                const y = Math.round(centerY + edgeOffset * Math.sin(angle));
-
-                if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
-                    const slotId = `${island.id}-slot-${slotIndex++}`;
+                // #comment Ensure we don't place a city on top of another one
+                const isOccupied = Object.values(citySlots).some(slot => slot.x === x && slot.y === y);
+                if (!isOccupied) {
                     citySlots[slotId] = {
                         islandId: island.id,
                         x,
@@ -130,7 +115,6 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
                         ownerUsername: null,
                         ownerFaction: null
                     };
-                    console.log(`🏙️ Slot at [${x}, ${y}] on island ${island.id}`);
                 }
             }
         }
