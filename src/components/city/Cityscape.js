@@ -5,6 +5,7 @@ import SpecialBuildingPlot from './specialBuildingPlotpls';
 import buildingLayout from '../../gameData/BuildingLayout.json';
 import buildingConfig from '../../gameData/buildings.json'; // Import building config
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
+import cityBackground from '../../images/city_layout.png'; // Import the new background
 
 const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, onOpenSpecialBuildingMenu }) => {
   return (
@@ -13,21 +14,12 @@ const Cityscape = ({ buildings, onBuildingClick, buildingImages, cityGameState, 
         width: '2000px', // Large canvas for the city
         height: '1200px',
         position: 'relative',
-        background: 'transparent', // Make this transparent so the parent background shows
+        backgroundImage: `url(${cityBackground})`, // Use the imported image
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       }}
     >
-      {/* Add a green overlay to represent the island's landmass */}
-      <div 
-        className="absolute"
-        style={{
-          top: '0',
-          left: '0',
-          width: '100%',
-          height: '85%', // Cover most of the area, leaving the bottom for the sea/shipyard
-          backgroundColor: '#2a623d', // Same land color as before
-          zIndex: 0
-        }}
-      />
+      {/* The previous green overlay has been removed */}
       
       {buildingLayout.map((building) => {
         if (building.id === 'special_building_plot') {
