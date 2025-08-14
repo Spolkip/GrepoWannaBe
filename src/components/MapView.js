@@ -38,8 +38,8 @@ const TILE_SIZE = 32;
 
 // Map island image names to imported image files
 const islandImageMap = {
-    'island1.png': island1,
-    'island2.png': island2,
+    'island_1.png': island1,
+    'island_2.png': island2,
 };
 
 const MapView = ({
@@ -473,33 +473,41 @@ const MapView = ({
         if (!worldState?.islands) return null;
         const grid = Array(worldState.height).fill(null).map(() => Array(worldState.width).fill({ type: 'water' }));
         worldState.islands.forEach(island => {
+            const hasImage = !!island.imageName;
             const centerX = Math.round(island.x), centerY = Math.round(island.y);
             for (let i = -Math.floor(island.radius); i <= Math.ceil(island.radius); i++) {
                 for (let j = -Math.floor(island.radius); j <= Math.ceil(island.radius); j++) {
                     if (i * i + j * j <= island.radius * island.radius) {
                         const x = centerX + j, y = centerY + i;
-                        if (y >= 0 && y < worldState.height && x >= 0 && x < worldState.width) grid[y][x] = { type: 'land' };
+                        if (y >= 0 && y < worldState.height && x >= 0 && x < worldState.width) {
+                            grid[y][x] = { type: 'land', data: { hasImage } };
+                        }
                     }
                 }
             }
         });
-        Object.values(combinedSlotsForGrid).forEach(slot => {
-            if (slot.x !== undefined && slot.y !== undefined) {
-                const x = Math.round(slot.x), y = Math.round(slot.y);
-                if (grid[y]?.[x]) grid[y][x] = { type: 'city_slot', data: slot };
-            }
-        });
-        Object.values(visibleVillages).forEach(village => {
-            const x = Math.round(village.x), y = Math.round(village.y);
-            if (grid[y]?.[x]?.type === 'land') grid[y][x] = { type: 'village', data: village };
-        });
+
+        const mergeWithGrid = (items, type) => {
+            Object.values(items).forEach(item => {
+                if (item.x !== undefined && item.y !== undefined) {
+                    const x = Math.round(item.x), y = Math.round(item.y);
+                    if (grid[y]?.[x]) {
+                        const originalData = grid[y][x].data || {};
+                        grid[y][x] = { type, data: { ...item, ...originalData } };
+                    }
+                }
+            });
+        };
+
+        mergeWithGrid(combinedSlotsForGrid, 'city_slot');
+        mergeWithGrid(visibleVillages, 'village');
+
         Object.values(visibleRuins).forEach(ruin => {
             const x = Math.round(ruin.x), y = Math.round(ruin.y);
-            if (grid[y]?.[x]?.type === 'water') grid[y][x] = { type: 'ruin', data: ruin };
+            if (grid[y]?.[x]) grid[y][x] = { type: 'ruin', data: ruin };
         });
         Object.values(godTowns).forEach(town => {
-            const x = Math.round(town.x);
-            const y = Math.round(town.y);
+            const x = Math.round(town.x), y = Math.round(town.y);
             if (grid[y]?.[x]) {
                 grid[y][x] = { type: 'god_town', data: town };
             }
@@ -586,7 +594,7 @@ const MapView = ({
                         <div className="absolute inset-0 z-0">
                             <div ref={mapContainerRef} className="map-surface" style={{ width: worldState?.width * 32, height: worldState?.height * 32, transformOrigin: '0 0' }}>
                                 {worldState?.islands && gameSettings.showVisuals && worldState.islands.map(island => (
-                                    <img
+                                    island.imageName && <img
                                         key={island.id}
                                         src={islandImageMap[island.imageName]}
                                         alt={island.name}

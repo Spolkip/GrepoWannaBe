@@ -1,4 +1,8 @@
 // src/utils/worldGeneration.js
+
+// #comment Add a list of available island images
+const islandImages = ['island_1.png', 'island_2.png'];
+
 export const generateIslands = (width, height, count) => {
     const islands = [];
     const minMargin = 4;
@@ -32,6 +36,8 @@ export const generateIslands = (width, height, count) => {
                 x: Math.floor(Math.random() * (width - radius * 2)) + radius,
                 y: Math.floor(Math.random() * (height - radius * 2)) + radius,
                 radius: radius,
+                // #comment Randomly assign an image name to each island
+                imageName: islandImages[Math.floor(Math.random() * islandImages.length)],
             };
             hasCollision = checkCollision(island, islands);
             attempts++;

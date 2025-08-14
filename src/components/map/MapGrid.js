@@ -56,7 +56,7 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
                     tileContent = <ConstructingWonderTile wonderData={tile.data} onClick={onConstructingWonderClick} />;
                     break;
                 case 'land':
-                    tileContent = <LandTile gameSettings={gameSettings} />;
+                    tileContent = <LandTile tileData={tile.data} gameSettings={gameSettings} />;
                     break;
                 default:
                     tileContent = <WaterTile gameSettings={gameSettings} />;

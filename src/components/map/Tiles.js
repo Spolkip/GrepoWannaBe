@@ -18,9 +18,10 @@ const _WaterTile = ({ gameSettings = defaultSettings }) => {
 };
 
 const _LandTile = ({ gameSettings = defaultSettings }) => {
-    const bgClass = gameSettings.showVisuals ? 'bg-green-600' : 'bg-gray-800';
+    // #comment Make land tiles transparent so the island images in MapView are visible.
+    const bgClass = gameSettings.showVisuals ? 'bg-transparent' : 'bg-gray-800';
     const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700/20' : 'border-gray-700'}`
         : 'border-r border-b border-transparent';
     return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
 };
@@ -104,9 +105,9 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
     }
 
 
-    const backgroundClass = gameSettings.showVisuals ? 'bg-green-400' : 'bg-gray-800';
+    const backgroundClass = 'bg-transparent'; // #comment Always transparent
     const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700/20' : 'border-gray-700'}`
         : 'border-r border-b border-transparent';
 
     return (
@@ -130,9 +131,9 @@ const _FarmingVillageTile = ({ villageData, onClick, conqueredVillages, gameSett
         tooltipText = `Your Village: ${villageData.name}<br>Happiness: ${Math.floor(happiness)}%`;
     }
 
-    const backgroundClass = gameSettings.showVisuals ? 'bg-green-500' : 'bg-gray-800';
+    const backgroundClass = 'bg-transparent'; // #comment Always transparent
     const borderClass = gameSettings.showGrid
-        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700' : 'border-gray-700'}`
+        ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700/20' : 'border-gray-700'}`
         : 'border-r border-b border-transparent';
 
     return (
