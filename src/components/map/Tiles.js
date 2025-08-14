@@ -1,8 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import ruinImage from '../../images/ruin_new.png';
-import unitConfig from '../../gameData/units.json';
 import godTownImage from '../../images/god-town.png';
+import unitConfig from '../../gameData/units.json';
 
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
@@ -120,18 +119,22 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
 };
 
 const _FarmingVillageTile = ({ villageData, onClick, conqueredVillages, gameSettings = defaultSettings }) => {
-    let villageClass = 'neutral-village';
-    let tooltipText = `Village: ${villageData.name}<br>Level: ${villageData.level}`;
+    // #comment Determine the village level, defaulting to 1
+    const level = villageData.level || 1;
+    let villageClass = `village-level-${level}`;
+    let tooltipText = `Village: ${villageData.name}<br>Level: ${level}`;
 
     const conqueredData = conqueredVillages ? conqueredVillages[villageData.id] : null;
 
     if (conqueredData) {
-        villageClass = 'my-village';
+        villageClass += ' my-village';
         const happiness = conqueredData.happiness !== undefined ? conqueredData.happiness : 100;
         tooltipText = `Your Village: ${villageData.name}<br>Happiness: ${Math.floor(happiness)}%`;
+    } else {
+        villageClass += ' other-village-plot';
     }
 
-    const backgroundClass = 'bg-transparent'; // #comment Always transparent
+    const backgroundClass = 'bg-transparent';
     const borderClass = gameSettings.showGrid
         ? `border-r border-b ${gameSettings.showVisuals ? 'border-green-700/20' : 'border-gray-700'}`
         : 'border-r border-b border-transparent';
@@ -146,18 +149,14 @@ const _FarmingVillageTile = ({ villageData, onClick, conqueredVillages, gameSett
 };
 
 const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
-    const { currentUser } = useAuth();
     let ruinClass = 'ruin-slot';
     let tooltipText = `Ruin: ${ruinData.name}`;
 
-    if (ruinData.ownerId) {
-        if (ruinData.ownerId === currentUser.uid) {
-            ruinClass += ' my-ruin';
-            tooltipText = `Conquered Ruin<br>Owner: You`;
-        } else {
-            ruinClass += ' conquered-ruin';
-            tooltipText = `Conquered Ruin<br>Owner: ${ruinData.ownerUsername}`;
-        }
+    if (ruinData.ownerId && ruinData.ownerId !== 'ruins') {
+        ruinClass += ' ruin-occupied';
+        tooltipText = `Conquered Ruin<br>Owner: ${ruinData.ownerUsername}`;
+    } else {
+        ruinClass += ' ruin-unoccupied';
     }
 
     const bgClass = 'bg-transparent';
@@ -167,7 +166,6 @@ const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
             <div
                 onClick={(e) => onClick(e, ruinData)}
                 className={ruinClass}
-                style={{ backgroundImage: `url(${ruinImage})` }}
             >
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>
@@ -178,7 +176,7 @@ const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
 const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => {
     let townClass = 'god-town-slot';
     let tooltipText = `God Town: ${townData.name}`;
-    let image = townData.stage === 'ruins' ? ruinImage : godTownImage;
+    let image = townData.stage === 'ruins' ? images['ruin_new.png'] : godTownImage;
 
     if (townData.stage === 'ruins') {
         townClass += ' ruins';

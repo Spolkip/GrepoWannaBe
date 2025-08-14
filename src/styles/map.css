@@ -78,45 +78,58 @@
 
 /* Farming Village Styles */
 .village-slot {
-    @apply w-3 h-3 rounded-full m-1 cursor-pointer relative transition-transform duration-150;
+    @apply w-20 h-6 m-0 cursor-pointer relative transition-transform duration-150 bg-no-repeat;
+    background-image: url('../images/villages.png');
+    background-size: 300% 350%;
+    /* Add a subtle shadow to blend with the terrain */
+    filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.4));
 }
 .village-slot:hover {
-    @apply scale-150 ring-2 ring-white z-20;
+    @apply scale-125 z-20;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
 }
 .village-slot:hover .map-object-tooltip {
     @apply visible opacity-100;
 }
-.neutral-village {
-    @apply bg-gray-300 border border-gray-500;
-}
+
+/* #comment Define background positions for each village level */
+.village-level-1 { background-position: 0% 0%; }
+.village-level-2 { background-position: 100% 0%; }
+.village-level-3 { background-position: 0% 50%; }
+.village-level-4 { background-position: 100% 50%; }
+.village-level-5 { background-position: 0% 100%; }
+.village-level-6 { background-position: 100% 100%; }
+
+
 .my-village {
-    @apply bg-blue-500 border border-blue-300;
+    /* No special filter needed now */
 }
 .other-village-plot {
-    @apply bg-red-600 border border-red-400;
+   /* No special filter needed now */
 }
 
 /* Ruin Styles */
 .ruin-slot {
-    @apply w-4 h-4 m-1 cursor-pointer relative transition-transform duration-150;
-    background-image: url('https://i.imgur.com/2gO3g8g.png');
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-}
-.ruin-slot.my-ruin {
-    filter: drop-shadow(0 0 5px #0ea5e9);
-}
-.ruin-slot.conquered-ruin {
-    filter: drop-shadow(0 0 5px #ef4444);
+    @apply w-12 h-12 m-1 cursor-pointer relative transition-transform duration-150 bg-no-repeat;
+    background-image: url('../images/ruins.png');
+    background-size: 200% 100%;
+    filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.4));
 }
 .ruin-slot:hover {
-    @apply scale-150 ring-2 ring-yellow-300 z-20;
+    @apply scale-125 z-20;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.5));
 }
 .ruin-slot:hover .map-object-tooltip {
     @apply visible opacity-100;
 }
 
+.ruin-unoccupied {
+    background-position: 0% 0%;
+}
+
+.ruin-occupied {
+    background-position: 100% 0%;
+}
 /* God Town Styles */
 .god-town-slot {
     @apply w-8 h-8 m-1 cursor-pointer relative transition-transform duration-150;
