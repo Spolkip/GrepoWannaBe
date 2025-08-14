@@ -1,18 +1,26 @@
 // src/utils/worldGeneration.js
 
-// #comment Add a list of available island images
+// Add a list of available island images
 const islandImages = ['island_1.png'];
 
-// #comment INDICATORS:
-// #comment You can manually adjust the coordinates for city and village placements for each island image here.
-// #comment The 'x' and 'y' values are relative to the center of the island image.
-// #comment Positive 'x' is to the right, negative 'x' is to the left.
-// #comment Positive 'y' is down, negative 'y' is down.
+// INDICATORS:
+// You can manually adjust the coordinates for city and village placements for each island image here.
+// The 'x' and 'y' values are relative to the center of the island image.
+// Positive 'x' is to the right, negative 'x' is to the left.
+// Positive 'y' is down, negative 'y' is up.
 const islandLayouts = {
     'island_1.png': {
         citySlots: [
-            { x: 0, y: 4 }, { x: 3, y: 1 }, { x: 1, y: 3 }, { x: 5, y: 0 },{ x: -5, y: 0 },
-            { x: -3, y: 1 }, { x: -3, y: 4 }, { x: -6, y: -2 },{ x: 2, y: -2 }, { x: 0, y: -5 }
+            { x: -1, y: 4 },    // Bottom bay
+            { x: 4, y: 2 },    // Right side
+            { x: 2, y: 5 },    // Bottom right
+            { x: 5, y: -1 },   // Far right peninsula
+            { x: -6, y: 1 },   // Far left
+            { x: -6, y: 1 },   // Left side
+            { x: -3, y: 1 },   // Bottom left
+            { x: -6, y: -2 },  // Far left top
+            { x: 4, y: -4 },   // Top right
+            { x: 0, y: -5 }    // Top middle
         ],
         villages: [
             { x: -3, y: -1 }, { x: 1, y: -1}, { x: 4, y: -1 }, { x: 0, y: 0}, { x:-2, y: 0}
@@ -23,11 +31,12 @@ const islandLayouts = {
 
 export const generateIslands = (width, height, count) => {
     const islands = [];
-    const minMargin = 10;
-    const maxMargin = 12;
+    const minMargin = 10; // Margin between islands
+    const maxMargin = 12; // Margin between islands
+    const mapEdgeMargin = 10; // Margin from the map edge
     const maxAttempts = 20;
 
-    // #comment If only one island is to be generated, create a large central one.
+    // If only one island is to be generated, create a large central one.
     if (count === 1) {
         const radius = Math.min(width, height) / 2.5; // Make it large
         islands.push({
@@ -61,13 +70,28 @@ export const generateIslands = (width, height, count) => {
         let attempts = 0;
 
         while (hasCollision && attempts < maxAttempts) {
-            // #comment Reduced island radius to make them a bit smaller
             const radius = Math.random() * 2 + 6; // Radius between 6 and 8 tiles
+
+            // Calculate spawnable area, considering map edge margin and island radius
+            const spawnableWidth = width - (mapEdgeMargin * 2) - (radius * 2);
+            const spawnableHeight = height - (mapEdgeMargin * 2) - (radius * 2);
+
+            if (spawnableWidth <= 0 || spawnableHeight <= 0) {
+                // This can happen if the map is too small for the margins and islands
+                console.error("Map is too small to generate islands with the specified margins.");
+                break; // Exit the while loop
+            }
+
+            // Calculate random coordinates within the spawnable area
+            const randomX = Math.floor(Math.random() * spawnableWidth);
+            const randomY = Math.floor(Math.random() * spawnableHeight);
+
             island = {
                 id: `island-${Date.now()}-${i}`,
                 name: `Island ${i + 1}`,
-                x: Math.floor(Math.random() * (width - radius * 2)) + radius,
-                y: Math.floor(Math.random() * (height - radius * 2)) + radius,
+                // Offset coordinates by the margin and radius
+                x: mapEdgeMargin + radius + randomX,
+                y: mapEdgeMargin + radius + randomY,
                 radius: radius,
                 imageName: islandImages[Math.floor(Math.random() * islandImages.length)],
             };
@@ -87,24 +111,15 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
     let slotIndex = 0;
 
     islands.forEach(island => {
-        // Procedurally place cities on the coastline of the island
-        const centerX = Math.round(island.x);
-        const centerY = Math.round(island.y);
-        const numSlots = Math.floor(island.radius * 2.5); // More cities for larger islands
+        const layout = islandLayouts[island.imageName];
+        if (layout) {
+            // Use predefined layout for cities
+            layout.citySlots.forEach(relativePos => {
+                const x = Math.round(island.x + relativePos.x);
+                const y = Math.round(island.y + relativePos.y);
 
-        for (let i = 0; i < numSlots; i++) {
-            // #comment Remove the slight randomness to the angle to avoid perfect circular placement
-            const angle = (i / numSlots) * 2 * Math.PI;
-            // #comment Vary the distance from the center to simulate a coastline instead of a perfect circle
-            const edgeOffset = island.radius - (1 + Math.random() * 1.5); // Place between 1 and 2.5 units from the edge
-            const x = Math.round(centerX + edgeOffset * Math.cos(angle));
-            const y = Math.round(centerY + edgeOffset * Math.sin(angle));
-
-            if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
-                const slotId = `${island.id}-slot-${slotIndex++}`;
-                // #comment Ensure we don't place a city on top of another one
-                const isOccupied = Object.values(citySlots).some(slot => slot.x === x && slot.y === y);
-                if (!isOccupied) {
+                if (x >= 0 && x < worldWidth && y >= 0 && y < worldHeight) {
+                    const slotId = `${island.id}-slot-${slotIndex++}`;
                     citySlots[slotId] = {
                         islandId: island.id,
                         x,
@@ -116,8 +131,10 @@ export const generateCitySlots = (islands, worldWidth, worldHeight) => {
                         ownerFaction: null
                     };
                 }
-            }
+            });
         }
+        // NOTE: The procedural fallback has been removed to ensure consistency.
+        // If an island image does not have a layout in islandLayouts, it will not have cities.
     });
 
     return citySlots;
@@ -145,7 +162,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
     islands.forEach(island => {
         const layout = islandLayouts[island.imageName];
         if (layout) {
-            // #comment Use predefined layout for villages
+            // Use predefined layout for villages
             layout.villages.forEach(relativePos => {
                 const x = Math.round(island.x + relativePos.x);
                 const y = Math.round(island.y + relativePos.y);
@@ -166,7 +183,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
                 occupiedSlots.add(`${x},${y}`);
             });
         } else {
-            // #comment Fallback procedural generation for inland villages
+            // Fallback procedural generation for inland villages
             const centerX = Math.round(island.x);
             const centerY = Math.round(island.y);
             const numVillages = Math.min(Math.floor(island.radius), 5);
@@ -188,7 +205,7 @@ export const generateFarmingVillages = (islands, citySlots, worldWidth, worldHei
     return villages;
 };
 
-// #comment Generates ruins in water tiles
+// Generates ruins in water tiles
 export const generateRuins = (islands, worldWidth, worldHeight) => {
     const ruins = {};
     const ruinCount = Math.floor((worldWidth * worldHeight) / 500); // Adjust density as needed

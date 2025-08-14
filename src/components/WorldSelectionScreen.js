@@ -8,6 +8,7 @@ import Modal from './shared/Modal';
 import { generateIslands, generateCitySlots, generateFarmingVillages, generateRuins } from '../utils/worldGeneration';
 import logoutIcon from '../images/logout.png';
 import worldIcon from '../images/world_selection.png';
+import worldSelectionBackground from '../images/world_selection_screen.png'; // #comment Import the background image
 
 const ConfirmationModal = ({ message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) => {
     if (!message) return null;
@@ -106,8 +107,8 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 return;
             }
 
-            const worldWidth = 50;
-            const worldHeight = 50;
+            const worldWidth = 100;
+            const worldHeight = 100;
             const islandCount = 4;
 
             // Generate all world data
@@ -245,7 +246,10 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
     const joinedWorlds = worlds.filter(world => userGames.includes(world.id));
 
     return (
-        <div className="w-full min-h-screen flex items-center justify-center p-4">
+        <div 
+            className="w-full min-h-screen flex items-center justify-center p-4 bg-cover bg-center"
+            style={{ backgroundImage: `url(${worldSelectionBackground})` }}
+        >
             <Modal message={message} onClose={() => setMessage('')} />
             {worldToDelete && (
                 <ConfirmationModal
@@ -256,7 +260,7 @@ const WorldSelectionScreen = ({ onWorldSelected }) => {
                 />
             )}
             <div className="w-full max-w-4xl">
-                <div className="bg-gray-800 p-8 rounded-lg shadow-2xl relative">
+                <div className="bg-gray-800 bg-opacity-75 p-8 rounded-lg shadow-2xl relative">
                     <button
                         onClick={() => signOut(auth)}
                         className="absolute top-4 right-4 text-sm text-red-400 hover:text-red-300 px-3 py-1 rounded"
