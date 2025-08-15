@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../../firebase/config';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, collectionGroup, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import './Leaderboard.css';
@@ -22,36 +22,63 @@ export const clearLeaderboardCache = () => {
 };
 
 const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
-    const { worldId } = useGame();
+    const { worldId, worldState } = useGame();
     const [playerLeaderboard, setPlayerLeaderboard] = useState([]);
     const [allianceLeaderboard, setAllianceLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('players');
 
-    // #comment Fetches pre-calculated total points for each player, reducing database reads significantly.
+    // #comment Fetches all player data for the current world using an efficient collection group query.
     const fetchAllPlayerData = useCallback(async () => {
-        if (!worldId) return new Map();
+        if (!worldId || !worldState) return new Map();
 
-        const usersRef = collection(db, 'users');
-        const usersSnapshot = await getDocs(usersRef);
+        // Step 1: Use a collection group query to get all players' game data for this world.
+        const gamesGroupRef = collectionGroup(db, 'games');
+        const q = query(gamesGroupRef, where('worldName', '==', worldState.name));
+        const gamesSnapshot = await getDocs(q);
+
+        const userIds = [];
+        const gameDataMap = new Map();
+        gamesSnapshot.forEach(gameDoc => {
+            const userId = gameDoc.ref.parent.parent.id;
+            userIds.push(userId);
+            gameDataMap.set(userId, gameDoc.data());
+        });
+
+        if (userIds.length === 0) return new Map();
+
+        // Step 2: Batch fetch user profiles for players found in this world.
+        // Firestore 'in' query is limited to 30 items per query.
+        const usersMap = new Map();
+        const userDocsPromises = [];
+        for (let i = 0; i < userIds.length; i += 30) {
+            const chunk = userIds.slice(i, i + 30);
+            const usersQuery = query(collection(db, 'users'), where('__name__', 'in', chunk));
+            userDocsPromises.push(getDocs(usersQuery));
+        }
+        const userDocsSnapshots = await Promise.all(userDocsPromises);
+        userDocsSnapshots.forEach(snapshot => {
+            snapshot.forEach(userDoc => {
+                usersMap.set(userDoc.id, userDoc.data());
+            });
+        });
+
+        // Step 3: Combine game data and user data.
         const playersData = new Map();
-
-        for (const userDoc of usersSnapshot.docs) {
-            const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
-            const gameSnap = await getDoc(gameDocRef);
-
-            if (gameSnap.exists()) {
-                const gameData = gameSnap.data();
-                playersData.set(userDoc.id, {
-                    id: userDoc.id,
-                    username: userDoc.data().username,
+        for (const [userId, gameData] of gameDataMap.entries()) {
+            const userData = usersMap.get(userId);
+            if (userData) {
+                playersData.set(userId, {
+                    id: userId,
+                    username: userData.username,
                     alliance: gameData.alliance || 'No Alliance',
-                    points: gameData.totalPoints || 0, // Read the pre-calculated points
+                    points: gameData.totalPoints || 0,
                 });
             }
         }
+
         return playersData;
-    }, [worldId]);
+    }, [worldId, worldState]);
 
     useEffect(() => {
         const fetchLeaderboards = async () => {
