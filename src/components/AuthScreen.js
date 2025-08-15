@@ -5,6 +5,7 @@ import { auth, db } from '../firebase/config';
 import Modal from './shared/Modal';
 import EyeIcon from './icons/EyeIcon';
 import EyeOffIcon from './icons/EyeOffIcon';
+import './AuthScreen.css';
 
 const AuthScreen = () => {
     const [isFlipped, setIsFlipped] = useState(false);
@@ -75,7 +76,7 @@ const AuthScreen = () => {
     const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
     return (
-        <div className="w-full min-h-screen flex items-center justify-center p-4 bg-gray-900 perspective">
+        <div className="w-full min-h-screen flex items-center justify-center p-4 perspective auth-screen-container">
             <Modal message={message} onClose={() => setMessage('')} />
             <div className={`auth-card ${isFlipped ? 'flipped' : ''}`}>
                 {/* Front Side: Login */}
