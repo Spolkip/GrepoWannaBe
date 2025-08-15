@@ -1,45 +1,54 @@
 // src/components/alliance/AllianceSuggestions.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
-import { useCityState } from '../../hooks/useCityState';
 
 const AllianceSuggestions = ({ onAllianceClick, onOpenCreate }) => {
     const { worldId } = useGame();
     const { applyToAlliance, joinOpenAlliance } = useAlliance();
     const [alliances, setAlliances] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { calculateTotalPoints } = useCityState(worldId);
     const [message, setMessage] = useState(''); // State for user feedback
 
     useEffect(() => {
         const fetchAlliances = async () => {
             if (!worldId) return;
             setLoading(true);
+
+            // #comment Step 1: Efficiently get all player points in a map.
+            const usersRef = collection(db, 'users');
+            const usersSnapshot = await getDocs(usersRef);
+            const playerPointsMap = new Map();
+            for (const userDoc of usersSnapshot.docs) {
+                const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
+                const gameSnap = await getDoc(gameDocRef);
+                if (gameSnap.exists()) {
+                    playerPointsMap.set(userDoc.id, gameSnap.data().totalPoints || 0);
+                }
+            }
+
+            // #comment Step 2: Fetch only the alliances that can be joined.
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
             const q = query(alliancesRef, where('settings.status', 'in', ['open', 'invite_only']));
             const snapshot = await getDocs(q);
-            const alliancesData = await Promise.all(snapshot.docs.map(async (doc) => {
+            
+            // #comment Step 3: Map alliances and sum points using the pre-fetched map. This avoids N+1 reads.
+            const alliancesData = snapshot.docs.map((doc) => {
                 const alliance = { id: doc.id, ...doc.data() };
                 let totalPoints = 0;
-                // Note: This can be performance-intensive if alliances are large.
-                // Consider storing total points directly on the alliance document for optimization.
                 for (const member of alliance.members) {
-                    const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
-                    const citiesSnap = await getDocs(citiesRef);
-                    for (const cityDoc of citiesSnap.docs) {
-                        totalPoints += calculateTotalPoints(cityDoc.data());
-                    }
+                    totalPoints += playerPointsMap.get(member.uid) || 0;
                 }
                 return { ...alliance, totalPoints };
-            }));
+            });
+
             setAlliances(alliancesData);
             setLoading(false);
         };
         fetchAlliances();
-    }, [worldId, calculateTotalPoints]);
+    }, [worldId]);
 
     const handleAction = async (alliance) => {
         setMessage(''); // Clear previous messages

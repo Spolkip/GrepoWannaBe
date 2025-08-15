@@ -6,6 +6,17 @@ import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 
+// #comment Cache for player list to reduce reads.
+let playerCache = {
+    allPlayers: null,
+    timestamp: 0,
+};
+
+export const clearPlayerCache = () => {
+    playerCache.allPlayers = null;
+    playerCache.timestamp = 0;
+};
+
 const AllianceInvitations = ({ isLeader }) => {
     const { worldId } = useGame();
     const { playerAlliance, sendAllianceInvitation, revokeAllianceInvitation, handleApplication } = useAlliance();
@@ -22,12 +33,21 @@ const AllianceInvitations = ({ isLeader }) => {
     // #comment Fetch all players for autocomplete
     useEffect(() => {
         const fetchPlayers = async () => {
-            const usersRef = collection(db, 'users');
-            const snapshot = await getDocs(usersRef);
-            const players = snapshot.docs
-                .map(doc => doc.data().username)
-                .filter(username => username !== userProfile.username); // Exclude self
-            setAllPlayers(players);
+            const now = Date.now();
+            const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+            if (now - playerCache.timestamp < CACHE_DURATION && playerCache.allPlayers) {
+                setAllPlayers(playerCache.allPlayers);
+            } else {
+                const usersRef = collection(db, 'users');
+                const snapshot = await getDocs(usersRef);
+                const players = snapshot.docs
+                    .map(doc => doc.data().username)
+                    .filter(username => username !== userProfile.username); // Exclude self
+                setAllPlayers(players);
+                playerCache.allPlayers = players;
+                playerCache.timestamp = now;
+            }
         };
         fetchPlayers();
     }, [userProfile.username]);

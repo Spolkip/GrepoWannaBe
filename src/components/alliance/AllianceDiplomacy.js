@@ -5,6 +5,19 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import TextEditor from '../shared/TextEditor';
 
+// #comment Cache for diplomacy data to reduce reads.
+const diplomacyCache = {
+    alliances: null,
+    allCities: null,
+    timestamp: 0,
+};
+
+export const clearDiplomacyCache = () => {
+    diplomacyCache.alliances = null;
+    diplomacyCache.allCities = null;
+    diplomacyCache.timestamp = 0;
+};
+
 const AllianceDiplomacy = () => {
     const { playerAlliance, sendAllyRequest, declareEnemy, handleDiplomacyResponse, proposeTreaty } = useAlliance();
     const { worldId} = useGame();
@@ -38,37 +51,46 @@ const AllianceDiplomacy = () => {
     useEffect(() => {
         if (!worldId || !playerAlliance) return;
 
-        const fetchAlliances = async () => {
-            const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
-            const snapshot = await getDocs(alliancesRef);
-            const alliances = snapshot.docs
-                .map(doc => doc.data().tag)
-                .filter(tag => tag !== playerAlliance.tag);
-            setAllAlliances(alliances);
-        };
+        const fetchData = async () => {
+            const now = Date.now();
+            const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-        const fetchAllCities = async () => {
-            const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
-            const q = query(citiesRef, where("ownerId", "!=", null));
-            const snapshot = await getDocs(q);
-            setAllCities(snapshot.docs.map(doc => ({ name: doc.data().cityName, x: doc.data().x, y: doc.data().y })));
-        };
+            if (now - diplomacyCache.timestamp < CACHE_DURATION && diplomacyCache.alliances && diplomacyCache.allCities) {
+                setAllAlliances(diplomacyCache.alliances.filter(tag => tag !== playerAlliance.tag));
+                setAllCities(diplomacyCache.allCities);
+            } else {
+                const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
+                const alliancesSnapshot = await getDocs(alliancesRef);
+                const alliances = alliancesSnapshot.docs.map(doc => doc.data().tag);
+                setAllAlliances(alliances.filter(tag => tag !== playerAlliance.tag));
+                diplomacyCache.alliances = alliances;
 
-        const fetchAllianceCities = async () => {
-            const cities = [];
-            for (const member of playerAlliance.members) {
-                const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
-                const snapshot = await getDocs(citiesRef);
-                snapshot.forEach(doc => {
-                    cities.push({ owner: member.username, ...doc.data() });
-                });
+                const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
+                const q = query(citiesRef, where("ownerId", "!=", null));
+                const citiesSnapshot = await getDocs(q);
+                const cities = citiesSnapshot.docs.map(doc => ({ name: doc.data().cityName, x: doc.data().x, y: doc.data().y }));
+                setAllCities(cities);
+                diplomacyCache.allCities = cities;
+
+                diplomacyCache.timestamp = now;
             }
-            setAllAllianceCities(cities);
+
+            // This part is specific to the player's alliance and should not be cached globally.
+            const fetchAllianceCities = async () => {
+                const cities = [];
+                for (const member of playerAlliance.members) {
+                    const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
+                    const snapshot = await getDocs(citiesRef);
+                    snapshot.forEach(doc => {
+                        cities.push({ owner: member.username, ...doc.data() });
+                    });
+                }
+                setAllAllianceCities(cities);
+            };
+            fetchAllianceCities();
         };
 
-        fetchAlliances();
-        fetchAllCities();
-        fetchAllianceCities();
+        fetchData();
     }, [worldId, playerAlliance]);
 
 

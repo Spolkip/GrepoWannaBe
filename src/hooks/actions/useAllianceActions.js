@@ -1,9 +1,10 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc } from "firebase/firestore";
+import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc, arrayRemove } from "firebase/firestore";
 import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
+import { clearMemberCache } from '../../components/alliance/AllianceMembers';
 
 const calculateMaxMembers = (alliance) => {
     const baseMax = 20;
@@ -151,7 +152,7 @@ export const useAllianceActions = (playerAlliance) => {
                 const memberToRemove = playerAlliance.members.find(m => m.uid === currentUser.uid);
                 if (memberToRemove) {
                     transaction.update(allianceRef, {
-                        members: arrayUnion(memberToRemove)
+                        members: arrayRemove(memberToRemove)
                     });
                 }
             }
@@ -161,6 +162,8 @@ export const useAllianceActions = (playerAlliance) => {
                 transaction.update(citySlotRef, { alliance: null, allianceName: null });
             }
         });
+        
+        clearMemberCache();
     };
 
     const disbandAlliance = async () => {
