@@ -1,12 +1,23 @@
 // src/components/alliance/AllianceSuggestions.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, collectionGroup } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 
+// #comment Cache for alliance suggestions to reduce reads.
+const suggestionsCache = {
+    alliances: null,
+    timestamp: 0,
+};
+
+export const clearSuggestionsCache = () => {
+    suggestionsCache.alliances = null;
+    suggestionsCache.timestamp = 0;
+};
+
 const AllianceSuggestions = ({ onAllianceClick, onOpenCreate }) => {
-    const { worldId } = useGame();
+    const { worldId, worldState } = useGame();
     const { applyToAlliance, joinOpenAlliance } = useAlliance();
     const [alliances, setAlliances] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,20 +25,29 @@ const AllianceSuggestions = ({ onAllianceClick, onOpenCreate }) => {
 
     useEffect(() => {
         const fetchAlliances = async () => {
-            if (!worldId) return;
+            if (!worldId || !worldState) return;
             setLoading(true);
 
-            // #comment Step 1: Efficiently get all player points in a map.
-            const usersRef = collection(db, 'users');
-            const usersSnapshot = await getDocs(usersRef);
-            const playerPointsMap = new Map();
-            for (const userDoc of usersSnapshot.docs) {
-                const gameDocRef = doc(db, `users/${userDoc.id}/games`, worldId);
-                const gameSnap = await getDoc(gameDocRef);
-                if (gameSnap.exists()) {
-                    playerPointsMap.set(userDoc.id, gameSnap.data().totalPoints || 0);
-                }
+            const now = Date.now();
+            const CACHE_DURATION = 1 * 60 * 1000; // 5 minutes
+
+            if (now - suggestionsCache.timestamp < CACHE_DURATION && suggestionsCache.alliances) {
+                setAlliances(suggestionsCache.alliances);
+                setLoading(false);
+                return;
             }
+
+            // #comment Step 1: Efficiently get all player points using a collection group query.
+            const gamesGroupRef = collectionGroup(db, 'games');
+            const gamesQuery = query(gamesGroupRef, where('worldName', '==', worldState.name));
+            const gamesSnapshot = await getDocs(gamesQuery);
+
+            const playerPointsMap = new Map();
+            gamesSnapshot.forEach(gameDoc => {
+                const userId = gameDoc.ref.parent.parent.id;
+                playerPointsMap.set(userId, gameDoc.data().totalPoints || 0);
+            });
+
 
             // #comment Step 2: Fetch only the alliances that can be joined.
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
@@ -45,10 +65,12 @@ const AllianceSuggestions = ({ onAllianceClick, onOpenCreate }) => {
             });
 
             setAlliances(alliancesData);
+            suggestionsCache.alliances = alliancesData;
+            suggestionsCache.timestamp = now;
             setLoading(false);
         };
         fetchAlliances();
-    }, [worldId]);
+    }, [worldId, worldState]);
 
     const handleAction = async (alliance) => {
         setMessage(''); // Clear previous messages
