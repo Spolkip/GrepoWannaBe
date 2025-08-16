@@ -6,6 +6,7 @@ import { db } from '../firebase/config';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';
 import researchConfig from '../gameData/research.json';
+import heroesConfig from '../gameData/heroes.json';
 import { useGame } from '../contexts/GameContext';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for unique IDs
 import { useAlliance } from '../contexts/AllianceContext';
@@ -112,12 +113,24 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (buildings.quarry?.workers) rates.stone *= (1 + buildings.quarry.workers * 0.1);
         if (buildings.silver_mine?.workers) rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
 
+        // Apply passive hero buffs
+        if (cityGameState?.heroes) {
+            for (const heroId in cityGameState.heroes) {
+                if (cityGameState.heroes[heroId].active) {
+                    const hero = heroesConfig[heroId];
+                    if (hero.passive.effect.subtype === 'silver_production') {
+                        rates.silver *= (1 + hero.passive.effect.value);
+                    }
+                }
+            }
+        }
+
         rates.wood = Math.floor(rates.wood * happinessBonus);
         rates.stone = Math.floor(rates.stone * happinessBonus);
         rates.silver = Math.floor(rates.silver * happinessBonus);
 
         return rates;
-    }, [calculateHappiness]);
+    }, [calculateHappiness, cityGameState]);
 
     // #comment Adjusted warehouse capacity for better resource balance.
     const getWarehouseCapacity = useCallback((level) => {

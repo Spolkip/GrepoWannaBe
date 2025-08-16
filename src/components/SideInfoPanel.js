@@ -3,6 +3,7 @@
 import React from 'react';
 import WorshipDisplay from './city/WorshipDisplay';
 import TroopDisplay from './TroopDisplay';
+import HeroDisplay from './city/HeroDisplay'; // Import HeroDisplay
 
 const SideInfoPanel = ({ gameState, className, onOpenPowers }) => {
     if (!gameState) {
@@ -18,6 +19,7 @@ const SideInfoPanel = ({ gameState, className, onOpenPowers }) => {
                 buildings={gameState.buildings}
                 onOpenPowers={onOpenPowers}
             />
+            <HeroDisplay heroes={gameState.heroes} />
             <TroopDisplay units={gameState.units || {}} />
         </div>
     );

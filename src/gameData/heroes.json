@@ -4,12 +4,18 @@
     "description": "A legendary warrior whose skill in battle is unmatched. He inspires troops to fight with greater ferocity.",
     "image": "achilles.png",
     "cost": { "silver": 5000, "favor": 100 },
+    "passive": {
+        "name": "Warrior's Presence",
+        "description": "Increases land unit attack by 5% in this city.",
+        "effect": { "type": "city_buff", "subtype": "land_attack", "value": 0.05 }
+    },
     "skills": [
       {
         "name": "Warcry",
         "type": "battle",
         "description": "Boosts the attack of all land units by 10% for the next battle.",
         "cost": 50,
+        "icon": "warcry.png",
         "effect": { "type": "troop_buff", "subtype": "attack", "value": 0.10, "unit_type": "land" }
       },
       {
@@ -17,6 +23,7 @@
         "type": "city",
         "description": "Reduces recruitment time in the Barracks by 15% for 1 hour.",
         "cost": 30,
+        "icon": "rapid_mobilization.png",
         "effect": { "type": "city_buff", "subtype": "recruitment_speed", "value": 0.15, "duration": 3600 }
       }
     ]
@@ -26,12 +33,18 @@
     "description": "A cunning strategist known for his intellect and trickery. He excels at espionage and naval tactics.",
     "image": "odysseus.png",
     "cost": { "silver": 4500, "favor": 120 },
+    "passive": {
+        "name": "Cunning Mind",
+        "description": "Increases silver production by 10% in this city.",
+        "effect": { "type": "city_buff", "subtype": "silver_production", "value": 0.10 }
+    },
     "skills": [
       {
         "name": "Naval Superiority",
         "type": "battle",
         "description": "Boosts the speed of all naval units by 15% for the next battle.",
         "cost": 40,
+        "icon": "naval_superiority.png",
         "effect": { "type": "troop_buff", "subtype": "speed", "value": 0.15, "unit_type": "naval" }
       },
       {
@@ -39,6 +52,7 @@
         "type": "city",
         "description": "Increases the effectiveness of spies by 20% for 2 hours.",
         "cost": 60,
+        "icon": "master_spy.png",
         "effect": { "type": "city_buff", "subtype": "spy_effectiveness", "value": 0.20, "duration": 7200 }
       }
     ]

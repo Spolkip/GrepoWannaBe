@@ -4,16 +4,22 @@ import heroesConfig from '../../gameData/heroes.json';
 import './HeroesAltar.css';
 
 const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose }) => {
-    const [selectedHeroId, setSelectedHeroId] = useState(null);
+    const [selectedHeroId, setSelectedHeroId] = useState(Object.keys(heroesConfig)[0]);
     const { heroes = {} } = cityGameState;
 
-    const handleRecruit = (heroId) => {
+    // #comment Handles recruiting a hero, stopping the event from bubbling up.
+    const handleRecruit = (e, heroId) => {
+        e.stopPropagation();
         onRecruitHero(heroId);
     };
 
-    const handleSkillActivation = (heroId, skill) => {
+    // #comment Handles activating a hero's skill, stopping the event from bubbling up.
+    const handleSkillActivation = (e, heroId, skill) => {
+        e.stopPropagation();
         onActivateSkill(heroId, skill);
     };
+
+    const selectedHero = heroesConfig[selectedHeroId];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -25,29 +31,38 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose })
                 <div className="heroes-altar-content">
                     <div className="heroes-list">
                         {Object.entries(heroesConfig).map(([id, hero]) => (
-                            <div key={id} className={`hero-card ${selectedHeroId === id ? 'selected' : ''}`} onClick={() => setSelectedHeroId(id)}>
-                                <img src={`/images/heroes/${hero.image}`} alt={hero.name} className="hero-avatar" />
-                                <p>{hero.name}</p>
-                                {!heroes[id] && (
-                                    <button className="recruit-btn" onClick={() => handleRecruit(id)}>
-                                        Recruit
-                                    </button>
-                                )}
+                            <div key={id} className={`hero-list-item ${selectedHeroId === id ? 'selected' : ''}`} onClick={() => setSelectedHeroId(id)}>
+                                <img src={`/images/heroes/${hero.image}`} alt={hero.name} className="hero-list-avatar" />
+                                <span>{hero.name}</span>
+                                {heroes[id] && <span className="recruited-indicator">✔</span>}
                             </div>
                         ))}
                     </div>
-                    <div className="hero-details">
-                        {selectedHeroId && heroesConfig[selectedHeroId] ? (
-                            <div>
-                                <h4>{heroesConfig[selectedHeroId].name}</h4>
-                                <p>{heroesConfig[selectedHeroId].description}</p>
+                    <div className="hero-details-panel">
+                        {selectedHero ? (
+                            <div className="hero-details-content">
+                                <div className="hero-main-info">
+                                    <img src={`/images/heroes/${selectedHero.image}`} alt={selectedHero.name} className="hero-details-avatar" />
+                                    <div className="hero-text">
+                                        <h4>{selectedHero.name}</h4>
+                                        <p>{selectedHero.description}</p>
+                                        {!heroes[selectedHeroId] && (
+                                            <button className="recruit-btn" onClick={(e) => handleRecruit(e, selectedHeroId)}>
+                                                Recruit ({selectedHero.cost.silver} Silver, {selectedHero.cost.favor} Favor)
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="skills-list">
-                                    {heroesConfig[selectedHeroId].skills.map(skill => (
+                                    {selectedHero.skills.map(skill => (
                                         <div key={skill.name} className="skill-card">
-                                            <h5>{skill.name} ({skill.type})</h5>
-                                            <p>{skill.description}</p>
+                                            <img src={`/images/skills/${skill.icon}`} alt={skill.name} className="skill-icon" />
+                                            <div className="skill-info">
+                                                <h5>{skill.name} <span className="skill-type">({skill.type})</span></h5>
+                                                <p>{skill.description}</p>
+                                            </div>
                                             {heroes[selectedHeroId] && (
-                                                <button className="activate-skill-btn" onClick={() => handleSkillActivation(selectedHeroId, skill)}>
+                                                <button className="activate-skill-btn" onClick={(e) => handleSkillActivation(e, selectedHeroId, skill)}>
                                                     Activate ({skill.cost} Favor)
                                                 </button>
                                             )}
