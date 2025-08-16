@@ -4,6 +4,12 @@ import { doc, runTransaction } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import unitConfig from '../../gameData/units.json';
 
+// #comment get warehouse capacity based on its level
+const getWarehouseCapacity = (level) => {
+    if (!level) return 0;
+    return Math.floor(1500 * Math.pow(1.4, level - 1));
+};
+
 export const useUnitActions = ({
     cityGameState, setCityGameState, saveGameState, worldId, currentUser,
     getFarmCapacity, calculateUsedPopulation, isInstantUnits,
@@ -131,8 +137,7 @@ export const useUnitActions = ({
         }
     };
 
- const handleCancelTrain = async (canceledItem, queueType) => {
-        console.log(`[handleCancelTrain] Triggered at ${new Date().toLocaleTimeString()} for item:`, JSON.parse(JSON.stringify(canceledItem)));
+    const handleCancelTrain = async (canceledItem, queueType) => {
         const currentState = cityGameState;
         let queueName;
         let costField;
@@ -185,43 +190,46 @@ export const useUnitActions = ({
             return;
         }
     
-        const newResources = {
-            ...currentState.resources,
-            wood: currentState.resources.wood + (unit[costField]?.wood || 0) * removedTask.amount,
-            stone: currentState.resources.stone + (unit[costField]?.stone || 0) * removedTask.amount,
-            silver: currentState.resources.silver + (unit[costField]?.silver || 0) * removedTask.amount,
-        };
+        const cityDocRef = doc(db, 'users', currentUser.uid, 'games', worldId, 'cities', currentState.id);
 
-        const newWorship = { ...currentState.worship };
-        if (unit.mythical && costField === 'cost') {
-            const favorRefund = (unit.cost?.favor || 0) * removedTask.amount;
-            if (currentState.god && newWorship[currentState.god] !== undefined) {
-                newWorship[currentState.god] += favorRefund;
-            }
-        }
-    
-        const newRefundUnits = { ...currentState[refundField] };
-        if (queueType === 'heal') {
-            newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
-        }
-    
-        for (let i = itemIndex; i < newQueue.length; i++) {
-            const previousTaskEndTime = (i === 0)
-                ? Date.now()
-                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
-            
-            const taskToUpdate = newQueue[i];
-            const taskUnit = unitConfig[taskToUpdate.unitId];
-            const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
-            const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
-            newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
-        }
-    
-        const newGameState = { ...currentState, resources: newResources, worship: newWorship, [refundField]: newRefundUnits, [queueName]: newQueue };
-    
         try {
-            await saveGameState(newGameState);
-            setCityGameState(newGameState);
+            await runTransaction(db, async (transaction) => {
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) throw new Error("City data not found.");
+                const liveCityData = cityDoc.data();
+                const capacity = getWarehouseCapacity(liveCityData.buildings.warehouse?.level);
+                
+                const newResources = {
+                    ...liveCityData.resources,
+                    wood: Math.min(capacity, (liveCityData.resources.wood || 0) + (unit[costField]?.wood || 0) * removedTask.amount),
+                    stone: Math.min(capacity, (liveCityData.resources.stone || 0) + (unit[costField]?.stone || 0) * removedTask.amount),
+                    silver: Math.min(capacity, (liveCityData.resources.silver || 0) + (unit[costField]?.silver || 0) * removedTask.amount),
+                };
+        
+                const newRefundUnits = { ...liveCityData[refundField] };
+                if (queueType === 'heal') {
+                    newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
+                }
+        
+                for (let i = itemIndex; i < newQueue.length; i++) {
+                    const previousTaskEndTime = (i === 0)
+                        ? Date.now()
+                        : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
+                    
+                    const taskToUpdate = newQueue[i];
+                    const taskUnit = unitConfig[taskToUpdate.unitId];
+                    const taskTime = (queueType === 'heal' ? taskUnit.heal_time : taskUnit.cost.time) * taskToUpdate.amount;
+                    const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
+                    newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
+                }
+        
+                const updates = { resources: newResources, [queueName]: newQueue };
+                if (queueType === 'heal') {
+                    updates[refundField] = newRefundUnits;
+                }
+                
+                transaction.update(cityDocRef, updates);
+            });
         } catch (error) {
             console.error("Error cancelling training/healing:", error);
             setMessage("Could not cancel. Please try again.");
