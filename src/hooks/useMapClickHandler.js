@@ -34,8 +34,8 @@ export const useMapClickHandler = ({
         if (slotData.ownerId === currentUser.uid) {
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
             if (city) {
-                // #comment Merge city data with slot data to include ownerId and other public info
-                const mergedCityData = { ...city, ...slotData };
+                // #comment Merge slotData first, so that the correct city.id overwrites the slotData.id
+                const mergedCityData = { ...slotData, ...city };
                 if (city.id === activeCityId) {
                     openModal('ownActiveCity', mergedCityData);
                 } else {
