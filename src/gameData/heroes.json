@@ -4,27 +4,30 @@
     "description": "A legendary warrior whose skill in battle is unmatched. He inspires troops to fight with greater ferocity.",
     "image": "achilles.png",
     "cost": { "silver": 5000, "favor": 100 },
+    "maxLevel": 10,
+    "xpPerLevel": [100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000],
+    "levelUpCost": { "silver": 1000, "favor": 20 },
     "passive": {
         "name": "Warrior's Presence",
-        "description": "Increases land unit attack by 5% in this city.",
-        "effect": { "type": "city_buff", "subtype": "land_attack", "value": 0.05 }
+        "description": "Increases land unit attack by 5% (+1% per level) in this city.",
+        "effect": { "type": "city_buff", "subtype": "land_attack", "baseValue": 0.05, "valuePerLevel": 0.01 }
     },
     "skills": [
       {
         "name": "Warcry",
         "type": "battle",
-        "description": "Boosts the attack of all land units by 10% for the next battle.",
-        "cost": 50,
+        "description": "Boosts the attack of all land units by 10% (+2% per level) for the next battle.",
+        "cost": { "base": 50, "perLevel": 5 },
         "icon": "warcry.png",
-        "effect": { "type": "troop_buff", "subtype": "attack", "value": 0.10, "unit_type": "land" }
+        "effect": { "type": "troop_buff", "subtype": "attack", "baseValue": 0.10, "valuePerLevel": 0.02, "unit_type": "land" }
       },
       {
         "name": "Rapid Mobilization",
         "type": "city",
-        "description": "Reduces recruitment time in the Barracks by 15% for 1 hour.",
-        "cost": 30,
+        "description": "Reduces recruitment time in the Barracks by 15% (+1% per level) for 1 hour.",
+        "cost": { "base": 30, "perLevel": 3 },
         "icon": "rapid_mobilization.png",
-        "effect": { "type": "city_buff", "subtype": "recruitment_speed", "value": 0.15, "duration": 3600 }
+        "effect": { "type": "city_buff", "subtype": "recruitment_speed", "baseValue": 0.15, "valuePerLevel": 0.01, "duration": 3600 }
       }
     ]
   },
@@ -33,27 +36,30 @@
     "description": "A cunning strategist known for his intellect and trickery. He excels at espionage and naval tactics.",
     "image": "odysseus.png",
     "cost": { "silver": 4500, "favor": 120 },
+    "maxLevel": 10,
+    "xpPerLevel": [100, 250, 500, 1000, 2000, 4000, 8000, 16000, 32000],
+    "levelUpCost": { "silver": 900, "favor": 25 },
     "passive": {
         "name": "Cunning Mind",
-        "description": "Increases silver production by 10% in this city.",
-        "effect": { "type": "city_buff", "subtype": "silver_production", "value": 0.10 }
+        "description": "Increases silver production by 10% (+1.5% per level) in this city.",
+        "effect": { "type": "city_buff", "subtype": "silver_production", "baseValue": 0.10, "valuePerLevel": 0.015 }
     },
     "skills": [
       {
         "name": "Naval Superiority",
         "type": "battle",
-        "description": "Boosts the speed of all naval units by 15% for the next battle.",
-        "cost": 40,
+        "description": "Boosts the speed of all naval units by 15% (+1% per level) for the next battle.",
+        "cost": { "base": 40, "perLevel": 4 },
         "icon": "naval_superiority.png",
-        "effect": { "type": "troop_buff", "subtype": "speed", "value": 0.15, "unit_type": "naval" }
+        "effect": { "type": "troop_buff", "subtype": "speed", "baseValue": 0.15, "valuePerLevel": 0.01, "unit_type": "naval" }
       },
       {
         "name": "Master Spy",
         "type": "city",
-        "description": "Increases the effectiveness of spies by 20% for 2 hours.",
-        "cost": 60,
+        "description": "Increases the effectiveness of spies by 20% (+2% per level) for 2 hours.",
+        "cost": { "base": 60, "perLevel": 6 },
         "icon": "master_spy.png",
-        "effect": { "type": "city_buff", "subtype": "spy_effectiveness", "value": 0.20, "duration": 7200 }
+        "effect": { "type": "city_buff", "subtype": "spy_effectiveness", "baseValue": 0.20, "valuePerLevel": 0.02, "duration": 7200 }
       }
     ]
   }
