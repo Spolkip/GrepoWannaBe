@@ -14,7 +14,6 @@ import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new Di
 import SpecialBuildingMenu from './SpecialBuildingMenu';
 import SpecialBuildingPanel from './SpecialBuildingPanel'; // #comment Import the new panel
 import HeroesAltar from './HeroesAltar';
-import WorkerPresetPanel from './WorkerPresetPanel';
 
 const CityModals = ({
   cityGameState,
@@ -57,7 +56,6 @@ const CityModals = ({
   onActivateSkill,
   onAssignHero,
   onUnassignHero,
-  onApplyWorkerPresets,
 }) => {
   const {
     selectedBuildingId,
@@ -74,7 +72,6 @@ const CityModals = ({
     isSpecialBuildingMenuOpen,
     isSpecialBuildingPanelOpen, // #comment Get panel state
     isHeroesAltarOpen,
-    isWorkerPresetPanelOpen,
   } = modalState;
 
   if (!cityGameState) return null;
@@ -115,7 +112,13 @@ const CityModals = ({
           cityGameState={cityGameState}
           onOpenSpecialBuildingMenu={() => openModal('isSpecialBuildingMenuOpen')}
           onDemolishSpecialBuilding={handleDemolishSpecialBuilding}
-          onOpenWorkerPresets={() => openModal('isWorkerPresetPanelOpen')}
+          currentUser={currentUser}
+          worldId={worldId}
+          setMessage={setMessage}
+          onAddWorker={onAddWorker}
+          onRemoveWorker={onRemoveWorker}
+          getMaxWorkerSlots={getMaxWorkerSlots}
+          availablePopulation={availablePopulation}
         />
       )}
       {isBarracksMenuOpen && (
@@ -220,17 +223,6 @@ const CityModals = ({
             onClose={() => closeModal('isHeroesAltarOpen')}
             onAssignHero={onAssignHero}
             onUnassignHero={onUnassignHero}
-        />
-      )}
-      {isWorkerPresetPanelOpen && (
-        <WorkerPresetPanel
-            cityGameState={cityGameState}
-            onClose={() => closeModal('isWorkerPresetPanelOpen')}
-            onApplyPresets={() => {
-                onApplyWorkerPresets();
-                closeModal('isWorkerPresetPanelOpen');
-            }}
-            getMaxWorkerSlots={getMaxWorkerSlots}
         />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (

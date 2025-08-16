@@ -1,5 +1,7 @@
 // src/components/city/SenateView.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import buildingConfig from '../../gameData/buildings.json';
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 import BuildQueue from './BuildQueue';
@@ -17,6 +19,102 @@ contexts.forEach(context => {
         buildingImages[key] = context(item);
     });
 });
+
+// #comment A reusable confirmation modal
+const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
+        <div className="bg-gray-800 p-6 rounded-lg text-white">
+            <p className="mb-4">{message}</p>
+            <div className="flex justify-end gap-2">
+                <button onClick={onCancel} className="btn btn-secondary">Cancel</button>
+                <button onClick={onConfirm} className="btn btn-danger">Confirm</button>
+            </div>
+        </div>
+    </div>
+);
+
+// #comment Component to manage workers in production buildings
+const WorkerManager = ({ buildings, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation }) => {
+    const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
+
+    return (
+        <div className="bg-gray-900 rounded-lg p-4">
+            <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Worker Management</h3>
+            <div className="space-y-3">
+                {productionBuildings.map(id => {
+                    const building = buildings[id];
+                    if (!building || building.level === 0) return null;
+
+                    const workers = building.workers || 0;
+                    const maxWorkers = getMaxWorkerSlots(building.level);
+
+                    return (
+                        <div key={id} className="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
+                            <div>
+                                <h4 className="font-semibold text-white">{buildingConfig[id].name}</h4>
+                                <p className="text-sm text-gray-400">Workers: {workers} / {maxWorkers}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => onRemoveWorker(id)}
+                                    disabled={workers <= 0}
+                                    className="btn btn-danger w-8 h-8 flex items-center justify-center text-lg"
+                                >-</button>
+                                <button
+                                    onClick={() => onAddWorker(id)}
+                                    disabled={workers >= maxWorkers || availablePopulation < 20}
+                                    className="btn btn-confirm w-8 h-8 flex items-center justify-center text-lg"
+                                >+</button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+             <p className="text-xs mt-2 text-gray-400 text-center">Each worker costs 20 population.</p>
+        </div>
+    );
+};
+
+// #comment Component to manage building presets
+const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleApplyPreset, setIsSavingPreset, handleDeletePreset, buildQueue }) => {
+    const selectedPreset = presets.find(p => p.id === selectedPresetId);
+
+    return (
+        <div className="bg-gray-900 rounded-lg p-4">
+            <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Building Presets</h3>
+            <div className="flex items-center gap-2">
+                <select
+                    value={selectedPresetId}
+                    onChange={(e) => setSelectedPresetId(e.target.value)}
+                    className="bg-gray-700 text-white p-2 rounded w-full"
+                >
+                    <option value="">Select a Preset</option>
+                    {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <button onClick={handleApplyPreset} disabled={!selectedPresetId || (buildQueue?.length || 0) >= 5} className="btn btn-primary text-sm py-2 px-3 flex-shrink-0">Apply</button>
+                <button onClick={() => setIsSavingPreset(true)} disabled={presets.length >= 3} className="btn btn-primary text-sm py-2 px-3 flex-shrink-0" title={presets.length >= 3 ? "Maximum of 3 presets reached" : "Save current layout"}>Save</button>
+                <button onClick={handleDeletePreset} disabled={!selectedPresetId} className="btn btn-danger text-sm py-2 px-3 flex-shrink-0">Delete</button>
+            </div>
+            {selectedPreset && (
+                <div className="mt-4 p-2 bg-gray-800 rounded-lg max-h-48 overflow-y-auto">
+                    <h4 className="font-semibold text-center mb-2">Preset Levels</h4>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        {Object.entries(selectedPreset.levels)
+                            .filter(([, level]) => level > 0)
+                            .sort(([idA], [idB]) => buildingConfig[idA].name.localeCompare(buildingConfig[idB].name))
+                            .map(([id, level]) => (
+                                <div key={id} className="flex justify-between">
+                                    <span>{buildingConfig[id].name}</span>
+                                    <span className="font-bold">{level}</span>
+                                </div>
+                            ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 const BuildingCard = ({ id, config, level, finalQueuedLevel, cost, canAfford, onUpgrade, isQueueFull, isMaxLevel }) => {
     let buttonText;
@@ -78,8 +176,13 @@ const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
 };
 
 
-const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, onOpenWorkerPresets }) => {
+const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, currentUser, worldId, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
+    const [presets, setPresets] = useState([]);
+    const [selectedPresetId, setSelectedPresetId] = useState('');
+    const [isSavingPreset, setIsSavingPreset] = useState(false);
+    const [newPresetName, setNewPresetName] = useState('');
+    const [confirmAction, setConfirmAction] = useState(null);
     
     const buildingRows = [
         ['senate'],
@@ -88,6 +191,17 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         ['academy', 'temple', 'divine_temple', 'hospital'],
         ['city_wall', 'cave', 'special_building_plot', 'heroes_altar']
     ];
+
+    // #comment Fetch user's building presets
+    useEffect(() => {
+        if (!currentUser || !worldId) return;
+        const presetsRef = collection(db, `users/${currentUser.uid}/games/${worldId}/presets`);
+        const unsubscribe = onSnapshot(presetsRef, (snapshot) => {
+            const presetsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setPresets(presetsData);
+        });
+        return () => unsubscribe();
+    }, [currentUser, worldId]);
 
     // #comment Calculate the final level of a building after all queued tasks are complete.
     const getFinalLevelInQueue = (buildingId) => {
@@ -104,20 +218,141 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         return finalLevel;
     };
 
+    // #comment Save the current city layout as a new preset, or overwrite an existing one, with a limit of 3.
+    const handleSavePreset = async () => {
+        if (!newPresetName.trim()) {
+            setMessage("Please enter a name for the preset.");
+            return;
+        }
+
+        const presetId = newPresetName.trim().toLowerCase().replace(/\s+/g, '-');
+        const presetDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/presets`, presetId);
+        const existingPreset = presets.find(p => p.id === presetId);
+
+        if (presets.length >= 3 && !existingPreset) {
+            setMessage("You can only have a maximum of 3 presets. Delete one to save a new one.");
+            setIsSavingPreset(false);
+            return;
+        }
+
+        const onConfirmSave = async () => {
+            const currentLevels = {};
+            Object.keys(buildings).forEach(id => {
+                currentLevels[id] = buildings[id].level;
+            });
+
+            const presetData = {
+                name: newPresetName.trim(),
+                levels: currentLevels
+            };
+
+            await setDoc(presetDocRef, presetData);
+
+            setNewPresetName('');
+            setIsSavingPreset(false);
+            setSelectedPresetId(presetId);
+            setConfirmAction(null);
+            setMessage(`Preset '${presetData.name}' saved successfully!`);
+        };
+        
+        if (existingPreset) {
+            setConfirmAction({
+                message: `A preset named "${newPresetName.trim()}" already exists. Do you want to overwrite it?`,
+                onConfirm: onConfirmSave
+            });
+        } else {
+            await onConfirmSave();
+        }
+    };
+    
+    // #comment Delete the selected preset after confirmation
+    const handleDeletePreset = async () => {
+        if (!selectedPresetId) return;
+        const presetName = presets.find(p => p.id === selectedPresetId)?.name;
+        setConfirmAction({
+            message: `Are you sure you want to delete the preset "${presetName}"?`,
+            onConfirm: async () => {
+                const presetDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/presets`, selectedPresetId);
+                await deleteDoc(presetDocRef);
+                setSelectedPresetId('');
+                setConfirmAction(null);
+                setMessage(`Preset '${presetName}' deleted.`);
+            }
+        });
+    };
+
+    // #comment Queue upgrades to match the selected preset
+    const handleApplyPreset = () => {
+        const selectedPreset = presets.find(p => p.id === selectedPresetId);
+        if (!selectedPreset) return;
+
+        const queueSpace = 5 - (buildQueue?.length || 0);
+        if (queueSpace <= 0) {
+            setMessage("Build queue is already full.");
+            return;
+        }
+
+        let queuedCount = 0;
+        const buildingIdsInOrder = ['senate', ...Object.keys(selectedPreset.levels).filter(id => id !== 'senate')];
+
+        for (const buildingId of buildingIdsInOrder) {
+            if (queuedCount >= queueSpace) break;
+            if (!selectedPreset.levels.hasOwnProperty(buildingId)) continue;
+
+            const targetLevel = selectedPreset.levels[buildingId];
+            const effectiveCurrentLevel = getFinalLevelInQueue(buildingId);
+
+            if (effectiveCurrentLevel < targetLevel) {
+                onUpgrade(buildingId);
+                queuedCount++;
+            }
+        }
+        
+        if (queuedCount > 0) {
+            setMessage(`${queuedCount} upgrades from preset '${selectedPreset.name}' have been added to the queue. Click 'Apply' again to queue more if needed.`);
+        } else {
+            setMessage(`All buildings are already at or above the levels in preset '${selectedPreset.name}'.`);
+        }
+    };
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
+            {confirmAction && (
+                <ConfirmationModal
+                    message={confirmAction.message}
+                    onConfirm={confirmAction.onConfirm}
+                    onCancel={() => setConfirmAction(null)}
+                />
+            )}
+            {isSavingPreset && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
+                    <div className="bg-gray-800 p-6 rounded-lg">
+                        <h3 className="text-lg font-bold mb-4 text-white">Save Building Preset</h3>
+                        <input
+                            type="text"
+                            value={newPresetName}
+                            onChange={(e) => setNewPresetName(e.target.value)}
+                            placeholder="Enter preset name..."
+                            className="w-full bg-gray-700 p-2 rounded mb-4 text-white"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setIsSavingPreset(false)} className="btn btn-secondary">Cancel</button>
+                            <button onClick={handleSavePreset} className="btn btn-confirm">Save</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-600 pb-3 mb-4">
                     <h2 className="text-3xl font-bold font-title text-yellow-300">Senate</h2>
-                    <button onClick={onOpenWorkerPresets} className="btn btn-primary text-sm py-1 px-3">Worker Presets</button>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
                 
                 <BuildQueue buildQueue={buildQueue} onCancel={onCancelBuild} />
                 
                 <div className='flex justify-between items-center mb-4 p-3 bg-gray-900 rounded-lg'>
-                    <p className="text-lg">Population: <span className="font-bold text-green-400">{maxPopulation - usedPopulation}</span> / {maxPopulation}</p>
+                    <p className="text-lg">Population: <span className="font-bold text-green-400">{availablePopulation}</span> / {maxPopulation}</p>
                     <div className="flex gap-4">
                         <p>Wood: <span className='font-bold text-yellow-300'>{Math.floor(resources.wood)}</span></p>
                         <p>Stone: <span className='font-bold text-gray-300'>{Math.floor(resources.stone)}</span></p>
@@ -128,6 +363,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                 <div className="flex border-b border-gray-600 mb-4">
                     <button onClick={() => setActiveTab('upgrade')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'upgrade' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Upgrade</button>
                     <button onClick={() => setActiveTab('demolish')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'demolish' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Demolish</button>
+                    <button onClick={() => setActiveTab('management')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'management' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Management</button>
                 </div>
 
                 <div className="overflow-y-auto pr-2">
@@ -220,6 +456,26 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                     </button>
                                 </div>
                             )}
+                        </div>
+                    )}
+                     {activeTab === 'management' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+                            <WorkerManager
+                                buildings={buildings}
+                                onAddWorker={onAddWorker}
+                                onRemoveWorker={onRemoveWorker}
+                                getMaxWorkerSlots={getMaxWorkerSlots}
+                                availablePopulation={availablePopulation}
+                            />
+                            <PresetManager
+                                presets={presets}
+                                selectedPresetId={selectedPresetId}
+                                setSelectedPresetId={setSelectedPresetId}
+                                handleApplyPreset={handleApplyPreset}
+                                setIsSavingPreset={setIsSavingPreset}
+                                handleDeletePreset={handleDeletePreset}
+                                buildQueue={buildQueue}
+                            />
                         </div>
                     )}
                 </div>
