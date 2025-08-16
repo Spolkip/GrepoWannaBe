@@ -4,7 +4,7 @@
   { "id": "timber_camp", "name": "Lumber Mill", "position": { "x": 200, "y": 470 } },
   { "id": "quarry", "name": "Stone Quarry", "position": { "x":750, "y": 70 } },
   { "id": "barracks", "name": "Barracks", "position": { "x": 840, "y": 410 } },
-  { "id": "silver_mine", "name": "Silver Mine", "position": { "x": 200, "y": 250 } },
+  { "id": "silver_mine", "name": "Silver Mine", "position": { "x": 605, "y": 330 } },
   { "id": "market", "name": "Market", "position": { "x": 1500, "y": 400 } },
   { "id": "warehouse", "name": "Warehouse", "position": { "x":200, "y": 10 } },
   { "id": "farm", "name": "Farm", "position": { "x": 1400, "y": 90 } },

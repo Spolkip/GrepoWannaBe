@@ -30,7 +30,6 @@ const WorshipDisplay = ({ godName, playerReligion, worship, buildings, onOpenPow
 
     return (
         <div className="worship-display-container">
-            <h3 className="worship-display-header">Worshipping</h3>
             {godName && godDetails ? (
                 <div className="text-center">
                     <img src={imageMap[godDetails.image]} alt={godDetails.name} className="w-24 h-24 mx-auto rounded-full border-4 border-yellow-500" />
