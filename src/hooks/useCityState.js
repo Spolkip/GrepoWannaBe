@@ -291,9 +291,11 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
     }, [currentUser, worldId, activeCityId]);
 
     useEffect(() => {
+        if (!activeCityId) return; // #comment Don't run interval if no city is active
+    
         const interval = setInterval(() => {
             setCityGameState(prevState => {
-                if (!prevState) return null;
+                if (!prevState) return prevState;
                 const now = Date.now();
                 const lastUpdate = prevState.lastUpdated || now;
                 const elapsedSeconds = (now - lastUpdate) / 1000;
@@ -320,7 +322,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [getProductionRates, getWarehouseCapacity]);
+    }, [activeCityId, getProductionRates, getWarehouseCapacity]);
 
     useEffect(() => {
     const processQueue = async () => {

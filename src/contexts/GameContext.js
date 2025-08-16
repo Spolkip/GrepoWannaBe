@@ -90,7 +90,7 @@ export const GameProvider = ({ children, worldId }) => {
             setPlayerHasCities(hasCities);
 
             setActiveCityId(currentId => {
-                if (hasCities && !currentId) {
+                if (hasCities && (!currentId || !citiesData[currentId])) {
                     return firstCityId;
                 }
                 if (!hasCities) {
