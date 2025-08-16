@@ -1,6 +1,5 @@
 Will do: 
-be able to kick someone from the alliance
-    
+
 Bugs:
 - Reasources are going beyong the cap of the wearhouse even of says 15k it will have on the background 90k or how much you have be given
 - reasources doublicate still happends when given

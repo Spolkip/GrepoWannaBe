@@ -152,7 +152,6 @@ const SettingsModal = ({ onClose }) => {
                 <div className="settings-tabs mb-4 flex border-b border-gray-600">
                     <button onClick={() => setActiveTab('gameplay')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'gameplay' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Gameplay</button>
                     <button onClick={() => setActiveTab('display')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'display' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Display</button>
-                    <button onClick={() => setActiveTab('automation')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'automation' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Automation</button>
                     <button onClick={() => setActiveTab('notifications')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'notifications' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Notifications</button>
                     <button onClick={() => setActiveTab('account')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'account' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'}`}>Account</button>
                 </div>
