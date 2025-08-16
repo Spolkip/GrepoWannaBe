@@ -437,7 +437,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             });
     
             await batch.commit(); // Commit the movement creation
-            setMessage("Troops are returning.");
     
         } catch (error) {
             console.error("Error withdrawing troops:", error);

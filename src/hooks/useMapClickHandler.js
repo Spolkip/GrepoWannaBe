@@ -3,9 +3,6 @@ import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
 import { useGame } from '../contexts/GameContext';
 
-
-
-
 export const useMapClickHandler = ({
     playerCity,
     currentUser,
@@ -37,12 +34,14 @@ export const useMapClickHandler = ({
         if (slotData.ownerId === currentUser.uid) {
             const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
             if (city) {
+                // #comment Merge city data with slot data to include ownerId and other public info
+                const mergedCityData = { ...city, ...slotData };
                 if (city.id === activeCityId) {
-                    openModal('ownActiveCity', city);
+                    openModal('ownActiveCity', mergedCityData);
                 } else {
                     const distance = calculateDistance(playerCity, slotData);
                     setTravelTimeInfo({ distance });
-                    openModal('ownInactiveCity', city);
+                    openModal('ownInactiveCity', mergedCityData);
                 }
             } else {
                 console.error("Clicked on own city slot, but no matching city found.", slotData);
