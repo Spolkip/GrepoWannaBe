@@ -12,7 +12,7 @@ import './ReportsView.css';
 
 const images = {};
 const imageContexts = [
-    require.context('../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/troops', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/resources', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/gods', false, /\.(png|jpe?g|svg)$/),

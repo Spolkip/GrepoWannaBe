@@ -14,7 +14,7 @@ import { getTrainableNavalUnits, getTrainableUnits } from '../../utils/nationali
 // Dynamically import all images from the images folder (this is for unit images)
 const images = {};
 const imageContexts = [
-    require.context('../../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/resources', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/heroes', false, /\.(png|jpe?g|svg)$/),
 ];

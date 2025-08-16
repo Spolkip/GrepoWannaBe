@@ -4,7 +4,7 @@ import unitConfig from '../../gameData/units.json';
 import { useAuth } from '../../contexts/AuthContext';
 
 const images = {};
-const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+const imageContext = require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     images[key] = imageContext(item);

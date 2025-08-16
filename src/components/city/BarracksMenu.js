@@ -7,7 +7,7 @@ import { getTrainableUnits } from '../../utils/nationality';
 
 // Dynamically import all unit images
 const unitImages = {};
-const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+const imageContext = require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     unitImages[key] = imageContext(item);

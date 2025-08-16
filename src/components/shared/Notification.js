@@ -1,7 +1,7 @@
 // src/components/shared/Notification.js
 import React, { useEffect, useState, useCallback } from 'react';
 import './Notification.css';
-import archerIcon from '../../images/archers.png'; 
+import archerIcon from '../../images/troops/archers.png'; 
 
 const Notification = ({ message, onClose }) => {
     const [visible, setVisible] = useState(true);

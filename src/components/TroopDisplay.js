@@ -5,7 +5,7 @@ import unitConfig from '../gameData/units.json';
 // Dynamically import all images from the images and images/buildings folder
 const images = {};
 const imageContexts = [
-    require.context('../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/troops', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/gods', false, /\.(png|jpe?g|svg)$/),
 ];
