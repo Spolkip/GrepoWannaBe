@@ -66,12 +66,13 @@ export const useAllianceActions = (playerAlliance) => {
                     },
                     ranks: [
                         { id: 'Leader', name: 'Leader', permissions: {
-                            manageRanks: true, manageSettings: true, manageDiplomacy: true, inviteMembers: true, kickMembers: true, recommendResearch: true, viewSecretForums: true, manageBank: true, withdrawFromBank: true, proposeTreaties: true, viewMemberActivity: true
+                            manageRanks: true, manageSettings: true, manageDiplomacy: true, inviteMembers: true, kickMembers: true, banMembers: true, recommendResearch: true, viewSecretForums: true, manageBank: true, withdrawFromBank: true, proposeTreaties: true, viewMemberActivity: true
                         }},
                         { id: 'Member', name: 'Member', permissions: {
-                            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false, viewMemberActivity: false
+                            manageRanks: false, manageSettings: false, manageDiplomacy: false, inviteMembers: false, kickMembers: false, banMembers: false, recommendResearch: false, viewSecretForums: false, manageBank: false, withdrawFromBank: false, proposeTreaties: false, viewMemberActivity: false
                         }}
                     ],
+                    banned: [],
                     applications: [],
                 };
 
@@ -126,6 +127,9 @@ export const useAllianceActions = (playerAlliance) => {
         const allianceSnap = await getDoc(allianceRef);
         if (allianceSnap.exists()) {
             const allianceData = allianceSnap.data();
+            if (allianceData.banned?.some(b => b.uid === currentUser.uid)) {
+                throw new Error("You are banned from this alliance.");
+            }
             const existingApplication = allianceData.applications?.find(app => app.userId === currentUser.uid);
             if (existingApplication) {
                 throw new Error("You have already applied to this alliance.");
@@ -232,6 +236,9 @@ export const useAllianceActions = (playerAlliance) => {
             if (!allianceDoc.exists()) throw new Error("Alliance not found.");
 
             const allianceData = allianceDoc.data();
+            if (allianceData.banned?.some(b => b.uid === currentUser.uid)) {
+                throw new Error("You are banned from this alliance.");
+            }
             if (allianceData.settings.status !== 'open') throw new Error("This alliance is not open for joining.");
 
 
@@ -255,6 +262,7 @@ export const useAllianceActions = (playerAlliance) => {
                 timestamp: serverTimestamp(),
             });
         });
+        clearMemberCache();
     };
 
     return { createAlliance, updateAllianceSettings, applyToAlliance, leaveAlliance, disbandAlliance, joinOpenAlliance };

@@ -19,7 +19,12 @@ export const useAllianceManagementActions = (playerAlliance) => {
     const { worldId } = useGame();
 
     const sendAllianceInvitation = async (targetUserId) => {
-        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+        if (!playerAlliance) {
+            throw new Error("You do not have permission to send invitations.");
+        }
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        const rank = playerAlliance.ranks.find(r => r.id === member?.rank);
+        if (!rank?.permissions?.inviteMembers) {
             throw new Error("You do not have permission to send invitations.");
         }
         if (!targetUserId) {
@@ -62,9 +67,11 @@ export const useAllianceManagementActions = (playerAlliance) => {
     };
 
     const revokeAllianceInvitation = async (invitedUserId) => {
-        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
-            return;
-        }
+        if (!playerAlliance) return;
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        const rank = playerAlliance.ranks.find(r => r.id === member?.rank);
+        if (!rank?.permissions?.inviteMembers) return;
+
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const invitesRef = collection(allianceDocRef, 'invitations');
         const q = query(invitesRef, where('invitedUserId', '==', invitedUserId));
@@ -141,6 +148,10 @@ export const useAllianceManagementActions = (playerAlliance) => {
                 if (!gameDoc.exists()) throw new Error("Your game data was not found.");
 
                 const newAllianceData = newAllianceDoc.data();
+                if (newAllianceData.banned?.some(b => b.uid === currentUser.uid)) {
+                    transaction.delete(inviteDocRef);
+                    throw new Error("You are banned from this alliance.");
+                }
                 const gameData = gameDoc.data();
                 const oldAllianceId = gameData.alliance;
 
@@ -186,6 +197,7 @@ export const useAllianceManagementActions = (playerAlliance) => {
 
                 transaction.delete(inviteDocRef);
             });
+            clearMemberCache();
         } catch (error) {
             console.error("Error accepting invitation:", error);
             alert(`Failed to join alliance: ${error.message}`);
@@ -193,7 +205,10 @@ export const useAllianceManagementActions = (playerAlliance) => {
     };
 
     const handleApplication = async (application, allianceId, action) => {
-        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
+        if (!playerAlliance) throw new Error("You don't have permission to do this.");
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        const rank = playerAlliance.ranks.find(r => r.id === member?.rank);
+        if (!rank?.permissions?.inviteMembers) {
             throw new Error("You don't have permission to do this.");
         }
 
@@ -220,6 +235,9 @@ export const useAllianceManagementActions = (playerAlliance) => {
             }
 
             if (action === 'accept') {
+                if (allianceData.banned?.some(b => b.uid === application.userId)) {
+                    throw new Error("This player is banned from your alliance.");
+                }
                 if (!applicantGameDoc.exists()) throw new Error("Applicant's game data not found.");
                 const applicantGameData = applicantGameDoc.data();
                 if (applicantGameData.alliance) {
@@ -242,6 +260,10 @@ export const useAllianceManagementActions = (playerAlliance) => {
                 }
             }
         });
+
+        if (action === 'accept') {
+            clearMemberCache();
+        }
     };
 
     const kickAllianceMember = async (memberId) => {
@@ -279,6 +301,46 @@ export const useAllianceManagementActions = (playerAlliance) => {
 
         clearMemberCache();
     };
+
+    const banAllianceMember = async (memberId) => {
+        if (!playerAlliance) throw new Error("You are not in an alliance.");
+        const memberToBan = playerAlliance.members.find(m => m.uid === memberId);
+        if (!memberToBan) throw new Error("Member not found.");
+
+        if (memberId === currentUser.uid) throw new Error("You cannot ban yourself.");
+        if (memberId === playerAlliance.leader.uid) throw new Error("You cannot ban the leader.");
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const gameRef = doc(db, `users/${memberId}/games`, worldId);
+        const citiesRef = collection(db, `users/${memberId}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
+        await runTransaction(db, async (transaction) => {
+            transaction.update(allianceRef, {
+                members: arrayRemove(memberToBan),
+                banned: arrayUnion({ uid: memberToBan.uid, username: memberToBan.username })
+            });
+            transaction.update(gameRef, { alliance: null });
+            for (const slotId of userCitySlotIds) {
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                transaction.update(citySlotRef, { alliance: null, allianceName: null });
+            }
+        });
+
+        const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        await addDoc(allianceEventsRef, {
+            type: 'member_banned',
+            text: `${userProfile.username} has banned ${memberToBan.username} from the alliance.`,
+            timestamp: serverTimestamp(),
+        });
+
+        const messageText = `You have been banned from the alliance "${playerAlliance.name}" by ${userProfile.username}.`;
+        await sendSystemMessage(memberId, memberToBan.username, messageText, worldId);
+
+        clearMemberCache();
+    };
+
 
     const createAllianceRank = async (rank) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) return;
@@ -338,5 +400,5 @@ export const useAllianceManagementActions = (playerAlliance) => {
         await updateDoc(allianceDocRef, { ranks: newRanks });
     };
 
-    return { sendAllianceInvitation, revokeAllianceInvitation, acceptAllianceInvitation, declineAllianceInvitation, handleApplication, kickAllianceMember, createAllianceRank, updateAllianceMemberRank, updateRanksOrder, updateAllianceRank, deleteAllianceRank };
+    return { sendAllianceInvitation, revokeAllianceInvitation, acceptAllianceInvitation, declineAllianceInvitation, handleApplication, kickAllianceMember, banAllianceMember, createAllianceRank, updateAllianceMemberRank, updateRanksOrder, updateAllianceRank, deleteAllianceRank };
 };
