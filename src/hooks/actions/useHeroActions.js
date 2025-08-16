@@ -26,7 +26,7 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
 
                 const newResources = { ...cityData.resources, silver: cityData.resources.silver - hero.cost.silver };
                 const newWorship = { ...cityData.worship, [cityData.god]: cityData.worship[cityData.god] - hero.cost.favor };
-                const newHeroes = { ...cityData.heroes, [heroId]: { active: true, cityId: null } };
+                const newHeroes = { ...cityData.heroes, [heroId]: { active: true, cityId: null, level: 1, xp: 0 } };
 
                 transaction.update(cityDocRef, { resources: newResources, worship: newWorship, heroes: newHeroes });
             });
@@ -48,30 +48,61 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
                 if (!cityDoc.exists()) throw new Error("City data not found.");
 
                 const cityData = cityDoc.data();
-                if ((cityData.worship[cityData.god] || 0) < skill.cost) throw new Error("Not enough favor.");
+                const heroData = cityData.heroes?.[heroId] || { level: 1 };
+                const currentSkillCost = (skill.cost.base || 0) + ((heroData.level - 1) * (skill.cost.perLevel || 0));
 
-                const newWorship = { ...cityData.worship, [cityData.god]: cityData.worship[cityData.god] - skill.cost };
+                // #comment Check for favor cost
+                if ((cityData.worship?.[cityData.god] || 0) < currentSkillCost) {
+                    throw new Error("Not enough favor.");
+                }
+
+                // #comment Check for skill cooldown
+                const activeSkills = cityData.activeSkills || {};
+                const now = Date.now();
+                if (activeSkills[skill.name] && now < activeSkills[skill.name].expires) {
+                    const timeLeft = Math.ceil((activeSkills[skill.name].expires - now) / 1000);
+                    throw new Error(`Skill is on cooldown. Time left: ${timeLeft}s`);
+                }
+
+                // #comment Deduct favor
+                const newWorship = { ...cityData.worship, [cityData.god]: cityData.worship[cityData.god] - currentSkillCost };
+
+                // #comment Apply effect and set cooldown
                 let newBuffs = { ...(cityData.buffs || {}) };
+                const newActiveSkills = { ...activeSkills };
+
+                const skillCooldown = (skill.cooldown || 0) * 1000;
+                newActiveSkills[skill.name] = {
+                    activatedAt: now,
+                    expires: now + skillCooldown
+                };
+
+                const effectValue = (skill.effect.baseValue || 0) + ((heroData.level - 1) * (skill.effect.valuePerLevel || 0));
 
                 if (skill.effect.type === 'troop_buff') {
                     newBuffs.battle = {
-                        ...newBuffs.battle,
+                        ...(newBuffs.battle || {}),
                         [skill.effect.subtype]: {
-                            value: skill.effect.value,
+                            value: effectValue,
                             unit_type: skill.effect.unit_type
                         }
                     };
                 } else if (skill.effect.type === 'city_buff') {
+                    const skillDuration = (skill.effect.duration || 0) * 1000;
                     newBuffs.city = {
-                        ...newBuffs.city,
+                        ...(newBuffs.city || {}),
                         [skill.effect.subtype]: {
-                            value: skill.effect.value,
-                            expires: Date.now() + skill.effect.duration * 1000
+                            value: effectValue,
+                            expires: now + skillDuration
                         }
                     };
                 }
 
-                transaction.update(cityDocRef, { worship: newWorship, buffs: newBuffs });
+                transaction.update(cityDocRef, {
+                    worship: newWorship,
+                    buffs: newBuffs,
+                    activeSkills: newActiveSkills
+                });
             });
             setMessage(`${skill.name} has been activated!`);
         } catch (error) {
@@ -90,7 +121,7 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
                 const cityData = cityDoc.data();
                 const heroes = cityData.heroes || {};
 
-                // Check if another hero is already in this city
+                // #comment Check if another hero is already in this city
                 for (const hId in heroes) {
                     if (heroes[hId].cityId === activeCityId) {
                         throw new Error("Another hero is already stationed in this city.");

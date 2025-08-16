@@ -51,26 +51,30 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
 
     // #comment Helper functions for dynamic values based on hero level
     const getEffectValue = (effect, level) => {
-        return effect.baseValue + (level - 1) * effect.valuePerLevel;
+        if (!effect || typeof level !== 'number') return 0;
+        return (effect.baseValue || 0) + ((level - 1) * (effect.valuePerLevel || 0));
     };
 
     const getSkillCost = (skill, level) => {
-        return skill.cost.base + (level - 1) * skill.cost.perLevel;
+        if (!skill || !skill.cost || typeof level !== 'number') return 0;
+        return (skill.cost.base || 0) + ((level - 1) * (skill.cost.perLevel || 0));
     };
     
     // #comment Formats description strings to correctly display dynamic values.
     const formatDescription = (description, effect, level) => {
+        if (!description || !effect || typeof level !== 'number') return description || '';
         const currentValue = getEffectValue(effect, level) * 100;
-        const perLevelValue = effect.valuePerLevel * 100;
+        const perLevelValue = (effect.valuePerLevel || 0) * 100;
     
-        const parts = description.split('(');
-        const mainPart = parts[0].replace(/(\d+(\.\d+)?%)/, `${currentValue.toFixed(1)}%`);
-        const perLevelPart = parts[1] ? `(+${perLevelValue.toFixed(1)}% per level)` : '';
+        let formatted = description.replace(/(\d+(\.\d+)?%)/, `${currentValue.toFixed(1)}%`);
+        if (perLevelValue > 0) {
+             formatted += ` (+${perLevelValue.toFixed(1)}% per level)`;
+        }
     
-        return `${mainPart.trim()} ${perLevelPart}`.trim();
+        return formatted;
     };
 
-    const xpForNextLevel = selectedHero.xpPerLevel[heroData.level - 1] || Infinity;
+    const xpForNextLevel = heroData.level < selectedHero.maxLevel ? selectedHero.xpPerLevel[heroData.level - 1] : Infinity;
     const canLevelUp = heroData.xp >= xpForNextLevel && heroData.level < selectedHero.maxLevel;
 
     return (
@@ -109,9 +113,9 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                                         {heroes[selectedHeroId] && (
                                             <div className="mt-2">
                                                 <div className="w-full bg-gray-600 rounded-full h-4">
-                                                    <div className="bg-yellow-400 h-4 rounded-full" style={{ width: `${Math.min(100, (heroData.xp / xpForNextLevel) * 100)}%` }}></div>
+                                                    <div className="bg-yellow-400 h-4 rounded-full" style={{ width: `${Math.min(100, (heroData.xp / (xpForNextLevel === Infinity ? heroData.xp : xpForNextLevel)) * 100)}%` }}></div>
                                                 </div>
-                                                <p className="text-xs text-center">{heroData.xp} / {xpForNextLevel} XP</p>
+                                                <p className="text-xs text-center">{heroData.xp} / {xpForNextLevel === Infinity ? 'Max' : xpForNextLevel} XP</p>
                                                 {canLevelUp && (
                                                     <button className="recruit-btn mt-1" onClick={() => onLevelUpHero(selectedHeroId)}>
                                                         Level Up ({selectedHero.levelUpCost.silver} Silver, {selectedHero.levelUpCost.favor} Favor)
