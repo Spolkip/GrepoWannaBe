@@ -1,9 +1,11 @@
+// src/hooks/actions/useAllianceManagement.js
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
 import { doc, runTransaction, collection, getDocs, query, where, addDoc, updateDoc, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDoc } from "firebase/firestore";
 import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
+import { clearMemberCache } from '../../components/alliance/AllianceMembers';
 
 const calculateMaxMembers = (alliance) => {
     const baseMax = 20;
@@ -242,6 +244,42 @@ export const useAllianceManagementActions = (playerAlliance) => {
         });
     };
 
+    const kickAllianceMember = async (memberId) => {
+        if (!playerAlliance) throw new Error("You are not in an alliance.");
+        const memberToKick = playerAlliance.members.find(m => m.uid === memberId);
+        if (!memberToKick) throw new Error("Member not found.");
+
+        if (memberId === currentUser.uid) throw new Error("You cannot kick yourself.");
+        if (memberId === playerAlliance.leader.uid) throw new Error("You cannot kick the leader.");
+
+        const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const gameRef = doc(db, `users/${memberId}/games`, worldId);
+        const citiesRef = collection(db, `users/${memberId}/games`, worldId, 'cities');
+        const citiesSnap = await getDocs(citiesRef);
+        const userCitySlotIds = citiesSnap.docs.map(doc => doc.data().slotId);
+
+        await runTransaction(db, async (transaction) => {
+            transaction.update(allianceRef, { members: arrayRemove(memberToKick) });
+            transaction.update(gameRef, { alliance: null });
+            for (const slotId of userCitySlotIds) {
+                const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
+                transaction.update(citySlotRef, { alliance: null, allianceName: null });
+            }
+        });
+
+        const allianceEventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        await addDoc(allianceEventsRef, {
+            type: 'member_kicked',
+            text: `${userProfile.username} has kicked ${memberToKick.username} from the alliance.`,
+            timestamp: serverTimestamp(),
+        });
+
+        const messageText = `You have been kicked from the alliance "${playerAlliance.name}" by ${userProfile.username}.`;
+        await sendSystemMessage(memberId, memberToKick.username, messageText, worldId);
+
+        clearMemberCache();
+    };
+
     const createAllianceRank = async (rank) => {
         if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) return;
 
@@ -300,5 +338,5 @@ export const useAllianceManagementActions = (playerAlliance) => {
         await updateDoc(allianceDocRef, { ranks: newRanks });
     };
 
-    return { sendAllianceInvitation, revokeAllianceInvitation, acceptAllianceInvitation, declineAllianceInvitation, handleApplication, createAllianceRank, updateAllianceMemberRank, updateRanksOrder, updateAllianceRank, deleteAllianceRank };
+    return { sendAllianceInvitation, revokeAllianceInvitation, acceptAllianceInvitation, declineAllianceInvitation, handleApplication, kickAllianceMember, createAllianceRank, updateAllianceMemberRank, updateRanksOrder, updateAllianceRank, deleteAllianceRank };
 };

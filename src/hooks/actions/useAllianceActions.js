@@ -1,7 +1,8 @@
+// src/hooks/actions/useAllianceActions.js
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc, arrayRemove } from "firebase/firestore";
+import { doc, runTransaction, collection, getDocs, updateDoc, arrayUnion, writeBatch, getDoc, arrayRemove, addDoc, serverTimestamp } from "firebase/firestore";
 import { sendSystemMessage } from '../../utils/sendSystemMessage';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import { clearMemberCache } from '../../components/alliance/AllianceMembers';
@@ -31,6 +32,7 @@ export const useAllianceActions = (playerAlliance) => {
         const allianceId = tag.toUpperCase();
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const eventsRef = collection(db, 'worlds', worldId, 'alliances', allianceId, 'events');
 
         try {
             await runTransaction(db, async (transaction) => {
@@ -81,6 +83,12 @@ export const useAllianceActions = (playerAlliance) => {
                     const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
                     transaction.update(citySlotRef, { alliance: allianceId, allianceName: name });
                 }
+                
+                transaction.set(doc(eventsRef), {
+                    type: 'alliance_created',
+                    text: `The alliance '${name}' [${tag.toUpperCase()}] was founded by ${userProfile.username}.`,
+                    timestamp: serverTimestamp(),
+                });
             });
         } catch (error) {
             console.error("Error creating alliance: ", error);
@@ -89,11 +97,20 @@ export const useAllianceActions = (playerAlliance) => {
     };
 
     const updateAllianceSettings = async (settings) => {
-        if (!playerAlliance || playerAlliance.leader.uid !== currentUser.uid) {
-            return;
-        }
+        if (!playerAlliance) return;
+        const member = playerAlliance.members.find(m => m.uid === currentUser.uid);
+        const rank = playerAlliance.ranks.find(r => r.id === member?.rank);
+        if (!rank?.permissions?.manageSettings) return;
+
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         await updateDoc(allianceDocRef, { settings });
+
+        const eventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
+        await addDoc(eventsRef, {
+            type: 'settings_updated',
+            text: `${userProfile.username} updated the alliance settings.`,
+            timestamp: serverTimestamp(),
+        });
     };
 
     const applyToAlliance = async (allianceId) => {
@@ -144,6 +161,7 @@ export const useAllianceActions = (playerAlliance) => {
 
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
         const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const eventsRef = collection(db, 'worlds', worldId, 'alliances', playerAlliance.id, 'events');
 
         await runTransaction(db, async (transaction) => {
             if (playerAlliance.members.length === 1) {
@@ -161,6 +179,11 @@ export const useAllianceActions = (playerAlliance) => {
                 const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
                 transaction.update(citySlotRef, { alliance: null, allianceName: null });
             }
+            transaction.set(doc(eventsRef), {
+                type: 'member_left',
+                text: `${userProfile.username} has left the alliance.`,
+                timestamp: serverTimestamp(),
+            });
         });
         
         clearMemberCache();
@@ -202,6 +225,7 @@ export const useAllianceActions = (playerAlliance) => {
 
         const allianceRef = doc(db, 'worlds', worldId, 'alliances', allianceId);
         const gameRef = doc(db, `users/${currentUser.uid}/games`, worldId);
+        const eventsRef = collection(db, 'worlds', worldId, 'alliances', allianceId, 'events');
 
         await runTransaction(db, async (transaction) => {
             const allianceDoc = await transaction.get(allianceRef);
@@ -225,6 +249,11 @@ export const useAllianceActions = (playerAlliance) => {
                 const citySlotRef = doc(db, 'worlds', worldId, 'citySlots', slotId);
                 transaction.update(citySlotRef, { alliance: allianceId, allianceName: allianceData.name });
             }
+            transaction.set(doc(eventsRef), {
+                type: 'member_joined',
+                text: `${userProfile.username} has joined the alliance.`,
+                timestamp: serverTimestamp(),
+            });
         });
     };
 

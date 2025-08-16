@@ -1,3 +1,4 @@
+// src/hooks/actions/useAllianceResearch.js
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
@@ -17,6 +18,7 @@ export const useAllianceResearchActions = (playerAlliance) => {
 
         const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', gameState.id);
         const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerAlliance.id);
+        const eventsRef = collection(allianceDocRef, 'events');
 
         try {
             await runTransaction(db, async (transaction) => {
@@ -36,6 +38,7 @@ export const useAllianceResearchActions = (playerAlliance) => {
                     }
                 }
 
+                const researchInfo = allianceResearch[researchId];
                 const research = allianceData.research[researchId] || { level: 0, progress: { wood: 0, stone: 0, silver: 0 }};
                 const newPlayerResources = { ...cityData.resources };
                 const newResearchProgress = { ...research.progress };
@@ -46,7 +49,31 @@ export const useAllianceResearchActions = (playerAlliance) => {
                 }
 
                 transaction.update(cityDocRef, { resources: newPlayerResources });
-                transaction.update(allianceDocRef, { [`research.${researchId}.progress`]: newResearchProgress });
+                
+                const cost = {
+                    wood: Math.floor(researchInfo.baseCost.wood * Math.pow(researchInfo.costMultiplier, research.level)),
+                    stone: Math.floor(researchInfo.baseCost.stone * Math.pow(researchInfo.costMultiplier, research.level)),
+                    silver: Math.floor(researchInfo.baseCost.silver * Math.pow(researchInfo.costMultiplier, research.level)),
+                };
+
+                if (newResearchProgress.wood >= cost.wood && newResearchProgress.stone >= cost.stone && newResearchProgress.silver >= cost.silver) {
+                    const newLevel = research.level + 1;
+                    const remainingProgress = {
+                        wood: newResearchProgress.wood - cost.wood,
+                        stone: newResearchProgress.stone - cost.stone,
+                        silver: newResearchProgress.silver - cost.silver,
+                    };
+                    transaction.update(allianceDocRef, { 
+                        [`research.${researchId}`]: { level: newLevel, progress: remainingProgress }
+                    });
+                    transaction.set(doc(eventsRef), {
+                        type: 'research_completed',
+                        text: `The alliance has completed ${researchInfo.name} Level ${newLevel}!`,
+                        timestamp: serverTimestamp(),
+                    });
+                } else {
+                    transaction.update(allianceDocRef, { [`research.${researchId}.progress`]: newResearchProgress });
+                }
             });
             alert("Donation successful!");
         } catch (error) {
