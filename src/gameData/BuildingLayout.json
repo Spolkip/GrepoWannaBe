@@ -13,7 +13,7 @@
   { "id": "cave", "name": "Cave", "position": { "x": 1300, "y": 600 } },
   { "id": "academy", "name": "Academy", "position": { "x": 1100, "y":250 } },
   { "id": "hospital", "name": "Hospital", "position": { "x": 1050, "y": 100 } },
-  { "id": "shipyard", "name": "Shipyard", "position": { "x": 1050, "y": 880 } },
+  { "id": "shipyard", "name": "Shipyard", "position": { "x": 1043, "y": 840 } },
   { "id": "special_building_plot", "name": "Special Building", "position": { "x": 1525, "y": 700 } },
   { "id": "heroes_altar", "name": "Heroes' Altar", "position": { "x": 1750, "y": 700 } }
 ]
