@@ -40,6 +40,12 @@ import unitConfig from '../gameData/units.json';
 import logoutIcon from '../images/logout.png';
 import worldIcon from '../images/world_selection.png';
 
+// #comment get warehouse capacity based on its level
+const getWarehouseCapacity = (level) => {
+    if (!level) return 0;
+    return Math.floor(1500 * Math.pow(1.4, level - 1));
+};
+
 const Game = ({ onBackToWorlds }) => {
     const { activeCityId, setActiveCityId, worldId, loading, gameState, playerCities, conqueredVillages, renameCity, playerCity, playerGameData } = useGame();
     const { currentUser, userProfile } = useAuth();
@@ -265,10 +271,11 @@ const Game = ({ onBackToWorlds }) => {
                 const canceledTask = newQueue.splice(itemIndex, 1)[0];
                 const unit = unitConfig[canceledTask.unitId];
 
+                const capacity = getWarehouseCapacity(currentState.buildings.warehouse?.level);
                 const newResources = { ...currentState.resources };
-                newResources.wood += (unit[costField].wood || 0) * canceledTask.amount;
-                newResources.stone += (unit[costField].stone || 0) * canceledTask.amount;
-                newResources.silver += (unit[costField].silver || 0) * canceledTask.amount;
+                newResources.wood = Math.min(capacity, newResources.wood + (unit[costField].wood || 0) * canceledTask.amount);
+                newResources.stone = Math.min(capacity, newResources.stone + (unit[costField].stone || 0) * canceledTask.amount);
+                newResources.silver = Math.min(capacity, newResources.silver + (unit[costField].silver || 0) * canceledTask.amount);
 
                 const newRefundUnits = { ...currentState[refundField] };
                 if (queueType === 'heal') {

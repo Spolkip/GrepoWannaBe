@@ -1,6 +1,7 @@
 Ideas:
 If ships dont die to show enemy ships.
 - be able to surrender if you have one city and you are about to lose it 
+- na trwei capture o hero
 
 Idea 1:
 There will be 2 special units called agents, one will be able to sabotage enemy city and lower their morale, if the morale of one city goes to -100% a revolt will start and if the player

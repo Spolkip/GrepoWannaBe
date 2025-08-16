@@ -6,6 +6,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext'; // Import useGame
 import allQuests from '../gameData/quests.json';
 import { getNationalUnitReward, getGenericUnitType } from '../utils/nationality';
+import unitConfig from '../gameData/units.json';
+
+// #comment get warehouse capacity based on its level
+const getWarehouseCapacity = (level) => {
+    if (!level) return 0;
+    return Math.floor(1500 * Math.pow(1.4, level - 1));
+};
 
 export const useQuestTracker = (cityState) => {
     const { currentUser } = useAuth();
@@ -105,6 +112,7 @@ export const useQuestTracker = (cityState) => {
 
                 const cityData = cityDoc.data();
                 const questData = questDoc.data();
+                const capacity = getWarehouseCapacity(cityData.buildings.warehouse?.level);
 
                 // Apply rewards
                 const newResources = { ...cityData.resources };
@@ -113,7 +121,7 @@ export const useQuestTracker = (cityState) => {
 
                 if (quest.rewards.resources) {
                     for (const resource in quest.rewards.resources) {
-                        newResources[resource] = (newResources[resource] || 0) + quest.rewards.resources[resource];
+                        newResources[resource] = Math.min(capacity, (newResources[resource] || 0) + quest.rewards.resources[resource]);
                     }
                 }
                 if (quest.rewards.units) {

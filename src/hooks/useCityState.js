@@ -321,9 +321,15 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             setCityGameState(prevState => {
                 if (!prevState) return prevState;
                 const now = Date.now();
-                const lastUpdate = prevState.lastUpdated || now;
+                
+                // #FIX: Correctly handle both number and Firestore Timestamp for lastUpdated
+                const lastUpdateTimestamp = prevState.lastUpdated?.toDate ? prevState.lastUpdated.toDate().getTime() : prevState.lastUpdated;
+                const lastUpdate = lastUpdateTimestamp || now;
                 const elapsedSeconds = (now - lastUpdate) / 1000;
                 
+                // #FIX: Prevent negative elapsed time if clocks are out of sync
+                if (elapsedSeconds < 0) return prevState;
+
                 const newState = JSON.parse(JSON.stringify(prevState));
                 
                 const productionRates = getProductionRates(newState.buildings);

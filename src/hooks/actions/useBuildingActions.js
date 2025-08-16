@@ -43,7 +43,6 @@ export const useBuildingActions = ({
             return;
         }
 
-        // #comment Calculate population cost of items already in the build queue.
         let populationInQueue = 0;
         currentQueue.forEach(task => {
             if (task.type !== 'demolish') {
@@ -58,13 +57,11 @@ export const useBuildingActions = ({
         const hasEnoughPopulation = newTotalPopulation <= maxPopulation;
 
 
-        // #comment Allow farm and warehouse upgrades regardless of population status.
         if (!hasEnoughPopulation && buildingId !== 'farm' && buildingId !== 'warehouse') {
             setMessage('Not enough population capacity!');
             return;
         }
 
-        // All checks passed, proceed with upgrade
         const newGameState = JSON.parse(JSON.stringify(currentState));
         newGameState.resources.wood -= cost.wood;
         newGameState.resources.stone -= cost.stone;
@@ -104,6 +101,7 @@ export const useBuildingActions = ({
     };
 
     const handleCancelBuild = async (itemToCancel) => {
+        console.log(`[handleCancelBuild] Triggered at ${new Date().toLocaleTimeString()} for item:`, JSON.parse(JSON.stringify(itemToCancel)));
         const currentState = cityGameState;
         if (!currentState || !currentState.buildQueue) {
             return;
@@ -134,7 +132,6 @@ export const useBuildingActions = ({
                 cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
             }
     
-            // #comment Refund 50% of the resources when cancelling a build
             newGameState.resources = {
                 ...currentState.resources,
                 wood: currentState.resources.wood + Math.floor(cost.wood * 0.5),

@@ -131,7 +131,8 @@ export const useUnitActions = ({
         }
     };
 
-    const handleCancelTrain = async (canceledItem, queueType) => {
+ const handleCancelTrain = async (canceledItem, queueType) => {
+        console.log(`[handleCancelTrain] Triggered at ${new Date().toLocaleTimeString()} for item:`, JSON.parse(JSON.stringify(canceledItem)));
         const currentState = cityGameState;
         let queueName;
         let costField;
@@ -190,6 +191,14 @@ export const useUnitActions = ({
             stone: currentState.resources.stone + (unit[costField]?.stone || 0) * removedTask.amount,
             silver: currentState.resources.silver + (unit[costField]?.silver || 0) * removedTask.amount,
         };
+
+        const newWorship = { ...currentState.worship };
+        if (unit.mythical && costField === 'cost') {
+            const favorRefund = (unit.cost?.favor || 0) * removedTask.amount;
+            if (currentState.god && newWorship[currentState.god] !== undefined) {
+                newWorship[currentState.god] += favorRefund;
+            }
+        }
     
         const newRefundUnits = { ...currentState[refundField] };
         if (queueType === 'heal') {
@@ -208,7 +217,7 @@ export const useUnitActions = ({
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
     
-        const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
+        const newGameState = { ...currentState, resources: newResources, worship: newWorship, [refundField]: newRefundUnits, [queueName]: newQueue };
     
         try {
             await saveGameState(newGameState);

@@ -9,6 +9,12 @@ import unitConfig from '../gameData/units.json';
 
 
 
+// #comment get warehouse capacity based on its level
+const getWarehouseCapacity = (level) => {
+    if (!level) return 0;
+    return Math.floor(1500 * Math.pow(1.4, level - 1));
+};
+
 export const useMovementProcessor = (worldId) => {
     const { getHospitalCapacity } = useCityState(worldId);
 
@@ -68,12 +74,16 @@ export const useMovementProcessor = (worldId) => {
                 newUnits[unitId] = (newUnits[unitId] || 0) + movement.units[unitId];
             }
 
+            const capacity = getWarehouseCapacity(newCityState.buildings.warehouse?.level);
             const newResources = { ...newCityState.resources };
             if (movement.resources) {
                 for (const resourceId in movement.resources) {
                     newResources[resourceId] = (newResources[resourceId] || 0) + movement.resources[resourceId];
                 }
             }
+            newResources.wood = Math.min(capacity, newResources.wood || 0);
+            newResources.stone = Math.min(capacity, newResources.stone || 0);
+            newResources.silver = Math.min(capacity, newResources.silver || 0);
 
             const newWounded = { ...newCityState.wounded };
             let totalWoundedInHospital = Object.values(newWounded).reduce((sum, count) => sum + count, 0);
