@@ -5,7 +5,6 @@ import unitsData from '../../gameData/units.json';
 import './OtherCityModal.css'; // Reuse styles
 
 const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, onSelectCity, onWithdraw }) => {
-    console.log("OwnInactiveCityModal rendered for city:", city?.cityName, "ID:", city?.id); // User requested log
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -20,11 +19,6 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
             onSelectCity(city.id);
         }
         onClose();
-    };
-
-    const handleEnter = () => {
-        console.log("Attempting to enter city from OwnInactiveCityModal. ID:", city.id); // User requested log
-        onEnterCity(city.id);
     };
 
     const hasReinforcements = city.reinforcements && Object.keys(city.reinforcements).length > 0;
@@ -46,7 +40,7 @@ const OwnInactiveCityModal = ({ city, onClose, onAction, onGoTo, onEnterCity, on
                         />
                     </div>
                     <div className="action-buttons-grid">
-                        <button onClick={handleEnter} className="action-btn">
+                        <button onClick={() => onEnterCity(city.id)} className="action-btn">
                             Enter City
                         </button>
                         <button onClick={handleSelect} className="action-btn">

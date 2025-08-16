@@ -46,6 +46,7 @@ export const useCityActions = (props) => {
             case 'academy': openModal('isAcademyMenuOpen'); break;
             case 'hospital': openModal('isHospitalMenuOpen'); break;
             case 'market': openModal('isMarketMenuOpen'); break;
+            case 'heroes_altar': openModal('isHeroesAltarOpen'); break;
             // #comment Handle special building plot click
             case 'special_building_plot':
                 if (cityGameState.specialBuilding) {

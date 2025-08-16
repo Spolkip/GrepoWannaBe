@@ -8,6 +8,7 @@ import DivinePowers from './city/DivinePowers';
 import { useCityState } from '../hooks/useCityState';
 import { useGame } from '../contexts/GameContext';
 import { useCityActions } from '../hooks/useCityActions';
+import { useHeroActions } from '../hooks/actions/useHeroActions'; // Import useHeroActions
 import SidebarNav from './map/SidebarNav';
 import TopBar from './map/TopBar';
 import QuestsButton from './QuestsButton';
@@ -59,6 +60,8 @@ const CityView = ({
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
     });
 
+    const { onRecruitHero, onActivateSkill } = useHeroActions(cityGameState, saveGameState, setMessage);
+
     const { availablePopulation, happiness } = useMemo(() => {
         if (!cityGameState) return { availablePopulation: 0, happiness: 0 };
         const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
@@ -104,6 +107,7 @@ const CityView = ({
                 onOpenCheats={() => openCityModal('isCheatMenuOpen')}
                 isAllianceMember={!!playerAlliance}
                 handleOpenEvents={handleOpenEvents}
+                onOpenHeroesAltar={() => openCityModal('isHeroesAltarOpen')}
             />
 
             <div className="h-full w-full flex flex-col">
@@ -172,6 +176,8 @@ const CityView = ({
                 handleDemolish={actions.handleDemolish}
                 handleDemolishSpecialBuilding={actions.handleDemolishSpecialBuilding}
                 handleSpawnGodTown={actions.handleSpawnGodTown}
+                onRecruitHero={onRecruitHero}
+                onActivateSkill={onActivateSkill}
             />
             {cityModalState.isDivinePowersOpen && (
                 <DivinePowers

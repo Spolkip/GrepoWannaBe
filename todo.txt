@@ -6,9 +6,6 @@ Later:
 
 Maybe: 
 - add presets for the workers
-- add cities inside the island
-Later fixes: 
-- Barracks last number does not get deleted there is always 1 number left when using backspace
 
 Models:
 - add a battle simulation

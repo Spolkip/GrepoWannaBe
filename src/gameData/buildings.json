@@ -125,5 +125,13 @@
     "image": "special_building_plot.png",
     "constructible": false,
     "points": 500
+  },
+  "heroes_altar": {
+    "name": "Heroes' Altar",
+    "description": "Recruit legendary heroes and activate their powerful skills.",
+    "baseCost": { "wood": 1000, "stone": 1000, "silver": 1000, "population": 10, "time": 3600 },
+    "image": "heroes_altar.png",
+    "maxLevel": 1,
+    "points": 100
   }
 }

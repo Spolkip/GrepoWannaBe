@@ -5,7 +5,6 @@ import unitsData from '../../gameData/units.json';
 import './OtherCityModal.css'; // Reuse styles
 
 const OwnActiveCityModal = ({ city, onClose, onGoTo, onEnterCity, onWithdraw }) => {
-    console.log("OwnActiveCityModal rendered for city:", city?.cityName, "ID:", city?.id); // User requested log
     if (!city) return null;
 
     const handleGoTo = () => {
@@ -13,11 +12,6 @@ const OwnActiveCityModal = ({ city, onClose, onGoTo, onEnterCity, onWithdraw }) 
             onGoTo(city.x, city.y);
         }
         onClose();
-    };
-
-    const handleEnter = () => {
-        console.log("Attempting to enter city from OwnActiveCityModal. ID:", city.id); // User requested log
-        onEnterCity(city.id);
     };
 
     // #comment Check if there are any reinforcements from other cities owned by the player
@@ -40,7 +34,7 @@ const OwnActiveCityModal = ({ city, onClose, onGoTo, onEnterCity, onWithdraw }) 
                         />
                     </div>
                     <div className="action-buttons-grid">
-                        <button onClick={handleEnter} className="action-btn">
+                        <button onClick={() => onEnterCity(city.id)} className="action-btn">
                             Enter City
                         </button>
                         {/* #comment Conditionally render Withdraw button */}

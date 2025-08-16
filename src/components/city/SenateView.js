@@ -86,7 +86,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         ['timber_camp', 'quarry', 'silver_mine', 'farm'],
         ['warehouse', 'market', 'barracks', 'shipyard'],
         ['academy', 'temple', 'divine_temple', 'hospital'],
-        ['city_wall', 'cave', 'special_building_plot']
+        ['city_wall', 'cave', 'special_building_plot', 'heroes_altar']
     ];
 
     // #comment Calculate the final level of a building after all queued tasks are complete.

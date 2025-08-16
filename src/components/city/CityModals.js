@@ -13,6 +13,7 @@ import { AcademyMenu } from './AcademyMenu';
 import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new DivineTempleMenu
 import SpecialBuildingMenu from './SpecialBuildingMenu';
 import SpecialBuildingPanel from './SpecialBuildingPanel'; // #comment Import the new panel
+import HeroesAltar from './HeroesAltar';
 
 const CityModals = ({
   cityGameState,
@@ -50,7 +51,9 @@ const CityModals = ({
   handleBuildSpecialBuilding,
   handleDemolish,
   handleDemolishSpecialBuilding,
-  handleSpawnGodTown
+  handleSpawnGodTown,
+  onRecruitHero,
+  onActivateSkill,
 }) => {
   const {
     selectedBuildingId,
@@ -66,6 +69,7 @@ const CityModals = ({
     isDivineTempleMenuOpen,
     isSpecialBuildingMenuOpen,
     isSpecialBuildingPanelOpen, // #comment Get panel state
+    isHeroesAltarOpen,
   } = modalState;
 
   if (!cityGameState) return null;
@@ -200,6 +204,14 @@ const CityModals = ({
             buildingId={cityGameState.specialBuilding}
             onClose={() => closeModal('isSpecialBuildingPanelOpen')}
             onDemolish={handleDemolishSpecialBuilding}
+        />
+      )}
+      {isHeroesAltarOpen && (
+        <HeroesAltar
+            cityGameState={cityGameState}
+            onRecruitHero={onRecruitHero}
+            onActivateSkill={onActivateSkill}
+            onClose={() => closeModal('isHeroesAltarOpen')}
         />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (
