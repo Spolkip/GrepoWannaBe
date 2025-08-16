@@ -8,10 +8,9 @@ import { calculateDistance, calculateTravelTime } from '../utils/travel';
 import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 
-export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCache) => {
+export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCache, setMessage) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId, gameState, playerCity, setGameState, worldState, playerCities } = useGame();
-    const [message, setMessage] = useState('');
     const [travelTimeInfo, setTravelTimeInfo] = useState(null);
 
     const handleActionClick = useCallback((mode, targetCity) => {
@@ -34,7 +33,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         } else if (['information', 'rally'].includes(mode)) {
             setMessage(`${mode.charAt(0).toUpperCase() + mode.slice(1)} is not yet implemented.`);
         }
-    }, [openModal, closeModal]);
+    }, [openModal, closeModal, setMessage]);
 
     const handleSendMovement = useCallback(async (movementDetails) => {
         const { mode, targetCity, units, resources, attackFormation } = movementDetails;
@@ -447,8 +446,6 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
     }, [currentUser, worldId, playerCities, setMessage]);
 
     return {
-        message,
-        setMessage,
         travelTimeInfo,
         setTravelTimeInfo,
         handleActionClick,

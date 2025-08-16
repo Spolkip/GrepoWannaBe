@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import godTownImage from '../../images/god-town.png';
 import unitConfig from '../../gameData/units.json';
+import allianceWonders from '../../gameData/alliance_wonders.json'; // #comment Import wonder data
 
 const images = {};
 const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
@@ -225,11 +226,14 @@ const _WonderSpotTile = ({ spotData, onClick, playerAlliance, controlledIslands 
     );
 };
 
+// #comment update wonder tile to show dynamic info
 const _ConstructingWonderTile = ({ wonderData, onClick }) => {
+    const wonderConfig = allianceWonders[wonderData.id];
+    const tooltipText = `${wonderConfig.name} (Lvl ${wonderData.level})<br>Alliance: ${wonderData.allianceName || 'Unknown'}`;
     return (
         <div className="w-full h-full flex justify-center items-center">
             <div onClick={() => onClick(wonderData)} className="constructing-wonder-tile">
-                <span className="map-object-tooltip">Wonder under construction</span>
+                <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>
         </div>
     );

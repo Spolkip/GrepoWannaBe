@@ -1,10 +1,10 @@
-// src/components/MapView.js
+// src/components/map/MapView.js
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot, where } from 'firebase/firestore';
 
 // Import island images
 import island1 from '../images/islands/island_1.png';
@@ -22,6 +22,8 @@ import MapOverlay from './map/MapOverlay';
 import WithdrawModal from './city/WithdrawModal';
 import WonderBuilderModal from './alliance/WonderBuilderModal';
 import WonderProgressModal from './alliance/WonderProgressModal';
+import Modal from './shared/Modal'; // #comment Import the generic Modal component
+import allianceWonders from '../gameData/alliance_wonders.json';
 
 
 import { useMapInteraction } from '../hooks/useMapInteraction';
@@ -80,7 +82,8 @@ const MapView = ({
     const { pan, zoom, viewportSize, borderOpacity, isPanning, handleMouseDown, goToCoordinates } = useMapInteraction(viewportRef, mapContainerRef, worldState, playerCity, centerOnCity);
     // #comment useMapData now provides visible villages and ruins, removing the need for separate top-level listeners.
     const { visibleSlots, visibleVillages, visibleRuins, invalidateChunkCache } = useMapData(currentUser, worldId, worldState, pan, zoom, viewportSize);
-    const { setMessage, travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity, handleWithdrawTroops } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache);
+    const [message, setMessage] = useState(''); // #comment State for user feedback messages
+    const { travelTimeInfo, setTravelTimeInfo, handleActionClick, handleSendMovement, handleCreateDummyCity, handleWithdrawTroops } = useMapActions(openModal, closeModal, showCity, invalidateChunkCache, setMessage);
     const { getFarmCapacity, calculateUsedPopulation, calculateHappiness, getMarketCapacity, calculateTotalPoints, getProductionRates, getWarehouseCapacity } = useCityState(worldId);
     const [cityPoints, setCityPoints] = useState({});
     const [scoutedCities, setScoutedCities] = useState({});
@@ -92,6 +95,28 @@ const MapView = ({
     const [wonderProgressData, setWonderProgressData] = useState(null);
     const [allCitySlots, setAllCitySlots] = useState(null);
     const [godTowns, setGodTowns] = useState({}); // God towns are rare, so a single listener is fine.
+    const [allWonders, setAllWonders] = useState([]); // #comment State to hold all wonders
+    const [wonderInfo, setWonderInfo] = useState(null); // #comment State for wonder info modal
+
+    // #comment Fetch all wonders being built in the world
+    useEffect(() => {
+        if (!worldId) return;
+        const wondersQuery = query(collection(db, 'worlds', worldId, 'alliances'), where('allianceWonder', '!=', null));
+        const unsubscribe = onSnapshot(wondersQuery, (snapshot) => {
+            const wonders = [];
+            snapshot.forEach(doc => {
+                wonders.push({
+                    ...doc.data().allianceWonder,
+                    allianceName: doc.data().name,
+                    allianceTag: doc.data().tag,
+                    allianceId: doc.id
+                });
+            });
+            setAllWonders(wonders);
+        });
+        return () => unsubscribe();
+    }, [worldId]);
+
 
     useEffect(() => {
         if (!worldId) return;
@@ -411,7 +436,7 @@ const MapView = ({
         // #comment Iterate over ALL islands to create a potential spot for each.
         worldState.islands.forEach(island => {
             // #comment Don't generate a spot if a wonder is already on this island
-            if (playerAlliance?.allianceWonder?.islandId === island.id) return;
+            if (allWonders.some(w => w.islandId === island.id)) return;
     
             const centerX = Math.round(island.x);
             const centerY = Math.round(island.y);
@@ -454,19 +479,32 @@ const MapView = ({
             }
         });
         setWonderSpots(newSpots);
-    }, [worldState, allCitySlots, visibleVillages, playerAlliance]);
+    }, [worldState, allCitySlots, visibleVillages, allWonders]);
 
+    // #comment handle clicking a wonder spot to build
     const handleWonderSpotClick = (spotData) => {
         if (playerAlliance?.leader?.uid !== currentUser.uid) {
             setMessage("Only the alliance leader can begin construction of a wonder.");
             return;
         }
-        // #comment The alliance ID check is now implicitly handled by the tile's visibility
+        if (playerAlliance.allianceWonder) {
+            setMessage("Your alliance is already building a wonder elsewhere.");
+            return;
+        }
         setWonderBuilderData({ islandId: spotData.islandId, coords: { x: spotData.x, y: spotData.y } });
     };
 
+    // #comment handle clicking a wonder that is under construction
     const handleConstructingWonderClick = (wonderData) => {
-        setWonderProgressData(wonderData);
+        if (playerAlliance && playerAlliance.id === wonderData.allianceId) {
+            setWonderProgressData(wonderData);
+        } else {
+            const wonderConfig = allianceWonders[wonderData.id];
+            setWonderInfo({
+                title: wonderConfig.name,
+                message: `Level ${wonderData.level}. Being built by ${wonderData.allianceName} [${wonderData.allianceTag}].`
+            });
+        }
     };
     
     const mapGrid = useMemo(() => {
@@ -522,14 +560,14 @@ const MapView = ({
                 grid[spot.y][spot.x] = { type: 'wonder_spot', data: spot };
             }
         });
-        if (playerAlliance?.allianceWonder?.id && playerAlliance.allianceWonder.x !== undefined) {
-            const wonder = playerAlliance.allianceWonder;
-            if (grid[wonder.y]?.[wonder.x]) {
+        // #comment Render all wonders from any alliance
+        allWonders.forEach(wonder => {
+            if (wonder.x !== undefined && grid[wonder.y]?.[wonder.x]) {
                 grid[wonder.y][wonder.x] = { type: 'constructing_wonder', data: wonder };
             }
-        }
+        });
         return grid;
-    }, [worldState, combinedSlotsForGrid, visibleVillages, visibleRuins, godTowns, wonderSpots, playerAlliance]);
+    }, [worldState, combinedSlotsForGrid, visibleVillages, visibleRuins, godTowns, wonderSpots, allWonders]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -646,6 +684,8 @@ const MapView = ({
                     </div>
                 </div>
             </div>
+            {message && <Modal message={message} onClose={() => setMessage('')} />}
+            {wonderInfo && <Modal title={wonderInfo.title} message={wonderInfo.message} onClose={() => setWonderInfo(null)} />}
             <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={visibleVillages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} quests={quests} claimReward={claimReward} onEnterCity={handleEnterCity} onSwitchCity={onSwitchCity} onWithdraw={handleOpenWithdrawModal} />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
             {modalState.isWithdrawModalOpen && (
