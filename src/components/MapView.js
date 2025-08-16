@@ -276,18 +276,20 @@ const MapView = ({
         const newSlots = { ...visibleSlots };
         for (const cityId in playerCities) {
             const pCity = playerCities[cityId];
-            if (pCity && pCity.slotId && newSlots[pCity.slotId]) {
+            if (pCity && pCity.slotId) {
+                const baseSlot = allCitySlots ? allCitySlots[pCity.slotId] : {};
                 const cityDataForMerge = { ...pCity };
                 delete cityDataForMerge.id;
 
                 newSlots[pCity.slotId] = {
-                    ...newSlots[pCity.slotId],
+                    ...baseSlot,
+                    ...(newSlots[pCity.slotId] || {}),
                     ...cityDataForMerge,
                 };
             }
         }
         return newSlots;
-    }, [visibleSlots, playerCities]);
+    }, [visibleSlots, playerCities, allCitySlots]);
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
