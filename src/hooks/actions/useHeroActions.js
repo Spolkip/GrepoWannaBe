@@ -49,7 +49,8 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
 
                 const cityData = cityDoc.data();
                 const heroData = cityData.heroes?.[heroId] || { level: 1 };
-                const currentSkillCost = (skill.cost.base || 0) + ((heroData.level - 1) * (skill.cost.perLevel || 0));
+                const favorCost = skill.cost.favor;
+                const currentSkillCost = (favorCost.base || 0) + ((heroData.level - 1) * (favorCost.perLevel || 0));
 
                 // #comment Check for favor cost
                 if ((cityData.worship?.[cityData.god] || 0) < currentSkillCost) {

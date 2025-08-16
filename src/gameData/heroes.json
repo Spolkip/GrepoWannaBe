@@ -17,7 +17,7 @@
         "name": "Warcry",
         "type": "battle",
         "description": "Boosts the attack of all land units by 10% (+2% per level) for the next battle.",
-        "cost": { "base": 50, "perLevel": 5 },
+        "cost": { "favor": { "base": 50, "perLevel": 5 } },
         "cooldown": 3600,
         "icon": "warcry.png",
         "effect": { "type": "troop_buff", "subtype": "attack", "baseValue": 0.10, "valuePerLevel": 0.02, "unit_type": "land" }
@@ -26,7 +26,7 @@
         "name": "Rapid Mobilization",
         "type": "city",
         "description": "Reduces recruitment time in the Barracks by 15% (+1% per level) for 1 hour.",
-        "cost": { "base": 30, "perLevel": 3 },
+        "cost": { "favor": { "base": 30, "perLevel": 3 } },
         "cooldown": 7200,
         "icon": "rapid_mobilization.png",
         "effect": { "type": "city_buff", "subtype": "recruitment_speed", "baseValue": 0.15, "valuePerLevel": 0.01, "duration": 3600 }
@@ -51,7 +51,7 @@
         "name": "Naval Superiority",
         "type": "battle",
         "description": "Boosts the speed of all naval units by 15% (+1% per level) for the next battle.",
-        "cost": { "base": 40, "perLevel": 4 },
+        "cost": { "favor": { "base": 40, "perLevel": 4 } },
         "cooldown": 3600,
         "icon": "naval_superiority.png",
         "effect": { "type": "troop_buff", "subtype": "speed", "baseValue": 0.15, "valuePerLevel": 0.01, "unit_type": "naval" }
@@ -60,7 +60,7 @@
         "name": "Master Spy",
         "type": "city",
         "description": "Increases the effectiveness of spies by 20% (+2% per level) for 2 hours.",
-        "cost": { "base": 60, "perLevel": 6 },
+        "cost": { "favor": { "base": 60, "perLevel": 6 } },
         "cooldown": 7200,
         "icon": "master_spy.png",
         "effect": { "type": "city_buff", "subtype": "spy_effectiveness", "baseValue": 0.20, "valuePerLevel": 0.02, "duration": 7200 }

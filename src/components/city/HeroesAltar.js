@@ -20,7 +20,7 @@ skillImageContext.keys().forEach((item) => {
 
 const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, onAssignHero, onUnassignHero, onLevelUpHero, onAddHeroXp }) => {
     const [selectedHeroId, setSelectedHeroId] = useState(Object.keys(heroesConfig)[0]);
-    const { heroes = {} } = cityGameState;
+    const { heroes = {}, activeSkills = {} } = cityGameState;
     const { activeCityId } = useGame();
 
     // #comment Handles recruiting a hero, stopping the event from bubbling up.
@@ -56,8 +56,9 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
     };
 
     const getSkillCost = (skill, level) => {
-        if (!skill || !skill.cost || typeof level !== 'number') return 0;
-        return (skill.cost.base || 0) + ((level - 1) * (skill.cost.perLevel || 0));
+        if (!skill || !skill.cost || !skill.cost.favor || typeof level !== 'number') return 0;
+        const favorCost = skill.cost.favor;
+        return (favorCost.base || 0) + ((level - 1) * (favorCost.perLevel || 0));
     };
     
     // #comment Formats description strings to correctly display dynamic values.
@@ -147,6 +148,10 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                                 <div className="skills-list">
                                     {selectedHero.skills.map(skill => {
                                         const currentSkillCost = getSkillCost(skill, heroData.level);
+                                        const skillCooldown = activeSkills[skill.name];
+                                        const isOnCooldown = skillCooldown && Date.now() < skillCooldown.expires;
+                                        const timeLeft = isOnCooldown ? Math.ceil((skillCooldown.expires - Date.now()) / 1000) : 0;
+
                                         return (
                                             <div key={skill.name} className="skill-card">
                                                 <img src={skillImages[skill.icon]} alt={skill.name} className="skill-icon" />
@@ -155,8 +160,12 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                                                     <p>{formatDescription(skill.description, skill.effect, heroData.level)}</p>
                                                 </div>
                                                 {heroes[selectedHeroId] && (
-                                                    <button className="activate-skill-btn" onClick={(e) => handleSkillActivation(e, selectedHeroId, skill)}>
-                                                        Activate ({currentSkillCost} Favor)
+                                                    <button 
+                                                        className="activate-skill-btn" 
+                                                        onClick={(e) => handleSkillActivation(e, selectedHeroId, skill)}
+                                                        disabled={isOnCooldown}
+                                                    >
+                                                        {isOnCooldown ? `Cooldown: ${timeLeft}s` : `Activate (${currentSkillCost} Favor)`}
                                                     </button>
                                                 )}
                                             </div>

@@ -10,7 +10,7 @@ const AdminCheatMenu = ({ onCheat, onClose, InstantBuildActive}) => {
     const [warehouseLevels, setWarehouseLevels] = useState(0);
     const {isInstantBuild, setIsInstantBuild, isInstantResearch, setIsInstantResearch, isInstantUnits, setIsInstantUnits } = useGame();
     const [unresearchId, setUnresearchId] = useState(''); // New state for unresearch
-    const [favorAmount, setFavorAmount] = useState(0); // New state for favor cheat
+    const [favorAmount, setFavorAmount] = useState(0); // #comment Re-added favor cheat state
     const [farmLevels, SetFarmLevel] = useState(0);
     
     
@@ -103,7 +103,7 @@ const AdminCheatMenu = ({ onCheat, onClose, InstantBuildActive}) => {
                             ))}
                         </select>
                     </div>
-                    {/* New Cheat: Add Favor */}
+                    {/* #comment Re-added favor cheat option */}
                     <div className="flex justify-between items-center">
                         <label htmlFor="addFavor" className="text-white">Add Favor:</label>
                         <input
