@@ -1,7 +1,7 @@
 // src/hooks/useCityState.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, onSnapshot, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'; 
+import { doc, onSnapshot, setDoc, serverTimestamp} from 'firebase/firestore'; 
 import { db } from '../firebase/config';
 import buildingConfig from '../gameData/buildings.json';
 import unitConfig from '../gameData/units.json';

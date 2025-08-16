@@ -36,9 +36,26 @@
 .city-slot {
     @apply w-6 h-6 rounded-full m-1 cursor-pointer relative transition-transform duration-150;
 }
+
+.city-sprite {
+    @apply absolute w-12 h-10; /* 48px width, 40px height */
+    bottom: 6px; /* Adjust vertical position */
+    left: 50%;
+    transform: translateX(-50%);
+    background-repeat: no-repeat;
+    pointer-events: none; /* Make sure it doesn't interfere with clicks */
+    z-index: 10;
+}
+
+
 .city-slot:hover {
     @apply scale-125 ring-2 ring-white z-20;
 }
+.city-slot:hover .city-sprite {
+    @apply scale-110;
+    filter: drop-shadow(0 0 5px white);
+}
+
 .city-slot:hover .map-object-tooltip {
     @apply visible opacity-100;
 }
@@ -46,19 +63,19 @@
     @apply bg-gray-500 border border-dashed border-gray-400;
 }
 .my-city {
-    @apply bg-yellow-400 border-2 border-yellow-200;
+    @apply bg-transparent border-2 border-yellow-200;
 }
 .alliance-city { /* Your own alliance */
-    @apply bg-blue-500 border-2 border-blue-300;
+    @apply bg-transparent border-2 border-blue-300;
 }
 .ally-city { /* Allied alliances */
-    @apply bg-green-500 border-2 border-green-300;
+    @apply bg-transparent border-2 border-green-300;
 }
 .enemy-city {
-    @apply bg-red-500 border-2 border-red-300;
+    @apply bg-transparent border-2 border-red-300;
 }
 .neutral-city {
-    @apply bg-amber-700 border-2 border-amber-500;
+    @apply bg-transparent border-2 border-amber-500;
 }
 .dummy-city-plot {
     @apply bg-purple-500 border-2 border-purple-300;

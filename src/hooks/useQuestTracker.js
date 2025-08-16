@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext'; // Import useGame
 import allQuests from '../gameData/quests.json';
 import { getNationalUnitReward, getGenericUnitType } from '../utils/nationality';
-import unitConfig from '../gameData/units.json';
 
 // #comment get warehouse capacity based on its level
 const getWarehouseCapacity = (level) => {

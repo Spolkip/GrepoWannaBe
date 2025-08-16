@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { db } from '../../firebase/config';
-import { collection, getDocs, doc, getDoc, collectionGroup, query, where } from 'firebase/firestore';
+import { collection, getDocs, collectionGroup, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import './Leaderboard.css';

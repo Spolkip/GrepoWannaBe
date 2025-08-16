@@ -37,7 +37,8 @@ const MapGrid = ({ mapGrid, worldState, pan, zoom, viewportSize, onCitySlotClick
             let tileContent;
             switch (tile.type) {
                 case 'city_slot':
-                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} gameSettings={gameSettings} cityPoints={cityPoints} scoutedCities={scoutedCities} />;
+                    const island = worldState.islands.find(isl => isl.id === tile.data.islandId);
+                    tileContent = <CitySlotTile slotData={tile.data} onClick={onCitySlotClick} isPlacingDummyCity={isPlacingDummyCity} playerAlliance={playerAlliance} gameSettings={gameSettings} cityPoints={cityPoints} scoutedCities={scoutedCities} islandCenterX={island ? island.x : 0} />;
                     break;
                 case 'village':
                     tileContent = <FarmingVillageTile villageData={tile.data} onClick={onVillageClick} conqueredVillages={conqueredVillages} gameSettings={gameSettings} />;

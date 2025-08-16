@@ -1,3 +1,4 @@
+// src/components/map/Tiles.js
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import godTownImage from '../../images/god-town.png';
@@ -5,7 +6,7 @@ import unitConfig from '../../gameData/units.json';
 import allianceWonders from '../../gameData/alliance_wonders.json'; // #comment Import wonder data
 
 const images = {};
-const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+const imageContext = require.context('../../images', true, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     images[key] = imageContext(item);
@@ -26,10 +27,12 @@ const _LandTile = ({ gameSettings = defaultSettings }) => {
     return <div className={`w-full h-full ${bgClass} ${borderClass}`} />;
 };
 
-const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings, cityPoints, scoutedCities }) => {
+const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, gameSettings = defaultSettings, cityPoints, scoutedCities, islandCenterX }) => {
     const { currentUser } = useAuth();
     let slotClass = 'empty-slot';
     let tooltipText = `Empty Plot (${slotData.x}, ${slotData.y})`;
+    let citySpriteStyle = {};
+    let hasCitySprite = false;
 
     const formatUnitsForTooltip = (units) => {
         if (!units || Object.keys(units).length === 0) return '';
@@ -52,9 +55,10 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
     };
 
     if (slotData.ownerId) {
+        hasCitySprite = true;
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
-        const points = cityPoints[slotData.id] ? cityPoints[slotData.id].toLocaleString() : '...';
+        const points = cityPoints[slotData.id] ? cityPoints[slotData.id] : 0;
 
         let troopsHTML = '';
         if (slotData.ownerId === currentUser.uid) {
@@ -62,6 +66,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             troopsHTML = formatUnitsForTooltip(slotData.units);
         } else if (slotData.ownerId === 'ghost') {
             slotClass = 'ghost-city';
+            hasCitySprite = false; // Ghosts don't get a city sprite
             troopsHTML = formatUnitsForTooltip(slotData.units);
         } else if (scoutedCities && scoutedCities[slotData.id]) {
             troopsHTML = formatUnitsForTooltip(scoutedCities[slotData.id]);
@@ -71,7 +76,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             <div class="tooltip-info-section">
                 <b>${slotData.cityName}</b><br>
                 Owner: ${ownerName}<br>
-                Points: ${points}<br>
+                Points: ${points.toLocaleString()}<br>
                 Alliance: ${slotData.allianceName || 'None'}
             </div>
         `;
@@ -94,9 +99,31 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
                 }
             } else if (slotData.ownerId.startsWith('dummy_')) {
                 slotClass = 'dummy-city-plot';
+                 hasCitySprite = false;
             } else {
                 slotClass = 'neutral-city';
             }
+        }
+
+        if (gameSettings.showVisuals && hasCitySprite) {
+            const isLeftSide = slotData.x < islandCenterX;
+        
+            const backgroundPositionX = isLeftSide ? '0%' : '100%';
+            let backgroundPositionY;
+        
+            if (points < 2000) {
+                backgroundPositionY = '0%';
+            } else if (points <= 10000) {
+                backgroundPositionY = '50%';
+            } else {
+                backgroundPositionY = '100%';
+            }
+            
+            citySpriteStyle = {
+                backgroundImage: `url(${images['city_modal.png']})`,
+                backgroundSize: '200% 300%',
+                backgroundPosition: `${backgroundPositionX} ${backgroundPositionY}`,
+            };
         }
 
     } else if (isPlacingDummyCity) {
@@ -113,6 +140,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
     return (
         <div className={`w-full h-full ${backgroundClass} ${borderClass} flex justify-center items-center`}>
             <div onClick={(e) => onClick(e, slotData)} className={`city-slot ${slotClass}`}>
+                 {gameSettings.showVisuals && hasCitySprite && <div className="city-sprite" style={citySpriteStyle}></div>}
                 <span className="map-object-tooltip" dangerouslySetInnerHTML={{ __html: tooltipText }}></span>
             </div>
         </div>
@@ -177,7 +205,7 @@ const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
 const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => {
     let townClass = 'god-town-slot';
     let tooltipText = `God Town: ${townData.name}`;
-    let image = townData.stage === 'ruins' ? images['ruin_new.png'] : godTownImage;
+    let image = townData.stage === 'ruins' ? images['ruins/ruin_new.png'] : godTownImage;
 
     if (townData.stage === 'ruins') {
         townClass += ' ruins';
