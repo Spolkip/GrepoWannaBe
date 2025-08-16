@@ -29,11 +29,11 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
     const landUnits = useMemo(() => getTrainableUnits(cityGameState.playerInfo.nation), [cityGameState.playerInfo.nation]);
 
     const [selectedUnitId, setSelectedUnitId] = useState(landUnits[0] || null);
-    const [trainAmount, setTrainAmount] = useState(1);
+    const [trainAmount, setTrainAmount] = useState('');
     const [fireAmounts, setFireAmounts] = useState({});
     
     useEffect(() => {
-        setTrainAmount(1);
+        setTrainAmount('');
     }, [selectedUnitId]);
     
     const cityUnits = cityGameState?.units || {};
@@ -48,11 +48,12 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
     const selectedUnit = selectedUnitId ? unitConfig[selectedUnitId] : null;
     const barracksUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.type === 'land' && !unitConfig[item.unitId]?.mythical);
     
+    const numericTrainAmount = parseInt(trainAmount, 10) || 0;
     const totalCost = {
-        wood: selectedUnit ? selectedUnit.cost.wood * trainAmount : 0,
-        stone: selectedUnit ? selectedUnit.cost.stone * trainAmount : 0,
-        silver: selectedUnit ? selectedUnit.cost.silver * trainAmount : 0,
-        population: selectedUnit ? selectedUnit.cost.population * trainAmount : 0,
+        wood: selectedUnit ? selectedUnit.cost.wood * numericTrainAmount : 0,
+        stone: selectedUnit ? selectedUnit.cost.stone * numericTrainAmount : 0,
+        silver: selectedUnit ? selectedUnit.cost.silver * numericTrainAmount : 0,
+        population: selectedUnit ? selectedUnit.cost.population * numericTrainAmount : 0,
     };
     
     const canAfford = resources.wood >= totalCost.wood &&
@@ -61,7 +62,8 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                     availablePopulation >= totalCost.population;
 
     const handleTrain = () => {
-        if (trainAmount > 0) onTrain(selectedUnitId, trainAmount);
+        const amount = parseInt(trainAmount, 10) || 0;
+        if (amount > 0) onTrain(selectedUnitId, amount);
     };
 
     const handleFireAmountChange = (unitId, value) => {
@@ -135,13 +137,19 @@ const BarracksMenu = ({ resources, availablePopulation, onTrain, onFire, onClose
                                 <input
                                     type="number"
                                     value={trainAmount}
-                                    onChange={(e) => setTrainAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || (parseInt(val) >= 0 && !val.includes('.'))) {
+                                            setTrainAmount(val);
+                                        }
+                                    }}
                                     className="bg-gray-800 text-white rounded p-2 w-24"
+                                    placeholder="0"
                                 />
                                 <button
                                     onClick={handleTrain}
-                                    disabled={!canAfford || (barracksUnitQueue || []).length >= 5}
-                                    className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (barracksUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                    disabled={!canAfford || numericTrainAmount === 0 || (barracksUnitQueue || []).length >= 5}
+                                    className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && numericTrainAmount > 0 && (barracksUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                                 >
                                     {(barracksUnitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
                                 </button>

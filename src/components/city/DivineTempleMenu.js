@@ -28,10 +28,10 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
     // Filter units to only show mythical units associated with the worshipped god
     const mythicUnits = Object.keys(unitConfig).filter(id => unitConfig[id].mythical && unitConfig[id].god === worshippedGod);
     const [selectedUnitId, setSelectedUnitId] = useState(mythicUnits[0] || null);
-    const [trainAmount, setTrainAmount] = useState(1);
+    const [trainAmount, setTrainAmount] = useState('');
     
     useEffect(() => {
-        setTrainAmount(1);
+        setTrainAmount('');
     }, [selectedUnitId]);
     
     useEffect(() => {
@@ -51,12 +51,13 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
     const cityUnits = cityGameState?.units || {};
     const divineTempleUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.mythical);
     
+    const numericTrainAmount = parseInt(trainAmount, 10) || 0;
     const totalCost = {
-        wood: selectedUnit ? selectedUnit.cost.wood * trainAmount : 0,
-        stone: selectedUnit ? selectedUnit.cost.stone * trainAmount : 0,
-        silver: selectedUnit ? selectedUnit.cost.silver * trainAmount : 0,
-        population: selectedUnit ? selectedUnit.cost.population * trainAmount : 0,
-        favor: selectedUnit ? selectedUnit.cost.favor * trainAmount : 0,
+        wood: selectedUnit ? selectedUnit.cost.wood * numericTrainAmount : 0,
+        stone: selectedUnit ? selectedUnit.cost.stone * numericTrainAmount : 0,
+        silver: selectedUnit ? selectedUnit.cost.silver * numericTrainAmount : 0,
+        population: selectedUnit ? selectedUnit.cost.population * numericTrainAmount : 0,
+        favor: selectedUnit ? selectedUnit.cost.favor * numericTrainAmount : 0,
     };
     
     const currentFavor = cityGameState.worship?.[worshippedGod] || 0;
@@ -68,7 +69,8 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
                     currentFavor >= totalCost.favor;
 
     const handleTrain = () => {
-        if (trainAmount > 0) onTrain(selectedUnitId, trainAmount);
+        const amount = parseInt(trainAmount, 10) || 0;
+        if (amount > 0) onTrain(selectedUnitId, amount);
     };
 
     return (
@@ -120,13 +122,19 @@ const DivineTempleMenu = ({ resources, availablePopulation, onTrain, onClose, ci
                             <input
                                 type="number"
                                 value={trainAmount}
-                                onChange={(e) => setTrainAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || (parseInt(val) >= 0 && !val.includes('.'))) {
+                                        setTrainAmount(val);
+                                    }
+                                }}
                                 className="bg-gray-800 text-white rounded p-2 w-24"
+                                placeholder="0"
                             />
                             <button
                                 onClick={handleTrain}
-                                disabled={!canAfford || (divineTempleUnitQueue || []).length >= 5}
-                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (divineTempleUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                disabled={!canAfford || numericTrainAmount === 0 || (divineTempleUnitQueue || []).length >= 5}
+                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && numericTrainAmount > 0 && (divineTempleUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                             >
                                 {(divineTempleUnitQueue || []).length >= 5 ? 'Queue Full' : 'Train'}
                             </button>

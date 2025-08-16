@@ -26,10 +26,10 @@ const UnitStats = ({ unit }) => (
 const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGameState, unitQueue, onCancelTrain }) => {
     const navalUnits = useMemo(() => getTrainableNavalUnits(cityGameState.playerInfo.nation), [cityGameState.playerInfo.nation]);
     const [selectedUnitId, setSelectedUnitId] = useState(navalUnits[0] || null);
-    const [trainAmount, setTrainAmount] = useState(1);
+    const [trainAmount, setTrainAmount] = useState('');
     
     useEffect(() => {
-        setTrainAmount(1);
+        setTrainAmount('');
     }, [selectedUnitId]);
 
     if (!selectedUnitId) {
@@ -40,11 +40,12 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
     const cityUnits = cityGameState?.units || {};
     const navalUnitQueue = (unitQueue || []).filter(item => unitConfig[item.unitId]?.type === 'naval');
 
+    const numericTrainAmount = parseInt(trainAmount, 10) || 0;
     const totalCost = {
-        wood: selectedUnit.cost.wood * trainAmount,
-        stone: selectedUnit.cost.stone * trainAmount,
-        silver: selectedUnit.cost.silver * trainAmount,
-        population: selectedUnit.cost.population * trainAmount,
+        wood: selectedUnit.cost.wood * numericTrainAmount,
+        stone: selectedUnit.cost.stone * numericTrainAmount,
+        silver: selectedUnit.cost.silver * numericTrainAmount,
+        population: selectedUnit.cost.population * numericTrainAmount,
     };
 
     const canAfford = resources.wood >= totalCost.wood &&
@@ -53,7 +54,8 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
                     availablePopulation >= totalCost.population;
 
     const handleTrain = () => {
-        if(trainAmount > 0) onTrain(selectedUnitId, trainAmount);
+        const amount = parseInt(trainAmount, 10) || 0;
+        if(amount > 0) onTrain(selectedUnitId, amount);
     };
 
     return (
@@ -105,13 +107,19 @@ const ShipyardMenu = ({ resources, availablePopulation, onTrain, onClose, cityGa
                             <input
                                 type="number"
                                 value={trainAmount}
-                                onChange={(e) => setTrainAmount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || (parseInt(val) >= 0 && !val.includes('.'))) {
+                                        setTrainAmount(val);
+                                    }
+                                }}
                                 className="bg-gray-800 text-white rounded p-2 w-24"
+                                placeholder="0"
                             />
                             <button
                                 onClick={handleTrain}
-                                disabled={!canAfford || (navalUnitQueue || []).length >= 5}
-                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && (navalUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
+                                disabled={!canAfford || numericTrainAmount === 0 || (navalUnitQueue || []).length >= 5}
+                                className={`py-2 px-6 text-lg rounded-lg btn ${(canAfford && numericTrainAmount > 0 && (navalUnitQueue || []).length < 5) ? 'btn-confirm' : 'btn-disabled'}`}
                             >
                                 {(navalUnitQueue || []).length >= 5 ? 'Queue Full' : 'Build'}
                             </button>
