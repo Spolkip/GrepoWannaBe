@@ -37,6 +37,23 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
             onClose();
         }
     };
+
+    // #comment New handler to withdraw all troops from a specific city
+    const handleWithdrawCity = (originCityId, units) => {
+        const amounts = { [originCityId]: { ...units } };
+        onWithdrawTroops(city, amounts);
+        onClose();
+    };
+
+    // #comment New handler to withdraw all troops from all owned cities
+    const handleWithdrawAll = () => {
+        const allAmounts = {};
+        myReinforcements.forEach(([originCityId, reinfData]) => {
+            allAmounts[originCityId] = { ...reinfData.units };
+        });
+        onWithdrawTroops(city, allAmounts);
+        onClose();
+    };
     
     // #comment Filter reinforcements to only show those owned by the current user
     const myReinforcements = Object.entries(city.reinforcements || {})
@@ -53,7 +70,10 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
                 <div className="flex-grow overflow-y-auto pr-2 space-y-4">
                     {myReinforcements.length > 0 ? myReinforcements.map(([originCityId, reinfData]) => (
                         <div key={originCityId} className="bg-gray-700 p-3 rounded-lg">
-                            <h4 className="font-bold text-yellow-400 mb-2">From: {reinfData.originCityName}</h4>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-bold text-yellow-400">From: {reinfData.originCityName}</h4>
+                                <button onClick={() => handleWithdrawCity(originCityId, reinfData.units)} className="btn btn-primary text-xs px-2 py-1">Withdraw All From City</button>
+                            </div>
                             <div className="space-y-2">
                                 {Object.entries(reinfData.units || {}).map(([unitId, count]) => {
                                     const unit = unitConfig[unitId];
@@ -66,15 +86,18 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
                                                     <p className="text-sm text-gray-400">Count: {count}</p>
                                                 </div>
                                             </div>
-                                            <input
-                                                type="number"
-                                                value={withdrawAmounts[originCityId]?.[unitId] || ''}
-                                                onChange={(e) => handleAmountChange(originCityId, unitId, e.target.value)}
-                                                className="bg-gray-800 text-white rounded p-2 w-24 text-center"
-                                                placeholder="Amount"
-                                                max={count}
-                                                min="0"
-                                            />
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={withdrawAmounts[originCityId]?.[unitId] || ''}
+                                                    onChange={(e) => handleAmountChange(originCityId, unitId, e.target.value)}
+                                                    className="bg-gray-800 text-white rounded p-2 w-24 text-center"
+                                                    placeholder="Amount"
+                                                    max={count}
+                                                    min="0"
+                                                />
+                                                <button onClick={() => handleAmountChange(originCityId, unitId, count)} className="btn btn-primary text-xs px-2 py-1">Max</button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -85,7 +108,10 @@ const WithdrawModal = ({ city, onClose, onWithdrawTroops }) => {
                     )}
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-600 flex justify-end">
+                <div className="mt-4 pt-4 border-t border-gray-600 flex justify-end gap-4">
+                    <button onClick={handleWithdrawAll} className="btn btn-primary py-2 px-6">
+                        Withdraw All Troops
+                    </button>
                     <button onClick={handleWithdraw} className="btn btn-confirm py-2 px-6">
                         Withdraw Selected Troops
                     </button>
