@@ -1,5 +1,6 @@
 // src/utils/combat.js
 import unitConfig from '../gameData/units.json';
+import heroesConfig from '../gameData/heroes.json';
 
 /**
  * Resolves a battle between attacking and defending units of a specific type.
@@ -13,7 +14,7 @@ import unitConfig from '../gameData/units.json';
  * @param {string|null} defenderSupport - The unit ID chosen as support by the defender.
  * @returns {object} Battle results including attackerWon, attackerLosses, defenderLosses.
  */
-const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) => {
+const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport, attackingHero, defendingHero) => {
     // Check if either side has units of the required type
     const hasAttackingUnits = Object.entries(attackingUnits || {}).some(
         ([unitId, count]) => count > 0 && unitConfig[unitId]?.type === unitType && unitConfig[unitId]?.attack > 0
@@ -32,7 +33,7 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
     }
     
     // If the attacker has no relevant combat units, but the defender does, the attacker loses.
-    if (!hasAttackingUnits) {
+    if (!hasAttackingUnits && !attackingHero) {
         return {
             attackerWon: false,
             attackerLosses: {},
@@ -44,11 +45,13 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
     let currentDefendingUnits = { ...defendingUnits };
 
     // #comment Function to calculate effective power considering counters
-    const calculateEffectivePower = (units, opponentUnits, isAttacker, phalanxUnit, supportUnit) => {
+    const calculateEffectivePower = (units, opponentUnits, isAttacker, phalanxUnit, supportUnit, heroId) => {
         let totalPower = 0;
         let phalanxPower = 0;
         let supportPower = 0;
         let otherPower = 0;
+
+        const hero = heroId ? heroesConfig[heroId] : null;
 
         for (const unitId in units) {
             const unitCount = units[unitId] || 0;
@@ -59,6 +62,10 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
 
             let attack = unitInfo.attack;
             let defense = unitInfo.defense;
+
+            if (hero && hero.passive.effect.subtype === 'land_attack' && unitInfo.type === 'land') {
+                attack *= (1 + hero.passive.effect.value);
+            }
 
             // Apply counter bonuses
             for (const opponentUnitId in opponentUnits) {
@@ -90,8 +97,8 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
         return { totalPower, phalanxPower, supportPower, otherPower };
     };
 
-    const attackerStats = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, attackerPhalanx, attackerSupport);
-    const defenderStats = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, defenderPhalanx, defenderSupport);
+    const attackerStats = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, attackerPhalanx, attackerSupport, attackingHero);
+    const defenderStats = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, defenderPhalanx, defenderSupport, defendingHero);
 
     // Simplified combat rounds (can be expanded for more complexity)
     // Phalanx units engage first
@@ -173,8 +180,8 @@ const resolveBattle = (attackingUnits, defendingUnits, unitType, attackerPhalanx
     }
 
     // Recalculate power with remaining units to determine winner
-    const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, null, null).totalPower;
-    const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, null, null).totalPower;
+    const finalAttackerPower = calculateEffectivePower(currentAttackingUnits, currentDefendingUnits, true, null, null, attackingHero).totalPower;
+    const finalDefenderPower = calculateEffectivePower(currentDefendingUnits, currentAttackingUnits, false, null, null, defendingHero).totalPower;
     
     // Attacker wins on a tie (e.g., 0 vs 0 power)
     return {
@@ -212,7 +219,7 @@ export function getVillageTroops(villageData) {
     }
     return troops;
 }
-export function resolveCombat(attackingUnits, defendingUnits, defendingResources, isNavalAttack, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport) {
+export function resolveCombat(attackingUnits, defendingUnits, defendingResources, isNavalAttack, attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport, attackingHero, defendingHero) {
     let totalAttackerLosses = {};
     let totalDefenderLosses = {};
     let attackerWon = false;
@@ -232,7 +239,7 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
                 survivingAttackers[unitId] = Math.max(0, (survivingAttackers[unitId] || 0) - totalAttackerLosses[unitId]);
             }
 
-            const landBattle = resolveBattle(survivingAttackers, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
+            const landBattle = resolveBattle(survivingAttackers, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport, attackingHero, defendingHero);
             for (const unitId in landBattle.attackerLosses) {
                 totalAttackerLosses[unitId] = (totalAttackerLosses[unitId] || 0) + landBattle.attackerLosses[unitId];
             }
@@ -256,7 +263,7 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
             }
         }
     } else {
-        const landBattle = resolveBattle(attackingUnits, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport);
+        const landBattle = resolveBattle(attackingUnits, defendingUnits, 'land', attackerPhalanx, attackerSupport, defenderPhalanx, defenderSupport, attackingHero, defendingHero);
         totalAttackerLosses = landBattle.attackerLosses;
         totalDefenderLosses = landBattle.defenderLosses;
         attackerWon = landBattle.attackerWon;

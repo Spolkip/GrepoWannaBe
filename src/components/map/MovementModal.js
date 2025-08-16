@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { calculateTravelTime, formatTravelTime } from '../../utils/travel';
 import unitConfig from '../../gameData/units.json';
+import heroesConfig from '../../gameData/heroes.json';
 import { useGame } from '../../contexts/GameContext';
 import './MovementModal.css';
 
@@ -15,6 +16,7 @@ const images = {};
 const imageContexts = [
     require.context('../../images', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/resources', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/heroes', false, /\.(png|jpe?g|svg)$/),
 ];
 
 imageContexts.forEach(context => {
@@ -72,8 +74,10 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
 
     const currentUnits = initialPlayerUnits || gameState?.units || {};
     const currentResources = initialPlayerResources || gameState?.resources || {};
+    const currentHeroes = gameState?.heroes || {};
 
     const [selectedUnits, setSelectedUnits] = useState({});
+    const [selectedHero, setSelectedHero] = useState(null);
     const [selectedResources, setSelectedResources] = useState({ wood: 0, stone: 0, silver: 0 });
     const [attackLayers, setAttackLayers] = useState({
         front: '',
@@ -189,8 +193,8 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
         let totalUnitsSelected = Object.values(selectedUnits).reduce((sum, count) => sum + count, 0);
         let totalResourcesSelected = Object.values(selectedResources).reduce((sum, amount) => sum + amount, 0);
 
-        if ((mode === 'attack' || mode === 'reinforce') && totalUnitsSelected === 0) {
-            setMessage("Please select at least one unit to send for attack or reinforcement.");
+        if ((mode === 'attack' || mode === 'reinforce') && totalUnitsSelected === 0 && !selectedHero) {
+            setMessage("Please select at least one unit or a hero to send.");
             return;
         }
         if (mode === 'scout') {
@@ -250,6 +254,7 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
             mode,
             targetCity,
             units: mode === 'scout' || mode === 'trade' ? {} : selectedUnits,
+            hero: selectedHero,
             resources: resourcesToSend,
             travelTime: finalTravelTime,
             attackFormation: mode === 'attack' ? attackLayers : {}
@@ -280,6 +285,8 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
             currentCount: currentUnits[unitId] || 0
         }));
 
+        const availableHeroes = Object.keys(currentHeroes).filter(heroId => currentHeroes[heroId].active && currentHeroes[heroId].cityId === gameState.id);
+
         const selectedLandUnitsForFormation = Object.keys(selectedUnits).filter(unitId => 
             selectedUnits[unitId] > 0 && unitConfig[unitId]?.type === 'land'
         );
@@ -296,6 +303,23 @@ const MovementModal = ({ mode, targetCity, playerCity, playerUnits: initialPlaye
         if (mode === 'attack' || mode === 'reinforce') {
             return (
                 <div className="space-y-4">
+                    {availableHeroes.length > 0 && (
+                        <div className="unit-selection-section">
+                            <h4 className="unit-selection-header">Heroes</h4>
+                            <div className="unit-grid">
+                                {availableHeroes.map(heroId => {
+                                    const hero = heroesConfig[heroId];
+                                    return (
+                                        <div key={heroId} className="unit-item">
+                                            <div className={`unit-image-container ${selectedHero === heroId ? 'border-2 border-yellow-400' : ''}`} title={hero.name} onClick={() => setSelectedHero(prev => prev === heroId ? null : heroId)}>
+                                                <img src={images[hero.image]} alt={hero.name} className="unit-image" />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
                     {landUnitsList.length > 0 && (
                         <div className="unit-selection-section">
                             <h4 className="unit-selection-header">Land Units</h4>

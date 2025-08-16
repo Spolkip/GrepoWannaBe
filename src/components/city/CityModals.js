@@ -54,6 +54,8 @@ const CityModals = ({
   handleSpawnGodTown,
   onRecruitHero,
   onActivateSkill,
+  onAssignHero,
+  onUnassignHero,
 }) => {
   const {
     selectedBuildingId,
@@ -212,6 +214,8 @@ const CityModals = ({
             onRecruitHero={onRecruitHero}
             onActivateSkill={onActivateSkill}
             onClose={() => closeModal('isHeroesAltarOpen')}
+            onAssignHero={onAssignHero}
+            onUnassignHero={onUnassignHero}
         />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (

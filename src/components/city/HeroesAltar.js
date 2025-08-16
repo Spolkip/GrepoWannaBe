@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import heroesConfig from '../../gameData/heroes.json';
 import './HeroesAltar.css';
+import { useGame } from '../../contexts/GameContext';
 
-const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose }) => {
+const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, onAssignHero, onUnassignHero }) => {
     const [selectedHeroId, setSelectedHeroId] = useState(Object.keys(heroesConfig)[0]);
     const { heroes = {} } = cityGameState;
+    const { activeCityId } = useGame();
 
     // #comment Handles recruiting a hero, stopping the event from bubbling up.
     const handleRecruit = (e, heroId) => {
@@ -19,7 +21,18 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose })
         onActivateSkill(heroId, skill);
     };
 
+    const handleAssign = (e, heroId) => {
+        e.stopPropagation();
+        onAssignHero(heroId);
+    };
+
+    const handleUnassign = (e, heroId) => {
+        e.stopPropagation();
+        onUnassignHero(heroId);
+    };
+
     const selectedHero = heroesConfig[selectedHeroId];
+    const isHeroInThisCity = heroes[selectedHeroId]?.cityId === activeCityId;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
@@ -49,6 +62,16 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose })
                                         {!heroes[selectedHeroId] && (
                                             <button className="recruit-btn" onClick={(e) => handleRecruit(e, selectedHeroId)}>
                                                 Recruit ({selectedHero.cost.silver} Silver, {selectedHero.cost.favor} Favor)
+                                            </button>
+                                        )}
+                                        {heroes[selectedHeroId] && !isHeroInThisCity && (
+                                            <button className="recruit-btn" onClick={(e) => handleAssign(e, selectedHeroId)}>
+                                                Assign to this City
+                                            </button>
+                                        )}
+                                        {heroes[selectedHeroId] && isHeroInThisCity && (
+                                            <button className="recruit-btn" onClick={(e) => handleUnassign(e, selectedHeroId)}>
+                                                Unassign from City
                                             </button>
                                         )}
                                     </div>

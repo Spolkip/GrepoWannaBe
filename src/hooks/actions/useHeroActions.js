@@ -26,7 +26,7 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
 
                 const newResources = { ...cityData.resources, silver: cityData.resources.silver - hero.cost.silver };
                 const newWorship = { ...cityData.worship, [cityData.god]: cityData.worship[cityData.god] - hero.cost.favor };
-                const newHeroes = { ...cityData.heroes, [heroId]: { active: true } };
+                const newHeroes = { ...cityData.heroes, [heroId]: { active: true, cityId: null } };
 
                 transaction.update(cityDocRef, { resources: newResources, worship: newWorship, heroes: newHeroes });
             });
@@ -79,5 +79,49 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
         }
     };
 
-    return { onRecruitHero, onActivateSkill };
+    const onAssignHero = async (heroId) => {
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) throw new Error("City data not found.");
+
+                const cityData = cityDoc.data();
+                const heroes = cityData.heroes || {};
+
+                // Check if another hero is already in this city
+                for (const hId in heroes) {
+                    if (heroes[hId].cityId === activeCityId) {
+                        throw new Error("Another hero is already stationed in this city.");
+                    }
+                }
+                
+                const newHeroes = { ...heroes, [heroId]: { ...heroes[heroId], cityId: activeCityId } };
+                transaction.update(cityDocRef, { heroes: newHeroes });
+            });
+            setMessage(`${heroesConfig[heroId].name} is now stationed in this city.`);
+        } catch (error) {
+            setMessage(`Failed to assign hero: ${error.message}`);
+        }
+    };
+
+    const onUnassignHero = async (heroId) => {
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+        try {
+            await runTransaction(db, async (transaction) => {
+                const cityDoc = await transaction.get(cityDocRef);
+                if (!cityDoc.exists()) throw new Error("City data not found.");
+                const cityData = cityDoc.data();
+                const heroes = cityData.heroes || {};
+                const newHeroes = { ...heroes, [heroId]: { ...heroes[heroId], cityId: null } };
+                transaction.update(cityDocRef, { heroes: newHeroes });
+            });
+            setMessage(`${heroesConfig[heroId].name} is no longer stationed in this city.`);
+        } catch (error) {
+            setMessage(`Failed to unassign hero: ${error.message}`);
+        }
+    };
+
+    return { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero };
 };

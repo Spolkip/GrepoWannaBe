@@ -60,7 +60,7 @@ const CityView = ({
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
     });
 
-    const { onRecruitHero, onActivateSkill } = useHeroActions(cityGameState, saveGameState, setMessage);
+    const { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero } = useHeroActions(cityGameState, saveGameState, setMessage);
 
     const { availablePopulation, happiness } = useMemo(() => {
         if (!cityGameState) return { availablePopulation: 0, happiness: 0 };
@@ -178,6 +178,8 @@ const CityView = ({
                 handleSpawnGodTown={actions.handleSpawnGodTown}
                 onRecruitHero={onRecruitHero}
                 onActivateSkill={onActivateSkill}
+                onAssignHero={onAssignHero}
+                onUnassignHero={onUnassignHero}
             />
             {cityModalState.isDivinePowersOpen && (
                 <DivinePowers

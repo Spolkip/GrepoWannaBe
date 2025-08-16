@@ -116,7 +116,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         // Apply passive hero buffs
         if (cityGameState?.heroes) {
             for (const heroId in cityGameState.heroes) {
-                if (cityGameState.heroes[heroId].active) {
+                if (cityGameState.heroes[heroId].cityId === activeCityId) {
                     const hero = heroesConfig[heroId];
                     if (hero.passive.effect.subtype === 'silver_production') {
                         rates.silver *= (1 + hero.passive.effect.value);
@@ -130,7 +130,7 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         rates.silver = Math.floor(rates.silver * happinessBonus);
 
         return rates;
-    }, [calculateHappiness, cityGameState]);
+    }, [calculateHappiness, cityGameState, activeCityId]);
 
     // #comment Adjusted warehouse capacity for better resource balance.
     const getWarehouseCapacity = useCallback((level) => {
