@@ -9,6 +9,7 @@ import './Leaderboard.css';
 let leaderboardCache = {
     playerLeaderboard: null,
     allianceLeaderboard: null,
+    fightersLeaderboard: null,
     lastFetchTimestamp: 0,
 };
 
@@ -17,6 +18,7 @@ export const clearLeaderboardCache = () => {
     leaderboardCache = {
         playerLeaderboard: null,
         allianceLeaderboard: null,
+        fightersLeaderboard: null,
         lastFetchTimestamp: 0,
     };
 };
@@ -25,6 +27,7 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
     const { worldId, worldState } = useGame();
     const [playerLeaderboard, setPlayerLeaderboard] = useState([]);
     const [allianceLeaderboard, setAllianceLeaderboard] = useState([]);
+    const [fightersLeaderboard, setFightersLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('players');
 
@@ -73,6 +76,7 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                     username: userData.username,
                     alliance: gameData.alliance || 'No Alliance',
                     points: gameData.totalPoints || 0,
+                    battlePoints: gameData.battlePoints || 0,
                 });
             }
         }
@@ -89,6 +93,10 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
             const playersList = Array.from(allPlayerData.values());
             playersList.sort((a, b) => b.points - a.points);
             
+            // Generate fighters leaderboard
+            const fightersList = Array.from(allPlayerData.values());
+            fightersList.sort((a, b) => b.battlePoints - a.battlePoints);
+
             // Generate alliance leaderboard
             const alliancesData = [];
             if (worldId) {
@@ -123,12 +131,14 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
             
             // Update component state
             setPlayerLeaderboard(playersList);
+            setFightersLeaderboard(fightersList);
             setAllianceLeaderboard(alliancesData);
 
             // Update cache
             leaderboardCache = {
                 playerLeaderboard: playersList,
                 allianceLeaderboard: alliancesData,
+                fightersLeaderboard: fightersList,
                 lastFetchTimestamp: Date.now(),
             };
             
@@ -145,6 +155,7 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
             // #comment Use cached data.
             setPlayerLeaderboard(leaderboardCache.playerLeaderboard);
             setAllianceLeaderboard(leaderboardCache.allianceLeaderboard);
+            setFightersLeaderboard(leaderboardCache.fightersLeaderboard);
             setLoading(false);
         }
     }, [worldId, fetchAllPlayerData]);
@@ -170,6 +181,33 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                         </td>
                         <td className="text-left">{player.alliance}</td>
                         <td className="text-right">{player.points.toLocaleString()}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+
+    const renderFightersTable = () => (
+        <table className="leaderboard-table">
+            <thead>
+                <tr>
+                    <th className="text-center">Rank</th>
+                    <th className="text-left">Player</th>
+                    <th className="text-left">Alliance</th>
+                    <th className="text-right">Battle Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {fightersLeaderboard.map((player, index) => (
+                    <tr key={player.id}>
+                        <td className="text-center">{index + 1}</td>
+                        <td className="text-left">
+                            <button onClick={() => onOpenProfile(player.id)} className="player-name-btn">
+                                {player.username}
+                            </button>
+                        </td>
+                        <td className="text-left">{player.alliance}</td>
+                        <td className="text-right">{player.battlePoints.toLocaleString()}</td>
                     </tr>
                 ))}
             </tbody>
@@ -205,6 +243,22 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
         </table>
     );
 
+    const renderContent = () => {
+        if (loading) {
+            return <p>Loading leaderboard...</p>;
+        }
+        switch (activeTab) {
+            case 'players':
+                return renderPlayerTable();
+            case 'alliances':
+                return renderAllianceTable();
+            case 'fighters':
+                return renderFightersTable();
+            default:
+                return renderPlayerTable();
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70" onClick={onClose}>
             <div className="leaderboard-container w-full max-w-4xl h-5/6 flex flex-col" onClick={e => e.stopPropagation()}>
@@ -215,13 +269,10 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                 <div className="flex border-b-2 border-yellow-800/50 px-4">
                     <button onClick={() => setActiveTab('players')} className={`py-2 px-4 font-bold ${activeTab === 'players' ? 'text-yellow-700 border-b-2 border-yellow-700' : 'text-yellow-800/70'}`}>Players</button>
                     <button onClick={() => setActiveTab('alliances')} className={`py-2 px-4 font-bold ${activeTab === 'alliances' ? 'text-yellow-700 border-b-2 border-yellow-700' : 'text-yellow-800/70'}`}>Alliances</button>
+                    <button onClick={() => setActiveTab('fighters')} className={`py-2 px-4 font-bold ${activeTab === 'fighters' ? 'text-yellow-700 border-b-2 border-yellow-700' : 'text-yellow-800/70'}`}>Fighters</button>
                 </div>
                 <div className="overflow-y-auto flex-grow p-4">
-                    {loading ? (
-                        <p>Loading leaderboard...</p>
-                    ) : (
-                        activeTab === 'players' ? renderPlayerTable() : renderAllianceTable()
-                    )}
+                    {renderContent()}
                 </div>
             </div>
         </div>
