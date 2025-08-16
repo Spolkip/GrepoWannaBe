@@ -21,6 +21,7 @@ export const useCityModalManager = () => {
         isSpecialBuildingMenuOpen: false,
         isSpecialBuildingPanelOpen: false, // #comment Add state for the new panel
         isHeroesAltarOpen: false,
+        isWorkerPresetPanelOpen: false,
     });
 
     const openModal = (modalKey) => setModalState(prev => ({ ...prev, [modalKey]: true }));

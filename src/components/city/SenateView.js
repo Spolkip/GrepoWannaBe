@@ -78,7 +78,7 @@ const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
 };
 
 
-const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding }) => {
+const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, onOpenWorkerPresets }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
     
     const buildingRows = [
@@ -110,6 +110,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
             <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-600 pb-3 mb-4">
                     <h2 className="text-3xl font-bold font-title text-yellow-300">Senate</h2>
+                    <button onClick={onOpenWorkerPresets} className="btn btn-primary text-sm py-1 px-3">Worker Presets</button>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
                 

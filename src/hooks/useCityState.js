@@ -69,7 +69,8 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
         productionBuildings.forEach(buildingId => {
             if (buildings[buildingId] && buildings[buildingId].workers) {
-                workerCount += buildings[buildingId].workers;
+                // #comment FIX: Ensure workers is treated as a number to prevent NaN propagation.
+                workerCount += Number(buildings[buildingId].workers || 0);
             }
         });
 
@@ -109,9 +110,19 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
             silver: Math.floor(15 * Math.pow(1.15, (buildings.silver_mine?.level || 1) - 1)),
         };
 
-        if (buildings.timber_camp?.workers) rates.wood *= (1 + buildings.timber_camp.workers * 0.1);
-        if (buildings.quarry?.workers) rates.stone *= (1 + buildings.quarry.workers * 0.1);
-        if (buildings.silver_mine?.workers) rates.silver *= (1 + buildings.silver_mine.workers * 0.1);
+        // #comment Safeguard against NaN values from worker counts
+        if (buildings.timber_camp?.workers) {
+            const workerCount = Number(buildings.timber_camp.workers) || 0;
+            rates.wood *= (1 + workerCount * 0.1);
+        }
+        if (buildings.quarry?.workers) {
+            const workerCount = Number(buildings.quarry.workers) || 0;
+            rates.stone *= (1 + workerCount * 0.1);
+        }
+        if (buildings.silver_mine?.workers) {
+            const workerCount = Number(buildings.silver_mine.workers) || 0;
+            rates.silver *= (1 + workerCount * 0.1);
+        }
 
         // Apply passive hero buffs
         if (cityGameState?.heroes) {

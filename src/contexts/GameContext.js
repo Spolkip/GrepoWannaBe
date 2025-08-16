@@ -27,6 +27,11 @@ export const GameProvider = ({ children, worldId }) => {
         showVisuals: true,
         hideReturningReports: false,
         hideCompletedQuestsIcon: false,
+        workerPresets: {
+            timber_camp: 0,
+            quarry: 0,
+            silver_mine: 0,
+        }
     });
     const [isInstantBuild, setIsInstantBuild] = useState(() => {
         return localStorage.getItem("isInstantBuild") === "true" // restore on refresh
