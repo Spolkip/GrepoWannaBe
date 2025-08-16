@@ -4,6 +4,20 @@ import heroesConfig from '../../gameData/heroes.json';
 import './HeroesAltar.css';
 import { useGame } from '../../contexts/GameContext';
 
+const heroImages = {};
+const heroImageContext = require.context('../../images/heroes', false, /\.(png|jpe?g|svg)$/);
+heroImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    heroImages[key] = heroImageContext(item);
+});
+
+const skillImages = {};
+const skillImageContext = require.context('../../images/skills', false, /\.(png|jpe?g|svg)$/);
+skillImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    skillImages[key] = skillImageContext(item);
+});
+
 const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, onAssignHero, onUnassignHero }) => {
     const [selectedHeroId, setSelectedHeroId] = useState(Object.keys(heroesConfig)[0]);
     const { heroes = {} } = cityGameState;
@@ -45,7 +59,7 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                     <div className="heroes-list">
                         {Object.entries(heroesConfig).map(([id, hero]) => (
                             <div key={id} className={`hero-list-item ${selectedHeroId === id ? 'selected' : ''}`} onClick={() => setSelectedHeroId(id)}>
-                                <img src={`/images/heroes/${hero.image}`} alt={hero.name} className="hero-list-avatar" />
+                                <img src={heroImages[hero.image]} alt={hero.name} className="hero-list-avatar" />
                                 <span>{hero.name}</span>
                                 {heroes[id] && <span className="recruited-indicator">✔</span>}
                             </div>
@@ -55,10 +69,16 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                         {selectedHero ? (
                             <div className="hero-details-content">
                                 <div className="hero-main-info">
-                                    <img src={`/images/heroes/${selectedHero.image}`} alt={selectedHero.name} className="hero-details-avatar" />
+                                    <img src={heroImages[selectedHero.image]} alt={selectedHero.name} className="hero-details-avatar" />
                                     <div className="hero-text">
                                         <h4>{selectedHero.name}</h4>
                                         <p>{selectedHero.description}</p>
+                                        {isHeroInThisCity && selectedHero.passive && (
+                                            <div className="passive-skill-info">
+                                                <h5>Passive: {selectedHero.passive.name}</h5>
+                                                <p>{selectedHero.passive.description}</p>
+                                            </div>
+                                        )}
                                         {!heroes[selectedHeroId] && (
                                             <button className="recruit-btn" onClick={(e) => handleRecruit(e, selectedHeroId)}>
                                                 Recruit ({selectedHero.cost.silver} Silver, {selectedHero.cost.favor} Favor)
@@ -79,7 +99,7 @@ const HeroesAltar = ({ cityGameState, onRecruitHero, onActivateSkill, onClose, o
                                 <div className="skills-list">
                                     {selectedHero.skills.map(skill => (
                                         <div key={skill.name} className="skill-card">
-                                            <img src={`/images/skills/${skill.icon}`} alt={skill.name} className="skill-icon" />
+                                            <img src={skillImages[skill.icon]} alt={skill.name} className="skill-icon" />
                                             <div className="skill-info">
                                                 <h5>{skill.name} <span className="skill-type">({skill.type})</span></h5>
                                                 <p>{skill.description}</p>

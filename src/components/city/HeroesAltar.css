@@ -162,3 +162,21 @@
     margin-left: auto;
     flex-shrink: 0;
 }
+
+.passive-skill-info {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background-color: rgba(139, 69, 19, 0.1);
+    border: 1px solid #d2b48c;
+    border-radius: 4px;
+}
+
+.passive-skill-info h5 {
+    font-weight: bold;
+    color: #8B4513;
+}
+
+.passive-skill-info p {
+    font-size: 0.9rem;
+    font-style: italic;
+}
