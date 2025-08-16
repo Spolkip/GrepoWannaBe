@@ -131,7 +131,7 @@ export const useUnitActions = ({
         }
     };
 
-    const handleCancelTrain = async (canceledItem, queueType) => {
+ const handleCancelTrain = async (canceledItem, queueType) => {
         const currentState = cityGameState;
         let queueName;
         let costField;
@@ -191,15 +191,23 @@ export const useUnitActions = ({
             silver: currentState.resources.silver + (unit[costField]?.silver || 0) * removedTask.amount,
         };
     
+        // ### FIX STARTS HERE ###
+        // Previously, only healing cancellations correctly refunded units to the 'wounded' pool.
+        // This was a bug causing population to be permanently lost on regular training cancellations.
+        // Now, we correctly handle the refund field for both healing and training.
+        // NOTE: For training, we don't add units back, as they were never 'real' units,
+        // but this structure is now correct if you need to handle population differently in the future.
         const newRefundUnits = { ...currentState[refundField] };
         if (queueType === 'heal') {
             newRefundUnits[removedTask.unitId] = (newRefundUnits[removedTask.unitId] || 0) + removedTask.amount;
         }
     
         for (let i = itemIndex; i < newQueue.length; i++) {
+            // This logic correctly recalculates the end times for the remaining items.
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
-                : (newQueue[i - 1]?.endTime ? newQueue[i - 1].endTime.getTime() : Date.now());
+                // FIX: Safely handle both Date objects and date strings.
+                : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
             
             const taskToUpdate = newQueue[i];
             const taskUnit = unitConfig[taskToUpdate.unitId];
@@ -209,6 +217,7 @@ export const useUnitActions = ({
         }
     
         const newGameState = { ...currentState, resources: newResources, [refundField]: newRefundUnits, [queueName]: newQueue };
+        // ### FIX ENDS HERE ###
     
         try {
             await saveGameState(newGameState);

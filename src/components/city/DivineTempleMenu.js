@@ -6,7 +6,7 @@ import Modal from '../shared/Modal';
 import { useGame } from '../../contexts/GameContext';
 
 const unitImages = {};
-const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
+const imageContext = require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     unitImages[key] = imageContext(item);

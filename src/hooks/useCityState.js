@@ -438,7 +438,6 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
 
             processSingleQueue('buildQueue', (completed, updates) => {
                 updates.buildings = updates.buildings || { ...currentState.buildings };
-                updates.resources = updates.resources || { ...currentState.resources };
             
                 completed.forEach(task => {
                     if (task.type === 'demolish') {
