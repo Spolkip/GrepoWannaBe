@@ -21,7 +21,7 @@ export const useWorkerActions = ({ cityGameState, saveGameState, getMaxWorkerSlo
         await saveGameState(newGameState);
     };
 
-    // #comment Applies worker presets, prioritizing removals and then adding workers up to the population limit.
+    // #comment Applies worker presets from the global game settings.
     const applyWorkerPresets = async () => {
         const presets = gameSettings.workerPresets;
         if (!presets) {
@@ -81,5 +81,64 @@ export const useWorkerActions = ({ cityGameState, saveGameState, getMaxWorkerSlo
         }
     };
 
-    return { handleAddWorker, handleRemoveWorker, applyWorkerPresets };
+    // #comment Applies a specific worker preset from the Senate view.
+    const applySenateWorkerPreset = async (preset) => {
+        if (!preset || !preset.workers) {
+            setMessage("Invalid preset.");
+            return;
+        }
+        
+        const buildingsToUpdate = ['timber_camp', 'quarry', 'silver_mine'];
+        const maxPopulation = getFarmCapacity(cityGameState.buildings.farm.level);
+        const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units, cityGameState.specialBuilding);
+        let availablePopulation = maxPopulation - usedPopulation;
+
+        const newBuildingsState = JSON.parse(JSON.stringify(cityGameState.buildings));
+        let changesMade = false;
+        let populationNeeded = 0;
+        let populationFreed = 0;
+        
+        // Calculate population changes
+        for (const buildingId of buildingsToUpdate) {
+            const building = newBuildingsState[buildingId];
+            if (!building || building.level === 0) continue;
+            const currentWorkers = building.workers || 0;
+            const maxSlots = getMaxWorkerSlots(building.level);
+            const targetWorkers = Math.min(preset.workers[buildingId] || 0, maxSlots);
+            const diff = targetWorkers - currentWorkers;
+            if (diff > 0) {
+                populationNeeded += diff * 20;
+            } else if (diff < 0) {
+                populationFreed += -diff * 20;
+            }
+        }
+
+        if (populationNeeded > availablePopulation + populationFreed) {
+            setMessage(`Not enough population. Need ${populationNeeded}, but only ${availablePopulation + populationFreed} will be available.`);
+            return;
+        }
+
+        // Apply changes
+        for (const buildingId of buildingsToUpdate) {
+            const building = newBuildingsState[buildingId];
+            if (!building || building.level === 0) continue;
+            const currentWorkers = building.workers || 0;
+            const maxSlots = getMaxWorkerSlots(building.level);
+            const targetWorkers = Math.min(preset.workers[buildingId] || 0, maxSlots);
+            if (targetWorkers !== currentWorkers) {
+                building.workers = targetWorkers;
+                changesMade = true;
+            }
+        }
+
+        if (changesMade) {
+            const newGameState = { ...cityGameState, buildings: newBuildingsState };
+            await saveGameState(newGameState);
+            setMessage("Worker presets applied successfully.");
+        } else {
+            setMessage("All buildings already match the worker counts in the preset.");
+        }
+    };
+
+    return { handleAddWorker, handleRemoveWorker, applyWorkerPresets, applySenateWorkerPreset };
 };

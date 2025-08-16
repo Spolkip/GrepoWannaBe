@@ -75,13 +75,13 @@ const WorkerManager = ({ buildings, onAddWorker, onRemoveWorker, getMaxWorkerSlo
     );
 };
 
-// #comment Component to manage building presets
-const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleApplyPreset, setIsSavingPreset, handleDeletePreset, buildQueue }) => {
+// #comment Component to manage building presets for workers
+const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleApplyPreset, setIsSavingPreset, handleDeletePreset }) => {
     const selectedPreset = presets.find(p => p.id === selectedPresetId);
 
     return (
         <div className="bg-gray-900 rounded-lg p-4">
-            <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Building Presets</h3>
+            <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Worker Presets</h3>
             <div className="flex items-center gap-2">
                 <select
                     value={selectedPresetId}
@@ -91,21 +91,20 @@ const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleA
                     <option value="">Select a Preset</option>
                     {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-                <button onClick={handleApplyPreset} disabled={!selectedPresetId || (buildQueue?.length || 0) >= 5} className="btn btn-primary text-sm py-2 px-3 flex-shrink-0">Apply</button>
+                <button onClick={handleApplyPreset} disabled={!selectedPresetId} className="btn btn-primary text-sm py-2 px-3 flex-shrink-0">Apply</button>
                 <button onClick={() => setIsSavingPreset(true)} disabled={presets.length >= 3} className="btn btn-primary text-sm py-2 px-3 flex-shrink-0" title={presets.length >= 3 ? "Maximum of 3 presets reached" : "Save current layout"}>Save</button>
                 <button onClick={handleDeletePreset} disabled={!selectedPresetId} className="btn btn-danger text-sm py-2 px-3 flex-shrink-0">Delete</button>
             </div>
             {selectedPreset && (
                 <div className="mt-4 p-2 bg-gray-800 rounded-lg max-h-48 overflow-y-auto">
-                    <h4 className="font-semibold text-center mb-2">Preset Levels</h4>
+                    <h4 className="font-semibold text-center mb-2">Preset Workers</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                        {Object.entries(selectedPreset.levels)
-                            .filter(([, level]) => level > 0)
+                        {selectedPreset.workers && Object.entries(selectedPreset.workers)
                             .sort(([idA], [idB]) => buildingConfig[idA].name.localeCompare(buildingConfig[idB].name))
-                            .map(([id, level]) => (
+                            .map(([id, count]) => (
                                 <div key={id} className="flex justify-between">
                                     <span>{buildingConfig[id].name}</span>
-                                    <span className="font-bold">{level}</span>
+                                    <span className="font-bold">{count}</span>
                                 </div>
                             ))}
                     </div>
@@ -176,7 +175,7 @@ const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
 };
 
 
-const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, currentUser, worldId, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation }) => {
+const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, currentUser, worldId, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation, onApplyWorkerPreset }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
     const [presets, setPresets] = useState([]);
     const [selectedPresetId, setSelectedPresetId] = useState('');
@@ -218,7 +217,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         return finalLevel;
     };
 
-    // #comment Save the current city layout as a new preset, or overwrite an existing one, with a limit of 3.
+    // #comment Save the current city worker layout as a new preset.
     const handleSavePreset = async () => {
         if (!newPresetName.trim()) {
             setMessage("Please enter a name for the preset.");
@@ -236,14 +235,15 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         }
 
         const onConfirmSave = async () => {
-            const currentLevels = {};
-            Object.keys(buildings).forEach(id => {
-                currentLevels[id] = buildings[id].level;
+            const currentWorkers = {};
+            const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
+            productionBuildings.forEach(id => {
+                currentWorkers[id] = buildings[id]?.workers || 0;
             });
 
             const presetData = {
                 name: newPresetName.trim(),
-                levels: currentLevels
+                workers: currentWorkers
             };
 
             await setDoc(presetDocRef, presetData);
@@ -281,38 +281,14 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         });
     };
 
-    // #comment Queue upgrades to match the selected preset
+    // #comment Apply worker distribution from the selected preset
     const handleApplyPreset = () => {
         const selectedPreset = presets.find(p => p.id === selectedPresetId);
-        if (!selectedPreset) return;
-
-        const queueSpace = 5 - (buildQueue?.length || 0);
-        if (queueSpace <= 0) {
-            setMessage("Build queue is already full.");
+        if (!selectedPreset) {
+            setMessage("Please select a preset to apply.");
             return;
         }
-
-        let queuedCount = 0;
-        const buildingIdsInOrder = ['senate', ...Object.keys(selectedPreset.levels).filter(id => id !== 'senate')];
-
-        for (const buildingId of buildingIdsInOrder) {
-            if (queuedCount >= queueSpace) break;
-            if (!selectedPreset.levels.hasOwnProperty(buildingId)) continue;
-
-            const targetLevel = selectedPreset.levels[buildingId];
-            const effectiveCurrentLevel = getFinalLevelInQueue(buildingId);
-
-            if (effectiveCurrentLevel < targetLevel) {
-                onUpgrade(buildingId);
-                queuedCount++;
-            }
-        }
-        
-        if (queuedCount > 0) {
-            setMessage(`${queuedCount} upgrades from preset '${selectedPreset.name}' have been added to the queue. Click 'Apply' again to queue more if needed.`);
-        } else {
-            setMessage(`All buildings are already at or above the levels in preset '${selectedPreset.name}'.`);
-        }
+        onApplyWorkerPreset(selectedPreset);
     };
 
 
@@ -328,7 +304,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
             {isSavingPreset && (
                 <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[100]">
                     <div className="bg-gray-800 p-6 rounded-lg">
-                        <h3 className="text-lg font-bold mb-4 text-white">Save Building Preset</h3>
+                        <h3 className="text-lg font-bold mb-4 text-white">Save Worker Preset</h3>
                         <input
                             type="text"
                             value={newPresetName}
@@ -474,7 +450,6 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                 handleApplyPreset={handleApplyPreset}
                                 setIsSavingPreset={setIsSavingPreset}
                                 handleDeletePreset={handleDeletePreset}
-                                buildQueue={buildQueue}
                             />
                         </div>
                     )}

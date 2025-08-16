@@ -57,7 +57,7 @@ const CityView = ({
         cityGameState, setCityGameState, saveGameState, worldId, userProfile, currentUser,
         getUpgradeCost, getResearchCost, getFarmCapacity, calculateUsedPopulation, isInstantUnits,
         setMessage, openModal: openCityModal, closeModal: closeCityModal, setModalState: setCityModalState,
-        setIsInstantBuild, setIsInstantResearch, setIsInstantUnits
+        setIsInstantBuild, setIsInstantResearch, setIsInstantUnits, getMaxWorkerSlots
     });
 
     const { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero } = useHeroActions(cityGameState, saveGameState, setMessage);
@@ -180,6 +180,7 @@ const CityView = ({
                 onActivateSkill={onActivateSkill}
                 onAssignHero={onAssignHero}
                 onUnassignHero={onUnassignHero}
+                onApplyWorkerPreset={actions.applySenateWorkerPreset}
             />
             {cityModalState.isDivinePowersOpen && (
                 <DivinePowers

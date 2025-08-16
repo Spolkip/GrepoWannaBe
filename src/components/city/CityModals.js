@@ -56,6 +56,7 @@ const CityModals = ({
   onActivateSkill,
   onAssignHero,
   onUnassignHero,
+  onApplyWorkerPreset,
 }) => {
   const {
     selectedBuildingId,
@@ -119,6 +120,7 @@ const CityModals = ({
           onRemoveWorker={onRemoveWorker}
           getMaxWorkerSlots={getMaxWorkerSlots}
           availablePopulation={availablePopulation}
+          onApplyWorkerPreset={onApplyWorkerPreset}
         />
       )}
       {isBarracksMenuOpen && (
