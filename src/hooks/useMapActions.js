@@ -36,7 +36,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
     }, [openModal, closeModal, setMessage]);
 
     const handleSendMovement = useCallback(async (movementDetails) => {
-        const { mode, targetCity, units, resources, attackFormation } = movementDetails;
+        const { mode, targetCity, units, resources, attackFormation, hero } = movementDetails;
 
         if (!playerCity) {
             setMessage("Cannot send movement: Your city data could not be found.");
@@ -104,8 +104,8 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
         const distance = calculateDistance(playerCity, targetCity);
         const unitsBeingSent = Object.entries(units || {}).filter(([, count]) => count > 0);
 
-        if (unitsBeingSent.length === 0 && !['trade', 'scout'].includes(mode)) {
-            setMessage("No units selected for movement.");
+        if (unitsBeingSent.length === 0 && !['trade', 'scout'].includes(mode) && !hero) {
+            setMessage("No units or hero selected for movement.");
             return;
         }
 
@@ -129,10 +129,11 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 targetTownId: targetCity.id,
                 targetTownName: targetCity.name,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
-                units,
+                units: units,
+                hero: hero,
                 departureTime: serverTimestamp(),
-                arrivalTime,
-                cancellableUntil,
+                arrivalTime: arrivalTime,
+                cancellableUntil: cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid],
@@ -150,11 +151,12 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 targetVillageId: targetCity.id,
                 targetVillageName: targetCity.name,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
-                units,
+                units: units,
+                hero: hero,
                 resources: resources || {},
                 departureTime: serverTimestamp(),
-                arrivalTime,
-                cancellableUntil,
+                arrivalTime: arrivalTime,
+                cancellableUntil: cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid],
@@ -172,10 +174,11 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 targetRuinId: targetCity.id,
                 targetRuinName: targetCity.name,
                 targetCoords: { x: targetCity.x, y: targetCity.y },
-                units,
+                units: units,
+                hero: hero,
                 departureTime: serverTimestamp(),
-                arrivalTime,
-                cancellableUntil,
+                arrivalTime: arrivalTime,
+                cancellableUntil: cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: [currentUser.uid],
@@ -196,11 +199,12 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
                 targetOwnerId: finalTargetOwnerId,
                 ownerUsername: targetCity.ownerUsername || userProfile.username,
                 targetCityName: targetCity.cityName,
-                units,
+                units: units,
+                hero: hero,
                 resources: resources || {},
                 departureTime: serverTimestamp(),
-                arrivalTime,
-                cancellableUntil,
+                arrivalTime: arrivalTime,
+                cancellableUntil: cancellableUntil,
                 status: 'moving',
                 attackFormation: attackFormation || {},
                 involvedParties: mode === 'scout' ? [currentUser.uid] : [currentUser.uid, finalTargetOwnerId].filter(id => id),

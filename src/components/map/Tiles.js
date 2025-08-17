@@ -6,7 +6,7 @@ import unitConfig from '../../gameData/units.json';
 import allianceWonders from '../../gameData/alliance_wonders.json'; // #comment Import wonder data
 
 const images = {};
-const imageContext = require.context('../../images', true, /\.(png|jpe?g|svg)$/);
+const imageContext = require.context('../../images/troops', true, /\.(png|jpe?g|svg)$/);
 imageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
     images[key] = imageContext(item);

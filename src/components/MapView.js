@@ -267,27 +267,27 @@ const MapView = ({
     }, [initialMapAction, setInitialMapAction, combinedSlots, onCitySlotClick]);
 
     const combinedSlotsForGrid = useMemo(() => {
-        const newSlots = { ...visibleSlots };
+        const newSlots = { ...visibleSlots }; // Start with all visible slots
+        
+        // #comment Iterate over the player's cities and merge their data into the slots
         for (const cityId in playerCities) {
             const pCity = playerCities[cityId];
             if (pCity && pCity.slotId) {
-                const baseSlot = allCitySlots ? allCitySlots[pCity.slotId] : {};
-                const cityDataForMerge = { ...pCity };
-                delete cityDataForMerge.id;
-
+                // #comment Get the existing slot data if it's already visible, or create a new object
+                const existingSlotData = newSlots[pCity.slotId] || {};
+                
+                // #comment Merge, ensuring player's specific city data takes precedence
                 newSlots[pCity.slotId] = {
-                    ...baseSlot,
-                    ...(newSlots[pCity.slotId] || {}),
-                    ...cityDataForMerge,
-                    // #comment Manually inject ownerId and username from the authenticated user's profile
-                    // #comment This ensures the player's own cities are always correctly identified, even with slight data sync delays.
+                    ...existingSlotData,
+                    ...pCity,
+                    // #comment Force ownerId to be correct, fixing potential sync issues
                     ownerId: currentUser.uid,
                     ownerUsername: userProfile.username
                 };
             }
         }
         return newSlots;
-    }, [visibleSlots, playerCities, allCitySlots, currentUser.uid, userProfile.username]);
+    }, [visibleSlots, playerCities, currentUser.uid, userProfile.username]);
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
