@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, collectionGroup } from 'firebase/fir
 import allianceResearch from '../../gameData/allianceResearch.json';
 import { useAuth } from '../../contexts/AuthContext';
 
-// #comment Cache for alliance member data.
+// #comment Cache for detailed alliance member data (points, activity, etc.).
 const memberCache = {};
 
 // #comment Function to clear the member cache, exported for admin use.
@@ -34,7 +34,7 @@ const AllianceMembers = () => {
     const { worldId, worldState } = useGame();
     const { currentUser } = useAuth();
 
-    const [detailedMembers, setDetailedMembers] = useState([]);
+    const [detailedInfo, setDetailedInfo] = useState({});
     const [loading, setLoading] = useState(true);
     const [sortConfig, setSortConfig] = useState({ key: 'username', direction: 'ascending' });
     const [confirmAction, setConfirmAction] = useState(null);
@@ -87,18 +87,16 @@ const AllianceMembers = () => {
             const usersData = new Map();
             const gameDataMap = new Map();
 
-            // #comment Efficiently fetch all game data for the world using a collection group query
             const gamesGroupRef = collectionGroup(db, 'games');
             const qGames = query(gamesGroupRef, where('worldName', '==', worldState.name));
             const gamesSnapshot = await getDocs(qGames);
             gamesSnapshot.forEach(gameDoc => {
                 const userId = gameDoc.ref.parent.parent.id;
-                if (memberIds.includes(userId)) { // Only store data for alliance members
+                if (memberIds.includes(userId)) {
                     gameDataMap.set(userId, gameDoc.data());
                 }
             });
 
-            // #comment Batch fetch user profiles instead of one by one
             if (canViewActivity && memberIds.length > 0) {
                 const usersRef = collection(db, 'users');
                 const qUsers = query(usersRef, where('__name__', 'in', memberIds));
@@ -113,7 +111,7 @@ const AllianceMembers = () => {
                 const userData = usersData.get(member.uid) || {};
 
                 return {
-                    ...member,
+                    uid: member.uid, // Ensure uid is present for mapping
                     points: gameData.totalPoints || 0,
                     cityCount: gameData.cityCount || 0,
                     lastSeen: gameData.lastSeen?.toDate() || null,
@@ -122,9 +120,11 @@ const AllianceMembers = () => {
             });
 
             const details = await Promise.all(memberDetailsPromises);
-            setDetailedMembers(details);
+            const detailsMap = new Map(details.map(d => [d.uid, d]));
+            
+            setDetailedInfo(Object.fromEntries(detailsMap));
             memberCache[playerAlliance.id] = {
-                data: details,
+                data: Object.fromEntries(detailsMap),
                 timestamp: Date.now(),
             };
             setLoading(false);
@@ -135,12 +135,22 @@ const AllianceMembers = () => {
         const allianceId = playerAlliance?.id;
 
         if (allianceId && memberCache[allianceId] && (now - memberCache[allianceId].timestamp < twoMinutes)) {
-            setDetailedMembers(memberCache[allianceId].data);
+            setDetailedInfo(memberCache[allianceId].data);
             setLoading(false);
-        } else {
+        } else if (allianceId) {
             fetchMemberDetails();
+        } else {
+            setLoading(false);
         }
     }, [playerAlliance, worldId, canViewActivity, worldState]);
+
+    const detailedMembers = useMemo(() => {
+        if (!playerAlliance) return [];
+        return playerAlliance.members.map(member => ({
+            ...member,
+            ...(detailedInfo[member.uid] || { points: 0, cityCount: 0, lastSeen: null, lastLogin: null })
+        }));
+    }, [playerAlliance, detailedInfo]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...detailedMembers];

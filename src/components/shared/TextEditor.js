@@ -88,6 +88,15 @@ const MentionInput = ({ type, data, onSelect, onClose, buttonRef }) => {
     );
 };
 
+// #comment Cache for editor autocomplete data to reduce reads.
+const editorDataCache = {
+    players: null,
+    cities: null,
+    alliances: null,
+    timestamp: 0,
+};
+
+
 // #comment The main text editor component
 const TextEditor = ({ value, onChange }) => {
     const { worldId } = useGame();
@@ -99,32 +108,52 @@ const TextEditor = ({ value, onChange }) => {
     const [cities, setCities] = useState([]);
     const [alliances, setAlliances] = useState([]);
 
-    // #comment Fetch players, cities, and alliances for autocomplete when the component mounts
+    // #comment Fetch players, cities, and alliances for autocomplete, using a cache.
     useEffect(() => {
         if (!worldId) return;
 
-        const fetchPlayers = async () => {
+        const fetchData = async () => {
+            const now = Date.now();
+            const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+            if (now - editorDataCache.timestamp < CACHE_DURATION && editorDataCache.players) {
+                setPlayers(editorDataCache.players);
+                setCities(editorDataCache.cities);
+                setAlliances(editorDataCache.alliances);
+                return;
+            }
+
+            // Fetch all data in parallel if cache is stale
             const usersRef = collection(db, 'users');
-            const snapshot = await getDocs(usersRef);
-            setPlayers(snapshot.docs.map(doc => doc.data().username));
-        };
-
-        const fetchCities = async () => {
             const citiesRef = collection(db, 'worlds', worldId, 'citySlots');
-            const q = query(citiesRef, where("ownerId", "!=", null));
-            const snapshot = await getDocs(q);
-            setCities(snapshot.docs.map(doc => doc.data().cityName));
-        };
-
-        const fetchAlliances = async () => {
             const alliancesRef = collection(db, 'worlds', worldId, 'alliances');
-            const snapshot = await getDocs(alliancesRef);
-            setAlliances(snapshot.docs.map(doc => doc.data().name));
+
+            const playersQuery = getDocs(usersRef);
+            const citiesQuery = getDocs(query(citiesRef, where("ownerId", "!=", null)));
+            const alliancesQuery = getDocs(alliancesRef);
+
+            const [playersSnapshot, citiesSnapshot, alliancesSnapshot] = await Promise.all([
+                playersQuery,
+                citiesQuery,
+                alliancesQuery
+            ]);
+
+            const playersData = playersSnapshot.docs.map(doc => doc.data().username);
+            const citiesData = citiesSnapshot.docs.map(doc => doc.data().cityName);
+            const alliancesData = alliancesSnapshot.docs.map(doc => doc.data().name);
+
+            setPlayers(playersData);
+            setCities(citiesData);
+            setAlliances(alliancesData);
+
+            // Update cache
+            editorDataCache.players = playersData;
+            editorDataCache.cities = citiesData;
+            editorDataCache.alliances = alliancesData;
+            editorDataCache.timestamp = now;
         };
 
-        fetchPlayers();
-        fetchCities();
-        fetchAlliances();
+        fetchData();
     }, [worldId]);
 
     const applyFormat = (tag, param = '') => {

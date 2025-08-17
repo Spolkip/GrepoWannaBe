@@ -38,6 +38,13 @@ import buildingConfig from '../gameData/buildings.json';
 
 const TILE_SIZE = 32;
 
+// #comment Cache for map-wide data to reduce reads on view switch.
+let mapViewCache = {
+    cityPoints: null,
+    scoutedCities: null,
+    timestamp: 0,
+};
+
 // Map island image names to imported image files
 const islandImageMap = {
     'island_1.png': island1,
@@ -171,7 +178,7 @@ const MapView = ({
     }, [pan, zoom]);
 
     const fetchAllCityPoints = useCallback(async () => {
-        if (!worldId) return;
+        if (!worldId) return {};
     
         const points = {};
         const usersRef = collection(db, 'users');
@@ -191,11 +198,11 @@ const MapView = ({
                 }
             }
         }
-        setCityPoints(points);
+        return points;
     }, [worldId, calculateTotalPoints, currentUser.uid]);
 
     const fetchScoutedData = useCallback(async () => {
-        if (!currentUser || !worldId) return;
+        if (!currentUser || !worldId) return {};
 
         const reportsRef = collection(db, 'users', currentUser.uid, 'worlds', worldId, 'reports');
         const q = query(reportsRef, orderBy('timestamp', 'desc'));
@@ -211,12 +218,30 @@ const MapView = ({
                 }
             }
         });
-        setScoutedCities(latestScouts);
+        return latestScouts;
     }, [currentUser, worldId]);
 
     useEffect(() => {
-        fetchAllCityPoints();
-        fetchScoutedData();
+        const now = Date.now();
+        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+        if (now - mapViewCache.timestamp < CACHE_DURATION && mapViewCache.cityPoints) {
+            setCityPoints(mapViewCache.cityPoints);
+            setScoutedCities(mapViewCache.scoutedCities);
+        } else {
+            const fetchData = async () => {
+                const pointsData = await fetchAllCityPoints();
+                const scoutedData = await fetchScoutedData();
+                setCityPoints(pointsData);
+                setScoutedCities(scoutedData);
+                mapViewCache = {
+                    cityPoints: pointsData,
+                    scoutedCities: scoutedData,
+                    timestamp: now,
+                };
+            };
+            fetchData();
+        }
     }, [fetchAllCityPoints, fetchScoutedData]);
 
     useEffect(() => {
