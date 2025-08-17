@@ -1,7 +1,7 @@
 // src/components/map/MapModals.js
 import React from 'react';
 import RadialMenu from './RadialMenu';
-import OtherCityModal from './OtherCityModal'; // Import the old modal
+import OtherCityModal from './OtherCityModal';
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
@@ -35,6 +35,7 @@ const MapModals = ({
     const { currentUser } = useAuth();
     const { selectedCity } = modalState;
 
+    // #comment Determines which actions are available in the radial menu based on city ownership
     const getRadialMenuActions = () => {
         if (!selectedCity) return [];
 
@@ -74,9 +75,11 @@ const MapModals = ({
         }
     };
 
+    // #comment Renders the correct interaction modal (Radial Menu for cities, standard modal for others)
     const renderCityInteraction = () => {
         if (!selectedCity) return null;
 
+        // #comment Villages and Ruins still use the old modal style
         if (selectedCity.isRuinTarget || selectedCity.isVillageTarget) {
             return (
                 <OtherCityModal
@@ -94,9 +97,11 @@ const MapModals = ({
             );
         }
 
+        // #comment All other city clicks will now open the radial menu
         return (
             <RadialMenu
                 actions={getRadialMenuActions()}
+                position={selectedCity.position}
                 onClose={() => closeModal('city')}
             />
         );

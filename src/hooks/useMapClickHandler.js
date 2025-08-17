@@ -35,18 +35,29 @@ export const useMapClickHandler = ({
              const distance = calculateDistance(playerCity, slotData);
              setTravelTimeInfo({ distance });
 
+            let cityData;
             if (slotData.ownerId === currentUser.uid) {
                 const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
                 if (city) {
-                    const mergedCityData = { ...slotData, ...city };
-                    openModal('city', mergedCityData);
+                    cityData = { ...slotData, ...city };
                 } else {
                      setMessage("Could not find data for your city.");
+                     return;
                 }
             } else {
-                 const cityDataWithAlliance = { ...slotData, playerAlliance };
-                 openModal('city', cityDataWithAlliance);
+                 cityData = { ...slotData, playerAlliance };
             }
+            
+            // #comment Get the position of the click to place the radial menu
+            const rect = e.currentTarget.getBoundingClientRect();
+            const position = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+            };
+
+            const modalData = { ...cityData, position };
+            openModal('city', modalData);
+
         } else {
             setMessage('This plot is empty. Future updates will allow colonization!');
         }

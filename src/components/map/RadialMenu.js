@@ -2,30 +2,44 @@
 import React, { useState } from 'react';
 import './RadialMenu.css';
 
-const RadialMenu = ({ actions, onClose }) => {
-    // #comment State to track which menu item is currently hovered/active
+const RadialMenu = ({ actions, position, onClose }) => {
     const [activeIndex, setActiveIndex] = useState(null);
     const radius = 100;
     const angleStep = (2 * Math.PI) / actions.length;
 
+    if (!position) {
+        return null;
+    }
+
+    // #comment This handler will reset the active item when the mouse leaves the central area of the menu.
+    const handleMouseLeaveContainer = () => {
+        setActiveIndex(null);
+    };
+
     return (
         <div className="radial-menu-overlay" onClick={onClose}>
-            <div className="radial-menu-container">
+            <div
+                className="radial-menu-container"
+                style={{
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                }}
+                onClick={e => e.stopPropagation()}
+                // #comment The onMouseLeave is now on the container.
+                onMouseLeave={handleMouseLeaveContainer}
+            >
                 {actions.map((action, index) => {
                     const angle = index * angleStep - Math.PI / 2;
-                    // Initial position on the circle
                     const x = radius * Math.cos(angle);
                     const y = radius * Math.sin(angle);
 
                     return (
                         <button
                             key={index}
-                            // #comment Apply 'active' class when this item is hovered
                             className={`radial-menu-item ${activeIndex === index ? 'active' : ''}`}
-                            // #comment The transform is applied via inline style, which is overridden by the .active class in CSS
                             style={{ transform: `translate(${x}px, ${y}px)` }}
-                            // #comment Set this item as active on hover
                             onMouseEnter={() => setActiveIndex(index)}
+                            // onMouseLeave is removed from individual items to prevent flickering
                             onClick={(e) => {
                                 e.stopPropagation();
                                 action.handler();

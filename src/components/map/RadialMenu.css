@@ -3,19 +3,20 @@
     position: fixed;
     inset: 0;
     z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.7);
+    /* The overlay is transparent but catches clicks to close the menu */
 }
 
 .radial-menu-container {
-    position: relative;
-    width: 100px;
-    height: 100px;
+    position: absolute; /* Positioned based on click coordinates */
+    /* #comment Make the container large enough to encompass the icons */
+    width: 270px;
+    height: 270px;
     display: flex;
     align-items: center;
     justify-content: center;
+    /* This centers the menu on the click point */
+    transform: translate(-50%, -50%);
+    border-radius: 50%; /* Make the hover area circular */
 }
 
 .radial-menu-item {
