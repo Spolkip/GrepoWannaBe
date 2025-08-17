@@ -2,9 +2,9 @@
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
-import { useAlliance } from '../contexts/AllianceContext';
+import { useAlliance } from '../contexts/AllianceProvider';
 import { db } from '../firebase/config';
-import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot, where } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot, where, collectionGroup } from 'firebase/firestore';
 
 // Import island images
 import island1 from '../images/islands/island_1.png';
@@ -177,18 +177,21 @@ const MapView = ({
         return () => viewport.removeEventListener('mousemove', handleMouseMove);
     }, [pan, zoom]);
 
+    // #comment Fetches points for all cities in the world efficiently.
     const fetchAllCityPoints = useCallback(async () => {
-        if (!worldId) return {};
+        if (!worldId || !worldState) return {};
     
         const points = {};
-        const usersRef = collection(db, 'users');
-        const usersSnapshot = await getDocs(usersRef);
+        const gamesGroupRef = collectionGroup(db, 'games');
+        const q = query(gamesGroupRef, where('worldName', '==', worldState.name));
+        const gamesSnapshot = await getDocs(q);
+
+        for (const gameDoc of gamesSnapshot.docs) {
+            const userId = gameDoc.ref.parent.parent.id;
+            // Skip current user, their points are handled by a separate, live listener in GameContext
+            if (userId === currentUser.uid) continue;
     
-        for (const userDoc of usersSnapshot.docs) {
-            // #comment Skip current user, their points are handled by playerCityPoints from context
-            if (userDoc.id === currentUser.uid) continue;
-    
-            const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
+            const citiesRef = collection(db, `users/${userId}/games`, worldId, 'cities');
             const citiesSnapshot = await getDocs(citiesRef);
             for (const cityDoc of citiesSnapshot.docs) {
                 const cityData = cityDoc.data();
@@ -199,7 +202,7 @@ const MapView = ({
             }
         }
         return points;
-    }, [worldId, calculateTotalPoints, currentUser.uid]);
+    }, [worldId, worldState, calculateTotalPoints, currentUser.uid]);
 
     const fetchScoutedData = useCallback(async () => {
         if (!currentUser || !worldId) return {};

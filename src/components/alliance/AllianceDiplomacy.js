@@ -87,14 +87,16 @@ const AllianceDiplomacy = () => {
             if (now - allianceCitiesCache.timestamp < CACHE_DURATION && allianceCitiesCache.cities) {
                 setAllAllianceCities(allianceCitiesCache.cities);
             } else {
-                const cities = [];
-                for (const member of playerAlliance.members) {
+                // #comment Fetch cities from all members in parallel for better performance
+                const memberPromises = playerAlliance.members.map(async (member) => {
                     const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
                     const snapshot = await getDocs(citiesRef);
-                    snapshot.forEach(doc => {
-                        cities.push({ owner: member.username, ...doc.data() });
-                    });
-                }
+                    return snapshot.docs.map(doc => ({ owner: member.username, ...doc.data() }));
+                });
+        
+                const citiesByMember = await Promise.all(memberPromises);
+                const cities = citiesByMember.flat();
+
                 setAllAllianceCities(cities);
                 allianceCitiesCache.cities = cities;
                 allianceCitiesCache.timestamp = now;
