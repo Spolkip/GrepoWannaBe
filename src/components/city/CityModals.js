@@ -109,7 +109,7 @@ const CityModals = ({
           onDemolish={handleDemolish}
           getUpgradeCost={getUpgradeCost}
           onClose={() => closeModal('isSenateViewOpen')}
-          usedPopulation={calculateUsedPopulation(cityGameState.buildings, cityGameState.units, cityGameState.specialBuilding)}
+          usedPopulation={calculateUsedPopulation(cityGameState)}
           maxPopulation={getFarmCapacity(cityGameState.buildings?.farm?.level)}
           buildQueue={cityGameState.buildQueue}
           onCancelBuild={handleCancelBuild}

@@ -68,10 +68,7 @@ export const useUnitActions = ({
             favor: unit.cost.favor ? unit.cost.favor * amount : 0,
         };
 
-        let effectiveUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
-        Object.values(currentState.barracksQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
-        Object.values(currentState.shipyardQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
-        Object.values(currentState.divineTempleQueue || []).forEach(task => { effectiveUsedPopulation += (unitConfig[task.unitId]?.cost.population || 0) * task.amount; });
+        const effectiveUsedPopulation = calculateUsedPopulation(currentState);
 
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const availablePopulation = maxPopulation - effectiveUsedPopulation;

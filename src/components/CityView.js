@@ -67,7 +67,7 @@ const CityView = ({
     const { availablePopulation, happiness } = useMemo(() => {
         if (!cityGameState) return { availablePopulation: 0, happiness: 0 };
         const maxPopulation = getFarmCapacity(cityGameState.buildings?.farm?.level);
-        const usedPopulation = calculateUsedPopulation(cityGameState.buildings, cityGameState.units, cityGameState.specialBuilding);
+        const usedPopulation = calculateUsedPopulation(cityGameState);
         const availablePopulation = maxPopulation - usedPopulation;
         const happinessValue = calculateHappiness(cityGameState.buildings);
         return { availablePopulation, happiness: happinessValue };

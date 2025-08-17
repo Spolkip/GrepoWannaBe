@@ -26,6 +26,7 @@ const UnitQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave }) =>
     useEffect(() => {
         if (!isFirst) return;
 
+        let interval; // #comment define interval inside useEffect
         const calculateTimeLeft = () => {
             const endTime = (item.endTime instanceof Date) ? item.endTime : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
@@ -41,7 +42,7 @@ const UnitQueueItem = ({ item, onCancel, isFirst, isLast, onHover, onLeave }) =>
         };
 
         calculateTimeLeft();
-        const interval = setInterval(calculateTimeLeft, 1000);
+        interval = setInterval(calculateTimeLeft, 1000); // #comment assign interval here
         return () => clearInterval(interval);
     }, [item.endTime, isFirst]);
 

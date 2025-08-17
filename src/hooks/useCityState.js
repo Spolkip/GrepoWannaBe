@@ -203,7 +203,10 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         };
     }, [isInstantResearch, playerAlliance]);
 
-    const calculateUsedPopulation = useCallback((buildings, units, specialBuilding) => {
+    const calculateUsedPopulation = useCallback((gameState) => {
+        if (!gameState) return 0;
+        const { buildings, units, specialBuilding, barracksQueue, shipyardQueue, divineTempleQueue } = gameState;
+
         let used = 0;
         if (buildings) {
           for (const buildingId in buildings) {
@@ -227,6 +230,17 @@ export const useCityState = (worldId, isInstantBuild, isInstantResearch, isInsta
         if (specialBuilding) {
             used += 60;
         }
+        
+        const queues = [barracksQueue || [], shipyardQueue || [], divineTempleQueue || []];
+        queues.forEach(queue => {
+            queue.forEach(task => {
+                const unit = unitConfig[task.unitId];
+                if (unit) {
+                    used += (unit.cost.population || 0) * task.amount;
+                }
+            });
+        });
+
         return used;
     }, [getUpgradeCost]);
 
