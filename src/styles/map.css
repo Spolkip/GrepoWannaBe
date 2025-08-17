@@ -39,7 +39,7 @@
 
 .city-sprite {
     @apply absolute w-12 h-10; /* 48px width, 40px height */
-    bottom: 6px; /* Adjust vertical position */
+    bottom: -5px; /* Adjust vertical position */
     left: 50%;
     transform: translateX(-50%);
     background-repeat: no-repeat;
@@ -52,7 +52,6 @@
     @apply scale-125 ring-2 ring-white z-20;
 }
 .city-slot:hover .city-sprite {
-    @apply scale-110;
     filter: drop-shadow(0 0 5px white);
 }
 
