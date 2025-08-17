@@ -18,6 +18,7 @@ export const useQuestTracker = (cityState) => {
     const { worldId, activeCityId } = useGame(); // Get worldId and activeCityId from context
     const [questProgress, setQuestProgress] = useState(null);
     const [quests, setQuests] = useState([]);
+    const [isClaiming, setIsClaiming] = useState(false);
 
     // Fetch quest progress from Firestore on load and listen for changes
     useEffect(() => {
@@ -89,6 +90,7 @@ export const useQuestTracker = (cityState) => {
     }, [cityState, questProgress]);
 
     const claimReward = useCallback(async (questId) => {
+        if (isClaiming) return;
         if (!currentUser || !worldId || !activeCityId) return;
 
         const quest = quests.find(q => q.id === questId);
@@ -97,7 +99,9 @@ export const useQuestTracker = (cityState) => {
             return;
         }
 
-        const cityDocRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+        setIsClaiming(true);
+
+        const cityDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/cities`, activeCityId);
         const questDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/quests`, 'progress');
 
         try {
@@ -152,8 +156,10 @@ export const useQuestTracker = (cityState) => {
             // The onSnapshot listener will update the local state automatically.
         } catch (error) {
             console.error("Error claiming quest reward:", error);
+        } finally {
+            setIsClaiming(false);
         }
-    }, [currentUser, worldId, activeCityId, quests]);
+    }, [currentUser, worldId, activeCityId, quests, isClaiming]);
 
-    return { quests, claimReward };
+    return { quests, claimReward, isClaiming };
 };

@@ -4,7 +4,7 @@ import './Quests.css';
 import { getNationalUnitReward } from '../../utils/nationality';
 import unitConfig from '../../gameData/units.json';
 
-const QuestsModal = ({ quests, claimReward, onClose, cityState }) => {
+const QuestsModal = ({ quests, claimReward, isClaiming, onClose, cityState }) => {
     const activeQuests = quests.filter(q => !q.isClaimed);
     const playerNation = cityState?.playerInfo?.nation;
 
@@ -54,10 +54,10 @@ const QuestsModal = ({ quests, claimReward, onClose, cityState }) => {
                             </div>
                             <button
                                 onClick={() => claimReward(quest.id)}
-                                disabled={!quest.isComplete}
+                                disabled={!quest.isComplete || isClaiming}
                                 className="quest-claim-btn"
                             >
-                                {quest.isComplete ? 'Claim' : 'In Progress'}
+                                {isClaiming ? 'Claiming...' : (quest.isComplete ? 'Claim' : 'In Progress')}
                             </button>
                         </div>
                     )) : (

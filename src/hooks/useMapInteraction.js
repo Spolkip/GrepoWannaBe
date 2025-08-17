@@ -6,8 +6,8 @@ const OVERSCROLL_AMOUNT = 0;
 
 export const useMapInteraction = (viewportRef, mapContainerRef, worldState, playerCity) => {
     const [pan, setPan] = useState({ x: 0, y: 0 });
-    const [zoom, setZoom] = useState(0.5);
-    const [minZoom, setMinZoom] = useState(0.5);
+    const [zoom, setZoom] = useState(0.15);
+    const [minZoom, setMinZoom] = useState(0.15);
     const [isPanning, setIsPanning] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 });
     const [borderOpacity, setBorderOpacity] = useState({ top: 0, bottom: 0, left: 0, right: 0 });
@@ -58,7 +58,7 @@ export const useMapInteraction = (viewportRef, mapContainerRef, worldState, play
             const newMinZoom = Math.max(
                 viewport.clientWidth / (worldState.width * TILE_SIZE),
                 viewport.clientHeight / (worldState.height * TILE_SIZE),
-                0.3
+                0.15
             );
             setMinZoom(newMinZoom);
             setZoom(prevZoom => Math.max(newMinZoom, prevZoom));

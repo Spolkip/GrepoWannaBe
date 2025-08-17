@@ -1,3 +1,4 @@
+// src/components/Game.js
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
@@ -313,7 +314,7 @@ const Game = ({ onBackToWorlds }) => {
     }, [userProfile, worldId]);
 
     useMapEvents(currentUser, worldId, setUnreadReportsCount, setUnreadMessagesCount);
-    const { quests, claimReward: claimQuestReward } = useQuestTracker(gameState);
+    const { quests, claimReward: claimQuestReward, isClaiming } = useQuestTracker(gameState);
 
     const { incomingAttackCount, isUnderAttack } = useMemo(() => {
         if (!movements || !playerCities) return { incomingAttackCount: 0, isUnderAttack: false };
@@ -486,7 +487,7 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isAllianceModalOpen && <AllianceModal onClose={() => closeModal('alliance')} onOpenAllianceProfile={handleOpenAllianceProfile} openModal={openModal} />}
             {modalState.isAllianceCreationOpen && <AllianceCreation onClose={() => closeModal('allianceCreation')} />}
             {modalState.isAllianceForumOpen && <AllianceForum onClose={() => closeModal('allianceForum')} onActionClick={handleAction} />}
-            {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} onClose={() => closeModal('quests')} cityState={gameState} />}
+            {modalState.isQuestsModalOpen && <QuestsModal quests={quests} claimReward={claimQuestReward} isClaiming={isClaiming} onClose={() => closeModal('quests')} cityState={gameState} />}
             {modalState.isProfileModalOpen && <ProfileView
                 onClose={() => closeModal('profile')}
                 viewUserId={modalState.viewingProfileId}
