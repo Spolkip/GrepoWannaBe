@@ -133,5 +133,13 @@
     "image": "heroes_altar.png",
     "maxLevel": 1,
     "points": 100
+  },
+  "prison": {
+    "name": "Prison",
+    "description": "Holds captured enemy heroes. Heroes escape if the city is successfully conquered. Higher levels allow holding more heroes.",
+    "baseCost": { "wood": 800, "stone": 1200, "silver": 1000, "population": 15, "time": 2500 },
+    "image": "prison.png",
+    "maxLevel": 25,
+    "points": 30
   }
 }

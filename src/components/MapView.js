@@ -279,11 +279,15 @@ const MapView = ({
                     ...baseSlot,
                     ...(newSlots[pCity.slotId] || {}),
                     ...cityDataForMerge,
+                    // #comment Manually inject ownerId and username from the authenticated user's profile
+                    // #comment This ensures the player's own cities are always correctly identified, even with slight data sync delays.
+                    ownerId: currentUser.uid,
+                    ownerUsername: userProfile.username
                 };
             }
         }
         return newSlots;
-    }, [visibleSlots, playerCities, allCitySlots]);
+    }, [visibleSlots, playerCities, allCitySlots, currentUser.uid, userProfile.username]);
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {

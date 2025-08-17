@@ -14,6 +14,7 @@ import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new Di
 import SpecialBuildingMenu from './SpecialBuildingMenu';
 import SpecialBuildingPanel from './SpecialBuildingPanel'; // #comment Import the new panel
 import HeroesAltar from './HeroesAltar';
+import PrisonMenu from './PrisonMenu'; // #comment Import PrisonMenu
 
 const CityModals = ({
   cityGameState,
@@ -73,6 +74,7 @@ const CityModals = ({
     isSpecialBuildingMenuOpen,
     isSpecialBuildingPanelOpen, // #comment Get panel state
     isHeroesAltarOpen,
+    isPrisonMenuOpen, // #comment Get prison menu state
   } = modalState;
 
   if (!cityGameState) return null;
@@ -225,6 +227,13 @@ const CityModals = ({
             onClose={() => closeModal('isHeroesAltarOpen')}
             onAssignHero={onAssignHero}
             onUnassignHero={onUnassignHero}
+        />
+      )}
+      {/* #comment Render the new PrisonMenu */}
+      {isPrisonMenuOpen && (
+        <PrisonMenu
+          cityGameState={cityGameState}
+          onClose={() => closeModal('isPrisonMenuOpen')}
         />
       )}
       {isCheatMenuOpen && userProfile?.is_admin && (

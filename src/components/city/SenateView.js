@@ -188,7 +188,8 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         ['timber_camp', 'quarry', 'silver_mine', 'farm'],
         ['warehouse', 'market', 'barracks', 'shipyard'],
         ['academy', 'temple', 'divine_temple', 'hospital'],
-        ['city_wall', 'cave', 'special_building_plot', 'heroes_altar']
+        ['city_wall', 'cave', 'prison', 'heroes_altar'],
+        ['special_building_plot']
     ];
 
     // #comment Fetch user's building presets

@@ -1,7 +1,7 @@
 // src/hooks/useMovementProcessor.js
 import { useEffect, useCallback } from 'react';
 import { db } from '../firebase/config';
-import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimestamp, runTransaction, arrayUnion } from 'firebase/firestore';
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import { useCityState } from './useCityState';
 import unitConfig from '../gameData/units.json';
@@ -418,8 +418,47 @@ export const useMovementProcessor = (worldId) => {
                         targetCityState.resources,
                         !!movement.isCrossIsland,
                         movement.attackFormation?.front,
-                        movement.attackFormation?.mid
+                        movement.attackFormation?.mid,
+                        null, // Defender phalanx
+                        null, // Defender support
+                        movement.hero,
+                        Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId)
                     );
+
+                    // #comment Handle Hero Capture
+                    if (result.capturedHero) {
+                        const { heroId, capturedBy } = result.capturedHero;
+                        if (capturedBy === 'attacker') {
+                            const prisonLevel = originCityState.buildings.prison?.level || 0;
+                            const capacity = prisonLevel > 0 ? prisonLevel + 4 : 0;
+                            const currentPrisoners = originCityState.prisoners?.length || 0;
+                            if (prisonLevel > 0 && currentPrisoners < capacity) {
+                                batch.update(originCityRef, {
+                                    prisoners: arrayUnion({
+                                        heroId,
+                                        ownerId: movement.targetOwnerId,
+                                        ownerUsername: movement.ownerUsername,
+                                        capturedAt: serverTimestamp()
+                                    })
+                                });
+                                // Also need to update the hero's status on their owner's city doc
+                            }
+                        } else { // capturedBy === 'defender'
+                            const prisonLevel = targetCityState.buildings.prison?.level || 0;
+                            const capacity = prisonLevel > 0 ? prisonLevel + 4 : 0;
+                            const currentPrisoners = targetCityState.prisoners?.length || 0;
+                            if (prisonLevel > 0 && currentPrisoners < capacity) {
+                                batch.update(targetCityRef, {
+                                    prisoners: arrayUnion({
+                                        heroId,
+                                        ownerId: movement.originOwnerId,
+                                        ownerUsername: movement.originOwnerUsername,
+                                        capturedAt: serverTimestamp()
+                                    })
+                                });
+                            }
+                        }
+                    }
 
 
                     await runTransaction(db, async (transaction) => {

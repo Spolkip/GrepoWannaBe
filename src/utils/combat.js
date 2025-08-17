@@ -225,6 +225,7 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
     let attackerWon = false;
     let plunder = { wood: 0, stone: 0, silver: 0 };
     let wounded = {};
+    let capturedHero = null;
     
     const safeDefendingResources = defendingResources || {};
 
@@ -274,6 +275,17 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         }
     }
 
+    // #comment Check for hero capture
+    const allAttackerUnitsLost = Object.entries(attackingUnits).every(([id, count]) => (totalAttackerLosses[id] || 0) >= count);
+    const allDefenderUnitsLost = Object.entries(defendingUnits).every(([id, count]) => (totalDefenderLosses[id] || 0) >= count);
+
+    if (attackerWon && defendingHero && allDefenderUnitsLost) {
+        capturedHero = { heroId: defendingHero, capturedBy: 'attacker' };
+    } else if (!attackerWon && attackingHero && allAttackerUnitsLost) {
+        capturedHero = { heroId: attackingHero, capturedBy: 'defender' };
+    }
+
+
     // Calculate wounded troops from attacker losses
     for (const unitId in totalAttackerLosses) {
         const losses = totalAttackerLosses[unitId];
@@ -304,6 +316,7 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         wounded,
         attackerBattlePoints,
         defenderBattlePoints,
+        capturedHero,
     };
 }
 export function resolveVillageRetaliation(playerUnits) {
