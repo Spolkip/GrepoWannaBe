@@ -1,7 +1,7 @@
 // src/components/alliance/AllianceSuggestions.js
 import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase/config';
-import { collection, getDocs, query, where, doc, getDoc, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, query, where, collectionGroup } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import { useAlliance } from '../../contexts/AllianceContext';
 
@@ -106,7 +106,6 @@ const AllianceSuggestions = ({ onAllianceClick, onOpenCreate }) => {
                         <th className="p-2">Name</th>
                         <th className="p-2 text-center">Members</th>
                         <th className="p-2 text-right">Points</th>
-                        <th className="p-2 text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>

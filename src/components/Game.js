@@ -529,11 +529,11 @@ const Game = ({ onBackToWorlds }) => {
 
             <div className="absolute bottom-4 left-4 z-30 flex flex-col space-y-2">
                 {view === 'map' && (
-                    <button onClick={onBackToWorlds} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Back to Worlds">
+                    <button onClick={onBackToWorlds} className="p-2 rounded-full shadow-lg hover:bg-blue-500 transition-colors" title="Back to Worlds">
                         <img src={worldIcon} alt="Back to Worlds" className="w-8 h-8" />
                     </button>
                 )}
-                <button onClick={handleLogout} className="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 transition-colors" title="Logout">
+                <button onClick={handleLogout} className="p-2 rounded-full shadow-lg hover:bg-blue-500 transition-colors" title="Logout">
                     <img src={logoutIcon} alt="Logout" className="w-8 h-8" />
                 </button>
             </div>

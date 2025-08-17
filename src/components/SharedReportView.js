@@ -8,6 +8,7 @@ import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
 import { parseBBCode } from '../utils/bbcodeParser';
+import battlePointsImage from '../images/battle_points.png'; // Import the new image
 import './ReportsView.css';
 
 const images = {};
@@ -152,6 +153,7 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded,
             case 'attack_god_town':
             case 'attack':
             case 'attack_village':
+                const battlePointsGained = report.title.startsWith('Attack') ? outcome.attackerBattlePoints : outcome.defenderBattlePoints;
                 return (
                     <div className="flex flex-col items-center">
                         <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-600' : 'text-red-600'}`}>
@@ -204,6 +206,15 @@ const SharedReportView = ({ reportId, onClose, worldId: propWorldId, isEmbedded,
                                 <h4 className="font-semibold text-lg text-green-700 mb-2">Plundered Resources</h4>
                                 <div className="flex justify-center">
                                     {renderResourceIcons(outcome.plunder)}
+                                </div>
+                            </div>
+                        )}
+                        {typeof battlePointsGained === 'number' && (
+                            <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
+                                <div className="flex items-center justify-center">
+                                    <img src={battlePointsImage} alt="Battle Points" className="w-6 h-6 mr-2"/>
+                                    <p>{battlePointsGained.toLocaleString()}</p>
                                 </div>
                             </div>
                         )}

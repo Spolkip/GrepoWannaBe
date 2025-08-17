@@ -3,6 +3,7 @@ import { db } from '../../firebase/config';
 import { collection, getDocs, collectionGroup, query, where } from 'firebase/firestore';
 import { useGame } from '../../contexts/GameContext';
 import allianceResearch from '../../gameData/allianceResearch.json';
+import battlePointsImage from '../../images/battle_points.png'; // Import the new image
 import './Leaderboard.css';
 
 // #comment Cache for leaderboard data to avoid frequent fetches.
@@ -194,7 +195,7 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                     <th className="text-center">Rank</th>
                     <th className="text-left">Player</th>
                     <th className="text-left">Alliance</th>
-                    <th className="text-right">Battle Points</th>
+                    <th className="text-right">Points</th>
                 </tr>
             </thead>
             <tbody>
@@ -207,7 +208,10 @@ const Leaderboard = ({ onClose, onOpenProfile, onOpenAllianceProfile }) => {
                             </button>
                         </td>
                         <td className="text-left">{player.alliance}</td>
-                        <td className="text-right">{player.battlePoints.toLocaleString()}</td>
+                        <td className="text-right flex items-center justify-end">
+                            {player.battlePoints.toLocaleString()}
+                            <img src={battlePointsImage} alt="Battle Points" className="w-5 h-5 ml-1 inline-block"/>
+                        </td>
                     </tr>
                 ))}
             </tbody>

@@ -9,6 +9,7 @@ import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
 import heroesConfig from '../gameData/heroes.json';
 import { parseBBCode } from '../utils/bbcodeParser';
+import battlePointsImage from '../images/battle_points.png'; // Import the new image
 import './ReportsView.css';
 
 
@@ -323,7 +324,10 @@ const ReportsView = ({ onClose, onActionClick }) => {
                         {typeof battlePointsGained === 'number' && (
                             <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
-                                <p>⚔️ {battlePointsGained.toLocaleString()}</p>
+                                <div className="flex items-center justify-center">
+                                    <img src={battlePointsImage} alt="Battle Points" className="w-6 h-6 mr-2"/>
+                                    <p>{battlePointsGained.toLocaleString()}</p>
+                                </div>
                             </div>
                         )}
                         <p className="text-gray-500 mt-4 italic">{outcome.message || ''}</p>
@@ -350,7 +354,10 @@ const ReportsView = ({ onClose, onActionClick }) => {
                         {typeof outcome.attackerBattlePoints === 'number' && (
                             <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
-                                <p>⚔️ {outcome.attackerBattlePoints.toLocaleString()}</p>
+                                <div className="flex items-center justify-center">
+                                    <img src={battlePointsImage} alt="Battle Points" className="w-6 h-6 mr-2"/>
+                                    <p>{outcome.attackerBattlePoints.toLocaleString()}</p>
+                                </div>
                             </div>
                         )}
                         {report.reward && (

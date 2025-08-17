@@ -8,6 +8,7 @@ import populationImage from '../../images/resources/population.png';
 import recruitmenticon from '../../images/helmet.png';
 import tradeicon from '../../images/trade.png';
 import movementicon from '../../images/movement.png'
+import battlePointsImage from '../../images/battle_points.png'; // Import the new image
 import './TopBar.css';
 
 // #comment Import tooltips directly to place them inside relative containers
@@ -339,7 +340,7 @@ const TopBar = ({
                     </div>
                 )}
                  <div className="resource-display" title="Battle Points">
-                    <span className="text-xl mr-2">⚔️</span>
+                    <img src={battlePointsImage} alt="Battle Points" className="w-6 h-6 mr-2"/>
                     <span className="font-bold text-red-800">{battlePoints.toLocaleString()}</span>
                 </div>
             </div>

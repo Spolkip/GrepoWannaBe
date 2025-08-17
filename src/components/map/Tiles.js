@@ -10,7 +10,6 @@ const images = {};
 const imageContexts = [
     require.context('../../images', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/),
-    require.context('../../images/ruins', false, /\.(png|jpe?g|svg)$/),
 ];
 
 imageContexts.forEach(context => {
