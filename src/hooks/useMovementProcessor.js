@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, writeBatch, doc, getDoc, serverTimes
 import { resolveCombat, resolveScouting, getVillageTroops } from '../utils/combat';
 import { useCityState } from './useCityState';
 import unitConfig from '../gameData/units.json';
+import heroesConfig from '../gameData/heroes.json';
 
 
 
@@ -425,48 +426,52 @@ export const useMovementProcessor = (worldId) => {
                         Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId) || null
                     );
 
-                    // #comment If attacker's forces are annihilated, ensure their hero is captured if present.
-                    const allAttackerUnitsLost = Object.entries(movement.units || {}).every(([id, count]) => (result.attackerLosses[id] || 0) >= count);
-                    if (!result.capturedHero && movement.hero && allAttackerUnitsLost) {
-                        result.capturedHero = { heroId: movement.hero, capturedBy: 'defender' };
+                    const newDefenderUnits = { ...targetCityState.units };
+                    for (const unitId in result.defenderLosses) {
+                        newDefenderUnits[unitId] = Math.max(0, (newDefenderUnits[unitId] || 0) - result.defenderLosses[unitId]);
                     }
 
+                    const newDefenderResources = { ...targetCityState.resources };
+                    if (result.attackerWon) {
+                        newDefenderResources.wood = Math.max(0, newDefenderResources.wood - result.plunder.wood);
+                        newDefenderResources.stone = Math.max(0, newDefenderResources.stone - result.plunder.stone);
+                        newDefenderResources.silver = Math.max(0, newDefenderResources.silver - result.plunder.silver);
+                    }
+                    
+                    const defenderUpdates = { units: newDefenderUnits, resources: newDefenderResources };
 
                     // #comment Handle Hero Capture
                     if (result.capturedHero) {
-                        const { heroId, capturedBy } = result.capturedHero;
-                        if (capturedBy === 'attacker') {
+                        if (result.capturedHero.capturedBy === 'defender') {
+                            const prisonLevel = targetCityState.buildings.prison?.level || 0;
+                            const capacity = prisonLevel > 0 ? prisonLevel + 4 : 0;
+                            const currentPrisoners = targetCityState.prisoners?.length || 0;
+                            if (prisonLevel > 0 && currentPrisoners < capacity) {
+                                defenderUpdates.prisoners = arrayUnion({
+                                    heroId: result.capturedHero.heroId,
+                                    ownerId: movement.originOwnerId,
+                                    ownerUsername: movement.originOwnerUsername,
+                                    capturedAt: new Date()
+                                });
+                            }
+                        } else { // capturedBy === 'attacker'
                             const prisonLevel = originCityState.buildings.prison?.level || 0;
                             const capacity = prisonLevel > 0 ? prisonLevel + 4 : 0;
                             const currentPrisoners = originCityState.prisoners?.length || 0;
                             if (prisonLevel > 0 && currentPrisoners < capacity) {
                                 batch.update(originCityRef, {
                                     prisoners: arrayUnion({
-                                        heroId,
+                                        heroId: result.capturedHero.heroId,
                                         ownerId: movement.targetOwnerId,
                                         ownerUsername: movement.ownerUsername,
-                                        capturedAt: serverTimestamp()
-                                    })
-                                });
-                                // Also need to update the hero's status on their owner's city doc
-                            }
-                        } else { // capturedBy === 'defender'
-                            const prisonLevel = targetCityState.buildings.prison?.level || 0;
-                            const capacity = prisonLevel > 0 ? prisonLevel + 4 : 0;
-                            const currentPrisoners = targetCityState.prisoners?.length || 0;
-                            if (prisonLevel > 0 && currentPrisoners < capacity) {
-                                batch.update(targetCityRef, {
-                                    prisoners: arrayUnion({
-                                        heroId,
-                                        ownerId: movement.originOwnerId,
-                                        ownerUsername: movement.originOwnerUsername,
-                                        capturedAt: serverTimestamp()
+                                        capturedAt: new Date()
                                     })
                                 });
                             }
                         }
                     }
 
+                    batch.update(targetCityRef, defenderUpdates);
 
                     await runTransaction(db, async (transaction) => {
                         const attackerGameRef = doc(db, `users/${movement.originOwnerId}/games`, worldId);
@@ -485,18 +490,6 @@ export const useMovementProcessor = (worldId) => {
                         }
                     });
 
-
-                    const newDefenderUnits = { ...targetCityState.units };
-                    for (const unitId in result.defenderLosses) {
-                        newDefenderUnits[unitId] = Math.max(0, (newDefenderUnits[unitId] || 0) - result.defenderLosses[unitId]);
-                    }
-
-                    const newDefenderResources = { ...targetCityState.resources };
-                    if (result.attackerWon) {
-                        newDefenderResources.wood = Math.max(0, newDefenderResources.wood - result.plunder.wood);
-                        newDefenderResources.stone = Math.max(0, newDefenderResources.stone - result.plunder.stone);
-                        newDefenderResources.silver = Math.max(0, newDefenderResources.silver - result.plunder.silver);
-                    }
 
                     const survivingAttackers = {};
                     for (const unitId in movement.units) {
@@ -548,6 +541,12 @@ export const useMovementProcessor = (worldId) => {
                     if (!hasSurvivingLandOrMythic) {
                         attackerReport.outcome.message = "Your forces were annihilated. No information could be gathered from the battle.";
                     }
+                    if (result.capturedHero) {
+                        const heroName = heroesConfig[result.capturedHero.heroId]?.name || 'a hero';
+                        if (result.capturedHero.capturedBy === 'attacker') {
+                            attackerReport.outcome.message = (attackerReport.outcome.message || "") + ` You captured ${heroName}!`;
+                        }
+                    }
 
                     const defenderReport = {
                         ...attackerReport,
@@ -568,8 +567,12 @@ export const useMovementProcessor = (worldId) => {
                             y: targetCityState.y
                         }
                     };
-
-                    batch.update(targetCityRef, { units: newDefenderUnits, resources: newDefenderResources });
+                     if (result.capturedHero) {
+                        const heroName = heroesConfig[result.capturedHero.heroId]?.name || 'a hero';
+                        if (result.capturedHero.capturedBy === 'defender') {
+                            defenderReport.outcome.message = (defenderReport.outcome.message || "") + ` You captured ${heroName}!`;
+                        }
+                    }
 
                     batch.set(doc(collection(db, `users/${movement.originOwnerId}/worlds/${worldId}/reports`)), attackerReport);
                     if (movement.targetOwnerId) {

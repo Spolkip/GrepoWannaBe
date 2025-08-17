@@ -32,7 +32,11 @@ const PrisonMenu = ({ cityGameState, onClose }) => {
                             if (!hero) return null;
                             // #comment Duration starts at 8 hours and increases up to 3 days at max level.
                             const durationSeconds = 28800 + (prisonLevel - 1) * 9600;
-                            const executionTime = new Date((prisoner.capturedAt?.toDate().getTime() || Date.now()) + durationSeconds * 1000);
+                            
+                            // #comment Safely handle both Firestore Timestamp and JS Date objects
+                            const capturedAtTime = prisoner.capturedAt?.toDate ? prisoner.capturedAt.toDate().getTime() : new Date(prisoner.capturedAt).getTime();
+                            const executionTime = new Date(capturedAtTime + durationSeconds * 1000);
+
                             return (
                                 <div key={prisoner.heroId} className="prisoner-item">
                                     <img src={heroImages[hero.image]} alt={hero.name} className="prisoner-avatar" />

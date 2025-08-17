@@ -275,13 +275,18 @@ export function resolveCombat(attackingUnits, defendingUnits, defendingResources
         }
     }
 
-    // #comment Check for hero capture
-    const allAttackerUnitsLost = Object.entries(attackingUnits).every(([id, count]) => (totalAttackerLosses[id] || 0) >= count);
-    const allDefenderUnitsLost = Object.entries(defendingUnits).every(([id, count]) => (totalDefenderLosses[id] || 0) >= count);
+    // #comment A hero is captured if they are present, their side loses, and all land units on their side are annihilated.
+    const allAttackerLandUnitsLost = Object.entries(attackingUnits)
+        .filter(([id]) => unitConfig[id]?.type === 'land')
+        .every(([id, count]) => (totalAttackerLosses[id] || 0) >= count);
 
-    if (attackerWon && defendingHero && allDefenderUnitsLost) {
+    const allDefenderLandUnitsLost = Object.entries(defendingUnits)
+        .filter(([id]) => unitConfig[id]?.type === 'land')
+        .every(([id, count]) => (totalDefenderLosses[id] || 0) >= count);
+
+    if (attackerWon && defendingHero && allDefenderLandUnitsLost) {
         capturedHero = { heroId: defendingHero, capturedBy: 'attacker' };
-    } else if (!attackerWon && attackingHero && allAttackerUnitsLost) {
+    } else if (!attackerWon && attackingHero && allAttackerLandUnitsLost) {
         capturedHero = { heroId: attackingHero, capturedBy: 'defender' };
     }
 

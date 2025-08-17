@@ -276,13 +276,16 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
 
                 const movementData = movementDoc.data();
 
-                const cancellableUntil = movementData.cancellableUntil.toDate();
+                const cancellableUntilData = movementData.cancellableUntil;
+                const cancellableUntil = cancellableUntilData?.toDate ? cancellableUntilData.toDate() : new Date(cancellableUntilData);
+
                 if (new Date() > cancellableUntil) {
                     throw new Error("The grace period to cancel this movement has passed.");
                 }
 
                 const now = Date.now();
-                const departureTime = movementData.departureTime.toDate().getTime();
+                const departureTimeData = movementData.departureTime;
+                const departureTime = departureTimeData?.toDate ? departureTimeData.toDate().getTime() : new Date(departureTimeData).getTime();
                 const elapsedTime = now - departureTime;
                 const returnArrivalTime = new Date(now + elapsedTime);
 

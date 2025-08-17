@@ -314,13 +314,19 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 </div>
                             </div>
                         )}
-                        {battlePointsGained > 0 && (
+                        {outcome.capturedHero && (
+                            <div className="w-full p-3 bg-red-800/10 rounded mt-4 text-center">
+                                <h4 className="font-semibold text-lg text-red-700 mb-2">Hero Captured!</h4>
+                                <p>{heroesConfig[outcome.capturedHero.heroId]?.name} was captured by the {outcome.capturedHero.capturedBy}.</p>
+                            </div>
+                        )}
+                        {typeof battlePointsGained === 'number' && (
                             <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
                                 <p>⚔️ {battlePointsGained.toLocaleString()}</p>
                             </div>
                         )}
-                        <p className="text-gray-500 mt-4 italic">{outcome.message || 'No battle points received.'}</p>
+                        <p className="text-gray-500 mt-4 italic">{outcome.message || ''}</p>
                     </div>
                 );
             case 'attack_ruin':
@@ -341,7 +347,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                             </div>
                         </div>
-                        {outcome.attackerBattlePoints > 0 && (
+                        {typeof outcome.attackerBattlePoints === 'number' && (
                             <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
                                 <p>⚔️ {outcome.attackerBattlePoints.toLocaleString()}</p>
