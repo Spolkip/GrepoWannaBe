@@ -246,7 +246,22 @@ const MapView = ({
 
     const handleOpenAlliance = () => openModal('alliance');
 
-    const combinedSlots = useMemo(() => ({ ...playerCities, ...visibleSlots, ...visibleVillages, ...visibleRuins }), [playerCities, visibleSlots, visibleVillages, visibleRuins]);
+    const combinedSlots = useMemo(() => {
+        const newSlots = { ...visibleSlots };
+        for (const cityId in playerCities) {
+            const pCity = playerCities[cityId];
+            if (pCity && pCity.slotId) {
+                const existingSlotData = newSlots[pCity.slotId] || {};
+                newSlots[pCity.slotId] = {
+                    ...existingSlotData,
+                    ...pCity,
+                    ownerId: currentUser.uid,
+                    ownerUsername: userProfile.username
+                };
+            }
+        }
+        return newSlots;
+    }, [visibleSlots, playerCities, currentUser.uid, userProfile.username]);
 
     useEffect(() => {
         if (initialMapAction?.type === 'open_city_modal') {
@@ -266,28 +281,7 @@ const MapView = ({
         }
     }, [initialMapAction, setInitialMapAction, combinedSlots, onCitySlotClick]);
 
-    const combinedSlotsForGrid = useMemo(() => {
-        const newSlots = { ...visibleSlots }; // Start with all visible slots
-        
-        // #comment Iterate over the player's cities and merge their data into the slots
-        for (const cityId in playerCities) {
-            const pCity = playerCities[cityId];
-            if (pCity && pCity.slotId) {
-                // #comment Get the existing slot data if it's already visible, or create a new object
-                const existingSlotData = newSlots[pCity.slotId] || {};
-                
-                // #comment Merge, ensuring player's specific city data takes precedence
-                newSlots[pCity.slotId] = {
-                    ...existingSlotData,
-                    ...pCity,
-                    // #comment Force ownerId to be correct, fixing potential sync issues
-                    ownerId: currentUser.uid,
-                    ownerUsername: userProfile.username
-                };
-            }
-        }
-        return newSlots;
-    }, [visibleSlots, playerCities, currentUser.uid, userProfile.username]);
+    const combinedLocations = useMemo(() => ({ ...combinedSlots, ...visibleVillages, ...visibleRuins }), [combinedSlots, visibleVillages, visibleRuins]);
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
@@ -549,7 +543,7 @@ const MapView = ({
             });
         };
 
-        mergeWithGrid(combinedSlotsForGrid, 'city_slot');
+        mergeWithGrid(combinedSlots, 'city_slot');
         mergeWithGrid(visibleVillages, 'village');
 
         Object.values(visibleRuins).forEach(ruin => {
@@ -574,7 +568,7 @@ const MapView = ({
             }
         });
         return grid;
-    }, [worldState, combinedSlotsForGrid, visibleVillages, visibleRuins, godTowns, wonderSpots, allWonders]);
+    }, [worldState, combinedSlots, visibleVillages, visibleRuins, godTowns, wonderSpots, allWonders]);
 
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
@@ -596,7 +590,7 @@ const MapView = ({
                         movements={movements}
                         onCancelTrain={onCancelTrain}
                         onCancelMovement={onCancelMovement}
-                        combinedSlots={combinedSlots}
+                        combinedSlots={combinedLocations}
                         onOpenMovements={() => openModal('movements')}
                         isUnderAttack={isUnderAttack}
                         incomingAttackCount={incomingAttackCount}
@@ -630,7 +624,7 @@ const MapView = ({
                         zoom={zoom}
                         viewportSize={viewportSize}
                         worldState={worldState}
-                        allCities={combinedSlotsForGrid}
+                        allCities={combinedSlots}
                         ruins={visibleRuins}
                         playerAlliance={playerAlliance}
                     />
@@ -674,7 +668,7 @@ const MapView = ({
                                         onConstructingWonderClick={handleConstructingWonderClick}
                                         isPlacingDummyCity={isPlacingDummyCity}
                                         movements={movements}
-                                        combinedSlots={combinedSlotsForGrid}
+                                        combinedSlots={combinedSlots}
                                         villages={visibleVillages}
                                         ruins={visibleRuins}
                                         godTowns={godTowns}
@@ -706,7 +700,7 @@ const MapView = ({
                 handleActionClick={handleActionClick}
                 worldId={worldId}
                 movements={movements}
-                combinedSlots={combinedSlots}
+                combinedSlots={combinedLocations}
                 villages={visibleVillages}
                 handleRushMovement={handleRushMovement}
                 userProfile={userProfile}

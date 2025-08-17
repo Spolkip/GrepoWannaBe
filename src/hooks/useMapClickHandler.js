@@ -1,24 +1,18 @@
 // src/hooks/useMapClickHandler.js
 import { calculateDistance } from '../utils/travel';
 import { getVillageTroops } from '../utils/combat';
-import { useGame } from '../contexts/GameContext';
 
 export const useMapClickHandler = ({
     playerCity,
-    currentUser,
     isPlacingDummyCity,
     handleCreateDummyCity,
-    showCity,
     setTravelTimeInfo,
     openModal,
     closeModal,
     setMessage,
     conqueredVillages,
     conqueredRuins,
-    playerAlliance,
-    activeCityId
 }) => {
-    const { playerCities } = useGame();
 
     const onCitySlotClick = (e, slotData) => {
         if (!playerCity) {
@@ -35,18 +29,8 @@ export const useMapClickHandler = ({
              const distance = calculateDistance(playerCity, slotData);
              setTravelTimeInfo({ distance });
 
-            let cityData;
-            if (slotData.ownerId === currentUser.uid) {
-                const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
-                if (city) {
-                    cityData = { ...slotData, ...city };
-                } else {
-                     setMessage("Could not find data for your city.");
-                     return;
-                }
-            } else {
-                 cityData = { ...slotData, playerAlliance };
-            }
+            // The slotData is already the complete, merged data object for the city.
+            const cityData = slotData;
             
             // #comment Get the position of the click to place the radial menu
             const rect = e.currentTarget.getBoundingClientRect();

@@ -2,13 +2,13 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, runTransaction, collection, serverTimestamp } from 'firebase/firestore';
 import heroesConfig from '../../gameData/heroes.json';
 import { calculateDistance, calculateTravelTime } from '../../utils/travel';
 
 export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
     const { currentUser } = useAuth();
-    const { worldId, activeCityId, playerCities, worldState } = useGame();
+    const { worldId, activeCityId, playerCities } = useGame();
 
     const onRecruitHero = async (heroId) => {
         const hero = heroesConfig[heroId];

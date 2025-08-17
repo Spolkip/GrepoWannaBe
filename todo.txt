@@ -1,3 +1,1 @@
-Will do: 
-
-Bugs:
+- Seperate reports of attacker and diffenter
