@@ -1,12 +1,12 @@
 // src/components/map/MapModals.js
 import React from 'react';
-import OtherCityModal from './OtherCityModal';
-import OwnInactiveCityModal from './OwnInactiveCityModal';
-import OwnActiveCityModal from './OwnActiveCityModal'; // Import new modal
+import RadialMenu from './RadialMenu';
+import OtherCityModal from './OtherCityModal'; // Import the old modal
 import FarmingVillageModal from './FarmingVillageModal';
 import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
 import ReinforcementModal from '../city/ReinforcementModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MapModals = ({
     modalState,
@@ -30,13 +30,57 @@ const MapModals = ({
     marketCapacity,
     onEnterCity,
     onSwitchCity,
-    onWithdraw, // #comment Receive onWithdraw handler
+    onWithdraw,
 }) => {
-    return (
-        <>
-            {modalState.selectedCity && !modalState.isOwnInactiveCityModalOpen && !modalState.isOwnActiveCityModalOpen && (
+    const { currentUser } = useAuth();
+    const { selectedCity } = modalState;
+
+    const getRadialMenuActions = () => {
+        if (!selectedCity) return [];
+
+        const isOwn = selectedCity.ownerId === currentUser.uid;
+        const isActive = gameState?.id === selectedCity.id;
+        const hasReinforcements = selectedCity.reinforcements && Object.keys(selectedCity.reinforcements).length > 0;
+
+        if (isOwn) {
+            if (isActive) {
+                const actions = [
+                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
+                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
+                ];
+                if (hasReinforcements) {
+                    actions.push({ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) });
+                }
+                return actions;
+            } else { // Own Inactive City
+                return [
+                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
+                    { label: 'Select City', icon: '✅', handler: () => onSwitchCity(selectedCity.id) },
+                    { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
+                    { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
+                    ...(hasReinforcements ? [{ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) }] : []),
+                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
+                ];
+            }
+        } else { // Other City
+            return [
+                { label: 'Attack', icon: '⚔️', handler: () => handleActionClick('attack', selectedCity) },
+                { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
+                { label: 'Scout', icon: '👁️', handler: () => handleActionClick('scout', selectedCity) },
+                { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
+                { label: 'Cast Spell', icon: '✨', handler: () => onCastSpell(null, selectedCity) },
+                { label: 'Profile', icon: '👤', handler: () => handleActionClick('profile', selectedCity) },
+            ];
+        }
+    };
+
+    const renderCityInteraction = () => {
+        if (!selectedCity) return null;
+
+        if (selectedCity.isRuinTarget || selectedCity.isVillageTarget) {
+            return (
                 <OtherCityModal
-                    city={modalState.selectedCity}
+                    city={selectedCity}
                     playerCity={playerCity}
                     travelTimeInfo={travelTimeInfo}
                     onSendMovement={handleSendMovement}
@@ -45,30 +89,23 @@ const MapModals = ({
                     onGoTo={goToCoordinates}
                     gameState={gameState}
                     onCastSpell={onCastSpell}
-                    isVillageTarget={modalState.selectedCity?.isVillageTarget}
+                    isVillageTarget={selectedCity.isVillageTarget}
                 />
-            )}
-            {modalState.isOwnInactiveCityModalOpen && modalState.selectedCity && (
-                <OwnInactiveCityModal
-                    city={modalState.selectedCity}
-                    onClose={() => closeModal('ownInactiveCity')}
-                    onAction={handleActionClick}
-                    onGoTo={goToCoordinates}
-                    onEnterCity={onEnterCity}
-                    onSelectCity={onSwitchCity}
-                    onWithdraw={onWithdraw} // #comment Pass onWithdraw to the modal
-                />
-            )}
-            {/* Add the new modal render logic */}
-            {modalState.isOwnActiveCityModalOpen && modalState.selectedCity && (
-                <OwnActiveCityModal
-                    city={modalState.selectedCity}
-                    onClose={() => closeModal('ownActiveCity')}
-                    onGoTo={goToCoordinates}
-                    onEnterCity={onEnterCity}
-                    onWithdraw={onWithdraw} // #comment Pass onWithdraw to the modal
-                />
-            )}
+            );
+        }
+
+        return (
+            <RadialMenu
+                actions={getRadialMenuActions()}
+                onClose={() => closeModal('city')}
+            />
+        );
+    };
+
+    return (
+        <>
+            {renderCityInteraction()}
+            
             {modalState.selectedVillage && (
                 <FarmingVillageModal
                     village={modalState.selectedVillage}

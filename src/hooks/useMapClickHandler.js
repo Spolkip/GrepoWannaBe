@@ -31,27 +31,22 @@ export const useMapClickHandler = ({
             return;
         }
 
-        if (slotData.ownerId === currentUser.uid) {
-            const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
-            if (city) {
-                // #comment Merge slotData first, so that the correct city.id overwrites the slotData.id
-                const mergedCityData = { ...slotData, ...city };
-                if (city.id === activeCityId) {
-                    openModal('ownActiveCity', mergedCityData);
+        if (slotData.ownerId) {
+             const distance = calculateDistance(playerCity, slotData);
+             setTravelTimeInfo({ distance });
+
+            if (slotData.ownerId === currentUser.uid) {
+                const city = Object.values(playerCities).find(c => c.slotId === slotData.id);
+                if (city) {
+                    const mergedCityData = { ...slotData, ...city };
+                    openModal('city', mergedCityData);
                 } else {
-                    const distance = calculateDistance(playerCity, slotData);
-                    setTravelTimeInfo({ distance });
-                    openModal('ownInactiveCity', mergedCityData);
+                     setMessage("Could not find data for your city.");
                 }
             } else {
-                console.error("Clicked on own city slot, but no matching city found.", slotData);
-                setMessage("Could not find data for your city.");
+                 const cityDataWithAlliance = { ...slotData, playerAlliance };
+                 openModal('city', cityDataWithAlliance);
             }
-        } else if (slotData.ownerId) {
-            const distance = calculateDistance(playerCity, slotData);
-            setTravelTimeInfo({ distance });
-            const cityDataWithAlliance = { ...slotData, playerAlliance };
-            openModal('city', cityDataWithAlliance);
         } else {
             setMessage('This plot is empty. Future updates will allow colonization!');
         }

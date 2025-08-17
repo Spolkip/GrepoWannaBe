@@ -1,0 +1,66 @@
+/* src/components/map/RadialMenu.css */
+.radial-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.radial-menu-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.radial-menu-item {
+    position: absolute;
+    /* Make the button itself a larger, transparent click area */
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0; /* Remove default padding */
+    transition: transform 0.3s ease-in-out; /* Add transition for smooth movement */
+}
+
+/* #comment When an item is active, it moves to the center */
+.radial-menu-item.active {
+    transform: translate(0, 0) !important; /* Override inline style to center */
+    z-index: 10; /* Bring to front */
+}
+
+.radial-menu-icon-wrapper {
+    width: 60px; /* This is the visible part */
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #4a2c2a;
+    border: 2px solid #8B4513;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* #comment Scale up the icon when its parent button is hovered OR active */
+.radial-menu-item:hover .radial-menu-icon-wrapper,
+.radial-menu-item.active .radial-menu-icon-wrapper {
+    transform: scale(1.15); /* Slightly larger scale for better feedback */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+}
+
+.radial-menu-icon {
+    font-size: 24px;
+}

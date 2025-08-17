@@ -20,12 +20,10 @@ export const useModalState = () => {
         isSettingsModalOpen: false,
         isRecruitmentPanelOpen: false,
         isTradesPanelOpen: false,
-        isOwnInactiveCityModalOpen: false,
-        isOwnActiveCityModalOpen: false,
         isWithdrawModalOpen: false,
         withdrawModalData: null,
-        isReinforcementsModalOpen: false, // #comment Add state for reinforcements modal
-        reinforcementsModalData: null, // #comment Add data for reinforcements modal
+        isReinforcementsModalOpen: false,
+        reinforcementsModalData: null,
         isEventTriggerOpen: false,
         viewingProfileId: null,
         viewingAllianceId: null,
@@ -35,8 +33,6 @@ export const useModalState = () => {
         setModalState(prevState => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: data };
-                case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: true, selectedCity: data };
-                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: true, selectedCity: data };
                 case 'village': return { ...prevState, selectedVillage: data };
                 case 'action': return { ...prevState, actionDetails: data };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: true };
@@ -55,7 +51,7 @@ export const useModalState = () => {
                 case 'trades': return { ...prevState, isTradesPanelOpen: true };
                 case 'eventTrigger': return { ...prevState, isEventTriggerOpen: true };
                 case 'withdraw': return { ...prevState, isWithdrawModalOpen: true, withdrawModalData: data };
-                case 'reinforcements': return { ...prevState, isReinforcementsModalOpen: true, reinforcementsModalData: data }; // #comment Handle opening reinforcements modal
+                case 'reinforcements': return { ...prevState, isReinforcementsModalOpen: true, reinforcementsModalData: data };
                 default: return prevState;
             }
         });
@@ -65,8 +61,6 @@ export const useModalState = () => {
         setModalState(prevState => {
             switch (type) {
                 case 'city': return { ...prevState, selectedCity: null };
-                case 'ownInactiveCity': return { ...prevState, isOwnInactiveCityModalOpen: false, selectedCity: null };
-                case 'ownActiveCity': return { ...prevState, isOwnActiveCityModalOpen: false, selectedCity: null };
                 case 'village': return { ...prevState, selectedVillage: null };
                 case 'action': return { ...prevState, actionDetails: null };
                 case 'movements': return { ...prevState, isMovementsPanelOpen: false };
@@ -85,7 +79,7 @@ export const useModalState = () => {
                 case 'trades': return { ...prevState, isTradesPanelOpen: false };
                 case 'eventTrigger': return { ...prevState, isEventTriggerOpen: false };
                 case 'withdraw': return { ...prevState, isWithdrawModalOpen: false, withdrawModalData: null };
-                case 'reinforcements': return { ...prevState, isReinforcementsModalOpen: false, reinforcementsModalData: null }; // #comment Handle closing reinforcements modal
+                case 'reinforcements': return { ...prevState, isReinforcementsModalOpen: false, reinforcementsModalData: null };
                 default: return prevState;
             }
         });

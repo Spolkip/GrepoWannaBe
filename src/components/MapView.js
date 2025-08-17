@@ -100,15 +100,9 @@ const MapView = ({
 
     // #comment This function handles the "Enter City" action from map modals.
     const handleEnterCity = (cityId) => {
-        // #comment First, explicitly set the active city. This updates the context.
         onSwitchCity(cityId);
-        // #comment Then, call the function to switch the view.
-        // #comment We call showCity without an argument to prevent it from setting the active city again,
-        // #comment which was the cause of the race condition.
         showCity();
-        // #comment Close the modals after initiating the actions.
-        closeModal('ownInactiveCity');
-        closeModal('ownActiveCity');
+        closeModal('city');
     };
 
     // #comment Fetch all wonders being built in the world
@@ -695,7 +689,30 @@ const MapView = ({
             </div>
             {message && <Modal message={message} onClose={() => setMessage('')} />}
             {wonderInfo && <Modal title={wonderInfo.title} message={wonderInfo.message} onClose={() => setWonderInfo(null)} />}
-            <MapModals modalState={modalState} closeModal={closeModal} gameState={gameState} playerCity={playerCity} travelTimeInfo={travelTimeInfo} handleSendMovement={handleSendMovement} handleCancelMovement={onCancelMovement} setMessage={setMessage} goToCoordinates={goToCoordinates} handleActionClick={handleActionClick} worldId={worldId} movements={movements} combinedSlots={combinedSlots} villages={visibleVillages} handleRushMovement={handleRushMovement} userProfile={userProfile} onCastSpell={handleCastSpell} onActionClick={handleMessageAction} marketCapacity={marketCapacity} onEnterCity={handleEnterCity} onSwitchCity={onSwitchCity} onWithdraw={handleOpenWithdrawModal} />
+            <MapModals
+                modalState={modalState}
+                closeModal={closeModal}
+                gameState={gameState}
+                playerCity={playerCity}
+                travelTimeInfo={travelTimeInfo}
+                handleSendMovement={handleSendMovement}
+                handleCancelMovement={onCancelMovement}
+                setMessage={setMessage}
+                goToCoordinates={goToCoordinates}
+                handleActionClick={handleActionClick}
+                worldId={worldId}
+                movements={movements}
+                combinedSlots={combinedSlots}
+                villages={visibleVillages}
+                handleRushMovement={handleRushMovement}
+                userProfile={userProfile}
+                onCastSpell={handleCastSpell}
+                onActionClick={handleMessageAction}
+                marketCapacity={marketCapacity}
+                onEnterCity={handleEnterCity}
+                onSwitchCity={onSwitchCity}
+                onWithdraw={handleOpenWithdrawModal}
+            />
             {modalState.isDivinePowersOpen && <DivinePowers godName={gameState.god} playerReligion={gameState.playerInfo.religion} favor={gameState.worship[gameState.god] || 0} onCastSpell={(power) => handleCastSpell(power, modalState.divinePowersTarget)} onClose={() => closeModal('divinePowers')} targetType={modalState.divinePowersTarget ? 'other' : 'self'} />}
             {modalState.isWithdrawModalOpen && (
                 <WithdrawModal
