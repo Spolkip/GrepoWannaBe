@@ -233,10 +233,16 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             }
         }
 
+        const updatedHeroes = gameState.heroes ? { ...gameState.heroes } : {};
+        if (hero && updatedHeroes[hero]) {
+            updatedHeroes[hero].cityId = playerCity.id;
+        }
+
         batch.update(gameDocRef, {
             units: updatedUnits,
             resources: updatedResources,
-            cave: updatedCave
+            cave: updatedCave,
+            heroes: updatedHeroes
         });
 
         const newGameState = {
@@ -244,6 +250,7 @@ export const useMapActions = (openModal, closeModal, showCity, invalidateChunkCa
             units: updatedUnits,
             resources: updatedResources,
             cave: updatedCave,
+            heroes: updatedHeroes
         };
 
         try {

@@ -422,8 +422,15 @@ export const useMovementProcessor = (worldId) => {
                         null, // Defender phalanx
                         null, // Defender support
                         movement.hero,
-                        Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId)
+                        Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId) || null
                     );
+
+                    // #comment If attacker's forces are annihilated, ensure their hero is captured if present.
+                    const allAttackerUnitsLost = Object.entries(movement.units || {}).every(([id, count]) => (result.attackerLosses[id] || 0) >= count);
+                    if (!result.capturedHero && movement.hero && allAttackerUnitsLost) {
+                        result.capturedHero = { heroId: movement.hero, capturedBy: 'defender' };
+                    }
+
 
                     // #comment Handle Hero Capture
                     if (result.capturedHero) {
@@ -513,6 +520,7 @@ export const useMovementProcessor = (worldId) => {
                             cityId: movement.originCityId,
                             cityName: originCityState.cityName,
                             units: movement.units,
+                            hero: movement.hero || null,
                             losses: result.attackerLosses,
                             ownerId: movement.originOwnerId,
                             username: movement.originOwnerUsername || 'Unknown Player',
@@ -525,6 +533,7 @@ export const useMovementProcessor = (worldId) => {
                             cityId: movement.targetCityId,
                             cityName: targetCityState.cityName,
                             units: hasSurvivingLandOrMythic ? targetCityState.units : {},
+                            hero: Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId) || null,
                             losses: hasSurvivingLandOrMythic ? result.defenderLosses : {},
                             ownerId: movement.targetOwnerId,
                             username: movement.ownerUsername || 'Unknown Player',
@@ -549,6 +558,7 @@ export const useMovementProcessor = (worldId) => {
                             cityId: movement.targetCityId,
                             cityName: targetCityState.cityName,
                             units: targetCityState.units,
+                            hero: Object.keys(targetCityState.heroes || {}).find(id => targetCityState.heroes[id].cityId === movement.targetCityId) || null,
                             losses: result.defenderLosses,
                             ownerId: movement.targetOwnerId,
                             username: movement.ownerUsername || 'Unknown Player',

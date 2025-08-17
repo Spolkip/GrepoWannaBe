@@ -2,14 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import Countdown from './Countdown';
 import unitConfig from '../../gameData/units.json';
+import heroesConfig from '../../gameData/heroes.json';
 
-// Dynamically import all unit images
-const unitImages = {};
-const imageContext = require.context('../../images', false, /\.(png|jpe?g|svg)$/);
-imageContext.keys().forEach((item) => {
+// Dynamically import all unit and hero images
+const images = {};
+const unitImageContext = require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/);
+unitImageContext.keys().forEach((item) => {
     const key = item.replace('./', '');
-    unitImages[key] = imageContext(item);
+    images[key] = unitImageContext(item);
 });
+const heroImageContext = require.context('../../images/heroes', false, /\.(png|jpe?g|svg)$/);
+heroImageContext.keys().forEach((item) => {
+    const key = item.replace('./', '');
+    images[key] = heroImageContext(item);
+});
+
 
 const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
     const [isCancellable, setIsCancellable] = useState(false);
@@ -87,7 +94,7 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
                         return (
                             <img
                                 key={unitId}
-                                src={unitImages[unit.image]}
+                                src={images[unit.image]}
                                 alt={unit.name}
                                 className="unit-icon"
                                 title={`${count}x ${unit.name}`}
@@ -96,6 +103,19 @@ const MovementItem = ({ movement, citySlots, onCancel, onRush, isAdmin }) => {
                     }
                     return null;
                 })}
+                {movement.hero && (() => {
+                    const hero = heroesConfig[movement.hero];
+                    if (!hero) return null;
+                    return (
+                        <img
+                            key={movement.hero}
+                            src={images[hero.image]}
+                            alt={hero.name}
+                            className="unit-icon"
+                            title={hero.name}
+                        />
+                    );
+                })()}
             </div>
             {isAdmin && (
                 <button onClick={() => onRush(movement.id)} className="btn btn-primary text-xs px-2 py-1">Rush</button>

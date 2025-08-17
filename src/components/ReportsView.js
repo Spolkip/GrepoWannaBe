@@ -7,6 +7,7 @@ import unitConfig from '../gameData/units.json';
 import buildingConfig from '../gameData/buildings.json';
 import godsConfig from '../gameData/gods.json';
 import ruinsResearch from '../gameData/ruinsResearch.json';
+import heroesConfig from '../gameData/heroes.json';
 import { parseBBCode } from '../utils/bbcodeParser';
 import './ReportsView.css';
 
@@ -17,12 +18,14 @@ const imageContexts = [
     require.context('../images/resources', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/buildings', false, /\.(png|jpe?g|svg)$/),
     require.context('../images/gods', false, /\.(png|jpe?g|svg)$/),
+    require.context('../images/heroes', false, /\.(png|jpe?g|svg)$/),
 ];
 imageContexts.forEach(context => {
     context.keys().forEach((item) => {
         const keyWithSubdir = context.id.includes('/resources') ? `resources/${item.replace('./', '')}` :
                               context.id.includes('/buildings') ? `buildings/${item.replace('./', '')}` :
                               context.id.includes('/gods') ? `gods/${item.replace('./', '')}` :
+                              context.id.includes('/heroes') ? `heroes/${item.replace('./', '')}` :
                               item.replace('./', '');
         images[keyWithSubdir] = context(item);
     });
@@ -195,6 +198,22 @@ const ReportsView = ({ onClose, onActionClick }) => {
         );
     };
 
+    const renderHeroDisplay = (heroId) => {
+        if (!heroId) return null;
+        const hero = heroesConfig[heroId];
+        if (!hero) return null;
+        const imageSrc = getImageUrl(`heroes/${hero.image}`);
+        return (
+            <div className="flex flex-col items-center mt-2">
+                <h5 className="font-semibold text-yellow-700">Hero</h5>
+                <div className="flex flex-col items-center">
+                    {imageSrc && <img src={imageSrc} alt={hero.name} className="w-10 h-10"/>}
+                    <span className="text-sm">{hero.name}</span>
+                </div>
+            </div>
+        );
+    };
+
     const renderResourceIcons = (resources) => {
         return Object.entries(resources || {}).map(([res, amount]) => {
             const imagePath = `resources/${res}.png`;
@@ -253,7 +272,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 <img src={getImageUrl('swordman.png')} alt="Attack Icon" className="mx-auto h-12 w-auto"/>
                             </div>
                             <div className="flex flex-col items-center w-1/3">
-                                {defender.cityName ? (
+                               {defender.cityName ? (
                                     <>
                                         <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName}[/city]`) }}></p>
                                         <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
@@ -268,6 +287,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                             <div className="p-3 bg-black/5 rounded flex flex-col items-center">
                                 <h4 className="font-semibold text-lg text-yellow-700 mb-2">Attacker Units</h4>
                                 {renderTroopDisplay(attacker.units)}
+                                {renderHeroDisplay(attacker.hero)}
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.attackerLosses, true)}</p>
                                 {outcome.wounded && Object.keys(outcome.wounded).length > 0 && (
                                     <p className="mt-2 text-orange-600"><strong>Wounded:</strong> {renderUnitList(outcome.wounded)}</p>
@@ -280,6 +300,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 ) : (
                                     <>
                                         {renderTroopDisplay(defender.units || defender.troops)}
+                                        {renderHeroDisplay(defender.hero)}
                                         <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                                     </>
                                 )}
@@ -303,8 +324,7 @@ const ReportsView = ({ onClose, onActionClick }) => {
                     </div>
                 );
             case 'attack_ruin':
-                const ruinBattlePoints = outcome.attackerBattlePoints || 0;
-                return (
+                 return (
                     <div className="flex flex-col items-center">
                         <p className={`font-bold text-2xl mb-4 ${outcome.attackerWon ? 'text-green-600' : 'text-red-600'}`}>
                             {outcome.attackerWon ? 'Victory!' : 'Defeat!'}
@@ -321,10 +341,10 @@ const ReportsView = ({ onClose, onActionClick }) => {
                                 <p className="mt-2"><strong>Losses:</strong> {renderUnitList(outcome.defenderLosses, true)}</p>
                             </div>
                         </div>
-                        {ruinBattlePoints > 0 && (
+                        {outcome.attackerBattlePoints > 0 && (
                             <div className="w-full p-3 bg-blue-800/10 rounded mt-4 text-center">
                                 <h4 className="font-semibold text-lg text-blue-700 mb-2">Battle Points Gained</h4>
-                                <p>⚔️ {ruinBattlePoints.toLocaleString()}</p>
+                                <p>⚔️ {outcome.attackerBattlePoints.toLocaleString()}</p>
                             </div>
                         )}
                         {report.reward && (
@@ -341,38 +361,23 @@ const ReportsView = ({ onClose, onActionClick }) => {
                     <div className="space-y-3">
                         {report.scoutSucceeded ? (
                             <>
-                                <div className="flex items-center justify-between w-full mb-4">
-                                    <div className="flex flex-col items-center w-1/3">
-                                        <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${attacker.cityId} owner=${attacker.ownerId} x=${attacker.x} y=${attacker.y}]${attacker.cityName}[/city]`) }}></p>
-                                        <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${attacker.ownerId}]${attacker.username}[/player]`) }}></p>
-                                        {attacker.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${attacker.allianceId}]${attacker.allianceName || attacker.allianceId}[/alliance]`) }}></p>}
-                                    </div>
-                                    <div className="w-1/3 text-center text-4xl">
-                                        <span>👁️</span>
-                                    </div>
-                                    <div className="flex flex-col items-center w-1/3">
-                                        <p className="font-bold text-lg" dangerouslySetInnerHTML={{ __html: parseBBCode(`[city id=${defender.cityId} owner=${defender.ownerId} x=${defender.x} y=${defender.y}]${defender.cityName}[/city]`) }}></p>
-                                        <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[player id=${defender.ownerId}]${defender.username}[/player]`) }}></p>
-                                        {defender.allianceId && <p className="text-sm text-gray-500" dangerouslySetInnerHTML={{ __html: parseBBCode(`[alliance id=${defender.allianceId}]${defender.allianceName || defender.allianceId}[/alliance]`) }}></p>}
-                                    </div>
-                                </div>
-                                <p className="font-bold text-green-600 text-lg text-center">Scout Successful!</p>
+                                <p className="font-bold text-green-600 text-lg">Scout Successful!</p>
                                 {scoutedGod && (
-                                    <div className="flex items-center justify-center gap-2 mt-2">
+                                    <div className="flex items-center gap-2 mt-2">
                                         <p><strong>Worshipped God:</strong> {scoutedGod.name}</p>
                                         <img src={getImageUrl(`gods/${scoutedGod.image}`)} alt={scoutedGod.name} className="w-8 h-8"/>
                                     </div>
                                 )}
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700 text-center">Resources:</h5>
-                                    <div className="flex flex-wrap gap-2 justify-center">{renderResourceIcons(report.resources)}</div>
+                                    <h5 className="font-semibold text-yellow-700">Resources:</h5>
+                                    <div className="flex flex-wrap gap-2">{renderResourceIcons(report.resources)}</div>
                                 </div>
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700 text-center">Units:</h5>
+                                    <h5 className="font-semibold text-yellow-700">Units:</h5>
                                     {renderTroopDisplay(report.units)}
                                 </div>
                                 <div className="mt-4">
-                                    <h5 className="font-semibold text-yellow-700 text-center">Buildings:</h5>
+                                    <h5 className="font-semibold text-yellow-700">Buildings:</h5>
                                     {renderBuildingDisplay(report.buildings)}
                                 </div>
                             </>
