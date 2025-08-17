@@ -3,7 +3,8 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import godTownImage from '../../images/god-town.png';
 import unitConfig from '../../gameData/units.json';
-import allianceWonders from '../../gameData/alliance_wonders.json'; // #comment Import wonder data
+import allianceWonders from '../../gameData/alliance_wonders.json';
+import { calculateTotalPointsForCity } from '../../hooks/useCityState';
 
 const images = {};
 const imageContext = require.context('../../images', true, /\.(png|jpe?g|svg)$/);
@@ -58,7 +59,16 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
         hasCitySprite = true;
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
-        const points = cityPoints[slotData.id] ? cityPoints[slotData.id] : 0;
+        
+        let points = 0;
+        if (slotData.ownerId === currentUser.uid) {
+            // For the current player's cities, calculate points directly from the slot data.
+            // This ensures new cities show points immediately.
+            points = calculateTotalPointsForCity(slotData, playerAlliance);
+        } else {
+            // For other players, use the periodically fetched points data.
+            points = cityPoints[slotData.id] ? cityPoints[slotData.id] : 0;
+        }
 
         let troopsHTML = '';
         if (slotData.ownerId === currentUser.uid) {
@@ -121,7 +131,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             
             citySpriteStyle = {
                 backgroundImage: `url(${images['city_modal.png']})`,
-                backgroundSize: '200% 300%',
+                backgroundSize: '200% 350%',
                 backgroundPosition: `${backgroundPositionX} ${backgroundPositionY}`,
             };
         }

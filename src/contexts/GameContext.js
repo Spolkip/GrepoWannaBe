@@ -1,3 +1,4 @@
+// src/contexts/GameContext.js
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { doc, onSnapshot, collection, writeBatch, updateDoc, getDoc } from "firebase/firestore";
 import { db } from '../firebase/config';
@@ -20,6 +21,7 @@ export const GameProvider = ({ children, worldId }) => {
     const [loading, setLoading] = useState(true);
     const [conqueredVillages, setConqueredVillages] = useState({});
     const [conqueredRuins, setConqueredRuins] = useState({});
+    const [playerCityPoints, setPlayerCityPoints] = useState({}); // State for player's city points
     const [gameSettings, setGameSettings] = useState({
         animations: true,
         confirmActions: true,
@@ -134,15 +136,17 @@ export const GameProvider = ({ children, worldId }) => {
         };
     }, [currentUser, worldId]);
 
-    // #comment This effect recalculates and saves the player's total points and city count whenever their cities change.
+    // #comment This effect recalculates the player's total points and points per city whenever their cities change.
     useEffect(() => {
-        if (!currentUser || !worldId || !playerCities || Object.keys(playerCities).length === 0) {
+        if (!currentUser || !worldId || !playerCities) {
+            if (!playerCities || Object.keys(playerCities).length === 0) {
+                setPlayerCityPoints({}); // Clear points if no cities
+            }
             return;
         }
 
         const recalculateAndSaveTotalPoints = async () => {
             let playerAlliance = null;
-            // Fetch alliance data if the player is in an alliance
             if (playerGameData?.alliance) {
                 const allianceDocRef = doc(db, 'worlds', worldId, 'alliances', playerGameData.alliance);
                 const allianceSnap = await getDoc(allianceDocRef);
@@ -152,17 +156,26 @@ export const GameProvider = ({ children, worldId }) => {
             }
 
             let totalPoints = 0;
+            const newCityPoints = {};
             for (const cityId in playerCities) {
-                // Use the pure function, passing the alliance data
-                totalPoints += calculateTotalPointsForCity(playerCities[cityId], playerAlliance);
+                const cityData = playerCities[cityId];
+                const points = calculateTotalPointsForCity(cityData, playerAlliance);
+                totalPoints += points;
+                if (cityData.slotId) {
+                    newCityPoints[cityData.slotId] = points;
+                }
             }
+            setPlayerCityPoints(newCityPoints);
+
             const cityCount = Object.keys(playerCities).length;
 
-            // Only write to the database if the points or city count have actually changed.
             if (playerGameData?.totalPoints !== totalPoints || playerGameData?.cityCount !== cityCount) {
                 const gameDocRef = doc(db, `users/${currentUser.uid}/games`, worldId);
                 try {
-                    await updateDoc(gameDocRef, { totalPoints, cityCount });
+                    const gameDocSnap = await getDoc(gameDocRef);
+                    if (gameDocSnap.exists()) {
+                        await updateDoc(gameDocRef, { totalPoints, cityCount });
+                    }
                 } catch (error) {
                     console.error("Error updating total points and city count:", error);
                 }
@@ -225,8 +238,8 @@ export const GameProvider = ({ children, worldId }) => {
         setGameSettings,
         countCitiesOnIsland,
         renameCity,
-        addNotification, // Pass addNotification through the context
-
+        addNotification,
+        playerCityPoints,
         gameState,
         playerCity,
         setGameState: (newState) => {

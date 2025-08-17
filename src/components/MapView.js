@@ -72,7 +72,7 @@ const MapView = ({
     setInitialMapAction
 }) => {
     const { currentUser, userProfile } = useAuth();
-    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId } = useGame();
+    const { worldState, gameState, setGameState, worldId, playerCity, playerCities, conqueredVillages, conqueredRuins, gameSettings, activeCityId, playerCityPoints } = useGame();
     const { playerAlliance } = useAlliance();
 
     const viewportRef = useRef(null);
@@ -172,12 +172,15 @@ const MapView = ({
 
     const fetchAllCityPoints = useCallback(async () => {
         if (!worldId) return;
-
+    
         const points = {};
         const usersRef = collection(db, 'users');
         const usersSnapshot = await getDocs(usersRef);
-
+    
         for (const userDoc of usersSnapshot.docs) {
+            // #comment Skip current user, their points are handled by playerCityPoints from context
+            if (userDoc.id === currentUser.uid) continue;
+    
             const citiesRef = collection(db, `users/${userDoc.id}/games`, worldId, 'cities');
             const citiesSnapshot = await getDocs(citiesRef);
             for (const cityDoc of citiesSnapshot.docs) {
@@ -189,7 +192,7 @@ const MapView = ({
             }
         }
         setCityPoints(points);
-    }, [worldId, calculateTotalPoints]);
+    }, [worldId, calculateTotalPoints, currentUser.uid]);
 
     const fetchScoutedData = useCallback(async () => {
         if (!currentUser || !worldId) return;
@@ -570,6 +573,10 @@ const MapView = ({
         return grid;
     }, [worldState, combinedSlots, visibleVillages, visibleRuins, godTowns, wonderSpots, allWonders]);
 
+    const combinedCityPoints = useMemo(() => {
+        return { ...cityPoints, ...playerCityPoints };
+    }, [cityPoints, playerCityPoints]);
+
     return (
         <div className="w-full h-screen flex flex-col bg-gray-900 map-view-wrapper relative">
             {isUnderAttack && <div className="screen-glow-attack"></div>}
@@ -675,7 +682,7 @@ const MapView = ({
                                         playerAlliance={playerAlliance}
                                         conqueredVillages={conqueredVillages}
                                         gameSettings={gameSettings}
-                                        cityPoints={cityPoints}
+                                        cityPoints={combinedCityPoints}
                                         scoutedCities={scoutedCities}
                                         controlledIslands={controlledIslands}
                                     />
