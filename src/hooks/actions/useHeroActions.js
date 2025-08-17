@@ -2,12 +2,13 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
 import heroesConfig from '../../gameData/heroes.json';
+import { calculateDistance, calculateTravelTime } from '../../utils/travel';
 
 export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
     const { currentUser } = useAuth();
-    const { worldId, activeCityId } = useGame();
+    const { worldId, activeCityId, playerCities, worldState } = useGame();
 
     const onRecruitHero = async (heroId) => {
         const hero = heroesConfig[heroId];
@@ -52,12 +53,10 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
                 const favorCost = skill.cost.favor;
                 const currentSkillCost = (favorCost.base || 0) + ((heroData.level - 1) * (favorCost.perLevel || 0));
 
-                // #comment Check for favor cost
                 if ((cityData.worship?.[cityData.god] || 0) < currentSkillCost) {
                     throw new Error("Not enough favor.");
                 }
 
-                // #comment Check for skill cooldown
                 const activeSkills = cityData.activeSkills || {};
                 const now = Date.now();
                 if (activeSkills[skill.name] && now < activeSkills[skill.name].expires) {
@@ -65,10 +64,8 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
                     throw new Error(`Skill is on cooldown. Time left: ${timeLeft}s`);
                 }
 
-                // #comment Deduct favor
                 const newWorship = { ...cityData.worship, [cityData.god]: cityData.worship[cityData.god] - currentSkillCost };
 
-                // #comment Apply effect and set cooldown
                 let newBuffs = { ...(cityData.buffs || {}) };
                 const newActiveSkills = { ...activeSkills };
 
@@ -122,7 +119,6 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
                 const cityData = cityDoc.data();
                 const heroes = cityData.heroes || {};
 
-                // #comment Check if another hero is already in this city
                 for (const hId in heroes) {
                     if (heroes[hId].cityId === activeCityId) {
                         throw new Error("Another hero is already stationed in this city.");
@@ -155,5 +151,60 @@ export const useHeroActions = (cityGameState, saveGameState, setMessage) => {
         }
     };
 
-    return { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero };
+    // --- START: NEW FUNCTION ---
+    const onReleaseHero = async (prisonerToRelease) => {
+        if (!prisonerToRelease || !prisonerToRelease.captureId) {
+            setMessage("Invalid prisoner data.");
+            return;
+        }
+
+        const capturingCityRef = doc(db, `users/${currentUser.uid}/games`, worldId, 'cities', activeCityId);
+        
+        try {
+            await runTransaction(db, async (transaction) => {
+                const capturingCityDoc = await transaction.get(capturingCityRef);
+                if (!capturingCityDoc.exists()) throw new Error("Your city data could not be found.");
+
+                const capturingCityData = capturingCityDoc.data();
+                const currentPrisoners = capturingCityData.prisoners || [];
+                const newPrisoners = currentPrisoners.filter(p => p.captureId !== prisonerToRelease.captureId);
+
+                if (newPrisoners.length === currentPrisoners.length) {
+                    throw new Error("Could not find the specified prisoner to release.");
+                }
+
+                transaction.update(capturingCityRef, { prisoners: newPrisoners });
+
+                // Create a return movement for the hero
+                const newMovementRef = doc(collection(db, 'worlds', worldId, 'movements'));
+                const heroOwnerCity = Object.values(playerCities).find(city => city.id === prisonerToRelease.originCityId) || { x: 0, y: 0 }; // Fallback coords
+
+                const distance = calculateDistance(capturingCityData, heroOwnerCity);
+                const travelSeconds = calculateTravelTime(distance, 10); // Use a base speed for heroes
+                const arrivalTime = new Date(Date.now() + travelSeconds * 1000);
+
+                const movementData = {
+                    type: 'return',
+                    status: 'returning',
+                    hero: prisonerToRelease.heroId,
+                    originCityId: activeCityId,
+                    originCoords: { x: capturingCityData.x, y: capturingCityData.y },
+                    originOwnerId: currentUser.uid,
+                    originCityName: capturingCityData.cityName,
+                    targetCityId: prisonerToRelease.originCityId,
+                    targetCoords: { x: heroOwnerCity.x, y: heroOwnerCity.y },
+                    targetOwnerId: prisonerToRelease.ownerId,
+                    departureTime: serverTimestamp(),
+                    arrivalTime: arrivalTime,
+                    involvedParties: [currentUser.uid, prisonerToRelease.ownerId]
+                };
+                transaction.set(newMovementRef, movementData);
+            });
+            setMessage(`${heroesConfig[prisonerToRelease.heroId].name} has been released and is returning home.`);
+        } catch (error) {
+            setMessage(`Failed to release hero: ${error.message}`);
+            console.error(error);
+        }
+    };
+    return { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero, onReleaseHero };
 };

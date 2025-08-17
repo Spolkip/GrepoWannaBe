@@ -8,13 +8,13 @@ import SenateView from './SenateView';
 import TempleMenu from './TempleMenu';
 import CaveMenu from './CaveMenu';
 import HospitalMenu from './HospitalMenu';
-import MarketMenu from './MarketMenu'; // #comment Import MarketMenu
+import MarketMenu from './MarketMenu';
 import { AcademyMenu } from './AcademyMenu';
-import DivineTempleMenu from './DivineTempleMenu'; // #comment Import the new DivineTempleMenu
+import DivineTempleMenu from './DivineTempleMenu';
 import SpecialBuildingMenu from './SpecialBuildingMenu';
-import SpecialBuildingPanel from './SpecialBuildingPanel'; // #comment Import the new panel
+import SpecialBuildingPanel from './SpecialBuildingPanel';
 import HeroesAltar from './HeroesAltar';
-import PrisonMenu from './PrisonMenu'; // #comment Import PrisonMenu
+import PrisonMenu from './PrisonMenu';
 
 const CityModals = ({
   cityGameState,
@@ -48,7 +48,7 @@ const CityModals = ({
   onAddWorker,
   onRemoveWorker,
   getMaxWorkerSlots,
-  getMarketCapacity, // #comment Receive market capacity function
+  getMarketCapacity,
   handleBuildSpecialBuilding,
   handleDemolish,
   handleDemolishSpecialBuilding,
@@ -58,6 +58,7 @@ const CityModals = ({
   onAssignHero,
   onUnassignHero,
   onApplyWorkerPreset,
+  onReleaseHero, // --- ADDED PROP ---
 }) => {
   const {
     selectedBuildingId,
@@ -69,12 +70,12 @@ const CityModals = ({
     isAcademyMenuOpen,
     isHospitalMenuOpen,
     isCheatMenuOpen,
-    isMarketMenuOpen, // #comment Get market menu state
+    isMarketMenuOpen,
     isDivineTempleMenuOpen,
     isSpecialBuildingMenuOpen,
-    isSpecialBuildingPanelOpen, // #comment Get panel state
+    isSpecialBuildingPanelOpen,
     isHeroesAltarOpen,
-    isPrisonMenuOpen, // #comment Get prison menu state
+    isPrisonMenuOpen,
   } = modalState;
 
   if (!cityGameState) return null;
@@ -93,7 +94,7 @@ const CityModals = ({
           getFarmCapacity={getFarmCapacity}
           onOpenBarracks={() => { closeModal('selectedBuildingId'); openModal('isBarracksMenuOpen'); }}
           onOpenShipyard={() => { closeModal('selectedBuildingId'); openModal('isShipyardMenuOpen'); }}
-          onOpenMarket={() => { closeModal('selectedBuildingId'); openModal('isMarketMenuOpen'); }} // #comment Add handler to open market
+          onOpenMarket={() => { closeModal('selectedBuildingId'); openModal('isMarketMenuOpen'); }}
           onAddWorker={onAddWorker}
           onRemoveWorker={onRemoveWorker}
           availablePopulation={availablePopulation}
@@ -133,8 +134,8 @@ const CityModals = ({
           onFire={handleFireTroops}
           onClose={() => closeModal('isBarracksMenuOpen')}
           cityGameState={cityGameState}
-          unitQueue={cityGameState.barracksQueue} // Pass barracksQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'barracks')} // Pass item and queueType
+          unitQueue={cityGameState.barracksQueue}
+          onCancelTrain={(item) => handleCancelTrain(item, 'barracks')}
         />
       )}
        {isDivineTempleMenuOpen && (
@@ -143,8 +144,8 @@ const CityModals = ({
           availablePopulation={availablePopulation}
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isDivineTempleMenuOpen')}
-          unitQueue={cityGameState.divineTempleQueue} // Pass divineTempleQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'divineTemple')} // Pass item and queueType
+          unitQueue={cityGameState.divineTempleQueue}
+          onCancelTrain={(item) => handleCancelTrain(item, 'divineTemple')}
           cityGameState={cityGameState}
         />
       )}
@@ -155,8 +156,8 @@ const CityModals = ({
           onTrain={handleTrainTroops}
           onClose={() => closeModal('isShipyardMenuOpen')}
           cityGameState={cityGameState}
-          unitQueue={cityGameState.shipyardQueue} // Pass shipyardQueue
-          onCancelTrain={(item) => handleCancelTrain(item, 'shipyard')} // Pass item and queueType
+          unitQueue={cityGameState.shipyardQueue}
+          onCancelTrain={(item) => handleCancelTrain(item, 'shipyard')}
         />
       )}
       {isTempleMenuOpen && (
@@ -211,7 +212,6 @@ const CityModals = ({
             availablePopulation={availablePopulation}
           />
       )}
-      {/* #comment Render the new SpecialBuildingPanel */}
       {isSpecialBuildingPanelOpen && (
         <SpecialBuildingPanel
             buildingId={cityGameState.specialBuilding}
@@ -229,13 +229,15 @@ const CityModals = ({
             onUnassignHero={onUnassignHero}
         />
       )}
-      {/* #comment Render the new PrisonMenu */}
+      {/* --- START: MODIFIED CODE --- */}
       {isPrisonMenuOpen && (
         <PrisonMenu
           cityGameState={cityGameState}
           onClose={() => closeModal('isPrisonMenuOpen')}
+          onReleaseHero={onReleaseHero} 
         />
       )}
+      {/* --- END: MODIFIED CODE --- */}
       {isCheatMenuOpen && userProfile?.is_admin && (
         <AdminCheatMenu
           onCheat={handleCheat}

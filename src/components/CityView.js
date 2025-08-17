@@ -60,7 +60,9 @@ const CityView = ({
         setIsInstantBuild, setIsInstantResearch, setIsInstantUnits, getMaxWorkerSlots
     });
 
-    const { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero } = useHeroActions(cityGameState, saveGameState, setMessage);
+    // --- START: MODIFIED CODE ---
+    const { onRecruitHero, onActivateSkill, onAssignHero, onUnassignHero, onReleaseHero } = useHeroActions(cityGameState, saveGameState, setMessage);
+    // --- END: MODIFIED CODE ---
 
     const { availablePopulation, happiness } = useMemo(() => {
         if (!cityGameState) return { availablePopulation: 0, happiness: 0 };
@@ -181,6 +183,7 @@ const CityView = ({
                 onAssignHero={onAssignHero}
                 onUnassignHero={onUnassignHero}
                 onApplyWorkerPreset={actions.applySenateWorkerPreset}
+                onReleaseHero={onReleaseHero} // --- ADDED PROP ---
             />
             {cityModalState.isDivinePowersOpen && (
                 <DivinePowers
