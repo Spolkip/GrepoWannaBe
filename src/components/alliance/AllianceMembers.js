@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAlliance } from '../../contexts/AllianceContext';
 import { useGame } from '../../contexts/GameContext';
 import { db } from '../../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, collectionGroup } from 'firebase/firestore';
 import allianceResearch from '../../gameData/allianceResearch.json';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -31,7 +31,7 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
 
 const AllianceMembers = () => {
     const { playerAlliance, kickAllianceMember, banAllianceMember, updateAllianceMemberRank } = useAlliance();
-    const { worldId } = useGame();
+    const { worldId, worldState } = useGame();
     const { currentUser } = useAuth();
 
     const [detailedMembers, setDetailedMembers] = useState([]);
@@ -77,23 +77,40 @@ const AllianceMembers = () => {
 
     useEffect(() => {
         const fetchMemberDetails = async () => {
-            if (!playerAlliance || playerAlliance.members.length === 0) {
+            if (!playerAlliance || playerAlliance.members.length === 0 || !worldState) {
                 setLoading(false);
                 return;
             }
             setLoading(true);
 
+            const memberIds = playerAlliance.members.map(m => m.uid);
+            const usersData = new Map();
+            const gameDataMap = new Map();
+
+            // #comment Efficiently fetch all game data for the world using a collection group query
+            const gamesGroupRef = collectionGroup(db, 'games');
+            const qGames = query(gamesGroupRef, where('worldName', '==', worldState.name));
+            const gamesSnapshot = await getDocs(qGames);
+            gamesSnapshot.forEach(gameDoc => {
+                const userId = gameDoc.ref.parent.parent.id;
+                if (memberIds.includes(userId)) { // Only store data for alliance members
+                    gameDataMap.set(userId, gameDoc.data());
+                }
+            });
+
+            // #comment Batch fetch user profiles instead of one by one
+            if (canViewActivity && memberIds.length > 0) {
+                const usersRef = collection(db, 'users');
+                const qUsers = query(usersRef, where('__name__', 'in', memberIds));
+                const userDocsSnap = await getDocs(qUsers);
+                userDocsSnap.forEach(doc => {
+                    usersData.set(doc.id, doc.data());
+                });
+            }
+
             const memberDetailsPromises = playerAlliance.members.map(async (member) => {
-                const gameDocRef = doc(db, `users/${member.uid}/games`, worldId);
-                const userDocRef = doc(db, 'users', member.uid);
-
-                const [gameDocSnap, userDocSnap] = await Promise.all([
-                    getDoc(gameDocRef),
-                    canViewActivity ? getDoc(userDocRef) : Promise.resolve(null)
-                ]);
-
-                const gameData = gameDocSnap.exists() ? gameDocSnap.data() : { totalPoints: 0, cityCount: 0, lastSeen: null };
-                const userData = userDocSnap?.exists() ? userDocSnap.data() : {};
+                const gameData = gameDataMap.get(member.uid) || { totalPoints: 0, cityCount: 0, lastSeen: null };
+                const userData = usersData.get(member.uid) || {};
 
                 return {
                     ...member,
@@ -123,7 +140,7 @@ const AllianceMembers = () => {
         } else {
             fetchMemberDetails();
         }
-    }, [playerAlliance, worldId, canViewActivity]);
+    }, [playerAlliance, worldId, canViewActivity, worldState]);
 
     const sortedMembers = useMemo(() => {
         let sortableItems = [...detailedMembers];

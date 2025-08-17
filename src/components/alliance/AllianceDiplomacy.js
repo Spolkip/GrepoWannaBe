@@ -12,10 +12,18 @@ const diplomacyCache = {
     timestamp: 0,
 };
 
+// #comment Local cache for alliance cities to reduce N+1 queries.
+let allianceCitiesCache = {
+    cities: null,
+    timestamp: 0,
+};
+
 export const clearDiplomacyCache = () => {
     diplomacyCache.alliances = null;
     diplomacyCache.allCities = null;
     diplomacyCache.timestamp = 0;
+    allianceCitiesCache.cities = null;
+    allianceCitiesCache.timestamp = 0;
 };
 
 const AllianceDiplomacy = () => {
@@ -75,8 +83,10 @@ const AllianceDiplomacy = () => {
                 diplomacyCache.timestamp = now;
             }
 
-            // This part is specific to the player's alliance and should not be cached globally.
-            const fetchAllianceCities = async () => {
+            // #comment Use local cache for alliance cities to prevent N+1 queries on every view
+            if (now - allianceCitiesCache.timestamp < CACHE_DURATION && allianceCitiesCache.cities) {
+                setAllAllianceCities(allianceCitiesCache.cities);
+            } else {
                 const cities = [];
                 for (const member of playerAlliance.members) {
                     const citiesRef = collection(db, `users/${member.uid}/games`, worldId, 'cities');
@@ -86,8 +96,9 @@ const AllianceDiplomacy = () => {
                     });
                 }
                 setAllAllianceCities(cities);
-            };
-            fetchAllianceCities();
+                allianceCitiesCache.cities = cities;
+                allianceCitiesCache.timestamp = now;
+            }
         };
 
         fetchData();

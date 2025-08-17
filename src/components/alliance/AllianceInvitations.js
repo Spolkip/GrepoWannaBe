@@ -7,7 +7,7 @@ import { useAlliance } from '../../contexts/AllianceContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 // #comment Cache for player list to reduce reads.
-let playerCache = {
+export let playerCache = {
     allPlayers: null,
     timestamp: 0,
 };

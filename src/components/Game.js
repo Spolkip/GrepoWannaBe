@@ -34,12 +34,29 @@ import MovementsPanel from './map/MovementsPanel';
 import SharedReportView from './SharedReportView';
 import EventTrigger from './admin/EventTrigger';
 import GodTownModal from './map/GodTownModal';
-import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction, serverTimestamp} from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction, serverTimestamp, getDocs} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json';
 
 // #comment Import the icons
 import logoutIcon from '../images/logout.png';
 import worldIcon from '../images/world_selection.png';
+
+// #comment Cache for world-level data like villages and ruins
+let worldDataCache = {
+    villages: null,
+    ruins: null,
+    lastFetchTimestamp: 0,
+};
+
+// #comment Function to clear the world data cache
+export const clearWorldDataCache = () => {
+    worldDataCache = {
+        villages: null,
+        ruins: null,
+        lastFetchTimestamp: 0,
+    };
+};
+
 
 // #comment get warehouse capacity based on its level
 const getWarehouseCapacity = (level) => {
@@ -211,23 +228,41 @@ const Game = ({ onBackToWorlds }) => {
             setMovements(allMovements.sort((a, b) => a.arrivalTime.toMillis() - b.arrivalTime.toMillis()));
         });
 
-        const villagesColRef = collection(db, 'worlds', worldId, 'villages');
-        const unsubscribeVillages = onSnapshot(villagesColRef, (snapshot) => {
+        // #comment Fetch static world data like villages and ruins with caching
+        const fetchWorldData = async () => {
+            const now = Date.now();
+            const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+            if (now - worldDataCache.lastFetchTimestamp < CACHE_DURATION && worldDataCache.villages && worldDataCache.ruins) {
+                setVillages(worldDataCache.villages);
+                setRuins(worldDataCache.ruins);
+                return;
+            }
+
+            // Fetch Villages
+            const villagesColRef = collection(db, 'worlds', worldId, 'villages');
+            const villagesSnapshot = await getDocs(villagesColRef);
             const villagesData = {};
-            snapshot.docs.forEach(doc => {
+            villagesSnapshot.forEach(doc => {
                 villagesData[doc.id] = { id: doc.id, ...doc.data() };
             });
             setVillages(villagesData);
-        });
+            worldDataCache.villages = villagesData;
 
-        const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
-        const unsubscribeRuins = onSnapshot(ruinsColRef, (snapshot) => {
+            // Fetch Ruins
+            const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
+            const ruinsSnapshot = await getDocs(ruinsColRef);
             const ruinsData = {};
-            snapshot.docs.forEach(doc => {
+            ruinsSnapshot.forEach(doc => {
                 ruinsData[doc.id] = { id: doc.id, ...doc.data() };
             });
             setRuins(ruinsData);
-        });
+            worldDataCache.ruins = ruinsData;
+
+            worldDataCache.lastFetchTimestamp = now;
+        };
+
+        fetchWorldData();
 
         const godTownsColRef = collection(db, 'worlds', worldId, 'godTowns');
         const unsubscribeGodTowns = onSnapshot(godTownsColRef, (snapshot) => {
@@ -240,8 +275,6 @@ const Game = ({ onBackToWorlds }) => {
 
         return () => {
             unsubscribeMovements();
-            unsubscribeVillages();
-            unsubscribeRuins();
             unsubscribeGodTowns();
         };
     }, [worldId, currentUser]);

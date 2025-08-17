@@ -8,6 +8,7 @@ import SharedReportView from '../SharedReportView';
 import ReactDOM from 'react-dom';
 import './MessagesView.css';
 import TextEditor from '../shared/TextEditor';
+import { playerCache } from '../alliance/AllianceInvitations';
 
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
@@ -25,15 +26,24 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [allPlayers, setAllPlayers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
 
-    // Fetch all players for autocomplete
+    // #comment Fetch all players for autocomplete using the shared cache
     useEffect(() => {
         const fetchPlayers = async () => {
-            const usersRef = collection(db, 'users');
-            const snapshot = await getDocs(usersRef);
-            const players = snapshot.docs
-                .map(doc => doc.data().username)
-                .filter(username => username !== userProfile.username);
-            setAllPlayers(players);
+            const now = Date.now();
+            const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+            if (now - playerCache.timestamp < CACHE_DURATION && playerCache.allPlayers) {
+                setAllPlayers(playerCache.allPlayers);
+            } else {
+                const usersRef = collection(db, 'users');
+                const snapshot = await getDocs(usersRef);
+                const players = snapshot.docs
+                    .map(doc => doc.data().username)
+                    .filter(username => username !== userProfile.username);
+                setAllPlayers(players);
+                playerCache.allPlayers = players;
+                playerCache.timestamp = now;
+            }
         };
         fetchPlayers();
     }, [userProfile.username]);
