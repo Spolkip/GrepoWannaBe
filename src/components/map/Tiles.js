@@ -3,15 +3,26 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import godTownImage from '../../images/god-town.png';
 import unitConfig from '../../gameData/units.json';
-import allianceWonders from '../../gameData/alliance_wonders.json';
-import { calculateTotalPointsForCity } from '../../hooks/useCityState';
+import allianceWonders from '../../gameData/alliance_wonders.json'; // #comment Import wonder data
 
 const images = {};
-const imageContext = require.context('../../images', true, /\.(png|jpe?g|svg)$/);
-imageContext.keys().forEach((item) => {
-    const key = item.replace('./', '');
-    images[key] = imageContext(item);
+// #comment Combine multiple contexts to load images from root and subdirectories without path prefixes in keys.
+const imageContexts = [
+    require.context('../../images', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/troops', false, /\.(png|jpe?g|svg)$/),
+    require.context('../../images/ruins', false, /\.(png|jpe?g|svg)$/),
+];
+
+imageContexts.forEach(context => {
+    context.keys().forEach((item) => {
+        const key = item.replace('./', '');
+        // To prevent overwrites if filenames are the same in different folders, check if key exists.
+        if (!images[key]) {
+            images[key] = context(item);
+        }
+    });
 });
+
 
 const defaultSettings = { showVisuals: true, showGrid: true };
 
@@ -59,16 +70,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
         hasCitySprite = true;
         const ownerName = slotData.ownerUsername || 'Unknown';
         const cityAllianceTag = slotData.alliance;
-        
-        let points = 0;
-        if (slotData.ownerId === currentUser.uid) {
-            // For the current player's cities, calculate points directly from the slot data.
-            // This ensures new cities show points immediately.
-            points = calculateTotalPointsForCity(slotData, playerAlliance);
-        } else {
-            // For other players, use the periodically fetched points data.
-            points = cityPoints[slotData.id] ? cityPoints[slotData.id] : 0;
-        }
+        const points = cityPoints[slotData.id] ? cityPoints[slotData.id] : 0;
 
         let troopsHTML = '';
         if (slotData.ownerId === currentUser.uid) {
@@ -131,7 +133,7 @@ const _CitySlotTile = ({ slotData, onClick, isPlacingDummyCity, playerAlliance, 
             
             citySpriteStyle = {
                 backgroundImage: `url(${images['city_modal.png']})`,
-                backgroundSize: '200% 350%',
+                backgroundSize: '200% 300%',
                 backgroundPosition: `${backgroundPositionX} ${backgroundPositionY}`,
             };
         }
@@ -215,7 +217,7 @@ const _RuinTile = ({ ruinData, onClick, gameSettings = defaultSettings }) => {
 const _GodTownTile = ({ townData, onClick, gameSettings = defaultSettings }) => {
     let townClass = 'god-town-slot';
     let tooltipText = `God Town: ${townData.name}`;
-    let image = townData.stage === 'ruins' ? images['ruins/ruin_new.png'] : godTownImage;
+    let image = townData.stage === 'ruins' ? images['ruin_new.png'] : godTownImage;
 
     if (townData.stage === 'ruins') {
         townClass += ' ruins';
