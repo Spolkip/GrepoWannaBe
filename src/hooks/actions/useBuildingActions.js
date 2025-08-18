@@ -1,4 +1,3 @@
-// src/hooks/actions/useBuildingActions.js
 import { v4 as uuidv4 } from 'uuid';
 import buildingConfig from '../../gameData/buildings.json';
 
@@ -27,13 +26,26 @@ export const useBuildingActions = ({
 
         const nextLevelToQueue = effectiveCurrentLevel + 1;
         const config = buildingConfig[buildingId];
+
         if (config && nextLevelToQueue > config.maxLevel) {
             setMessage("Building is already at its maximum level or queued to be.");
             return;
         }
-        
+
+        // #comment Check building requirements
+        const requirements = config.requirements;
+        if (requirements) {
+            for (const reqBuildingId in requirements) {
+                const requiredLevel = requirements[reqBuildingId];
+                const currentBuildingLevel = currentState.buildings[reqBuildingId]?.level || 0;
+                if (currentBuildingLevel < requiredLevel) {
+                    setMessage(`Requires ${buildingConfig[reqBuildingId].name} Level ${requiredLevel}.`);
+                    return;
+                }
+            }
+        }
+
         const cost = getUpgradeCost(buildingId, nextLevelToQueue);
-        
         const hasEnoughResources = currentState.resources.wood >= cost.wood &&
                                    currentState.resources.stone >= cost.stone &&
                                    currentState.resources.silver >= cost.silver;
@@ -55,7 +67,6 @@ export const useBuildingActions = ({
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const newTotalPopulation = currentUsedPopulation + populationInQueue + cost.population;
         const hasEnoughPopulation = newTotalPopulation <= maxPopulation;
-
 
         if (!hasEnoughPopulation && buildingId !== 'farm' && buildingId !== 'warehouse') {
             setMessage('Not enough population capacity!');
@@ -80,6 +91,7 @@ export const useBuildingActions = ({
                     : new Date(lastQueueItem.endTime).getTime();
             }
         }
+
         const endTime = new Date(lastEndTime + cost.time * 1000);
 
         const newQueueItem = {
@@ -88,6 +100,7 @@ export const useBuildingActions = ({
             level: nextLevelToQueue,
             endTime: endTime,
         };
+
         newGameState.buildQueue = [...currentQueue, newQueueItem];
 
         try {
@@ -106,14 +119,13 @@ export const useBuildingActions = ({
         if (!currentState || !currentState.buildQueue) {
             return;
         }
-    
+
         const itemIndex = currentState.buildQueue.findIndex(item => item.id === itemToCancel.id);
-    
         if (itemIndex === -1) {
             console.error("Could not find item to cancel in build queue.");
             return;
         }
-    
+
         if (itemIndex !== currentState.buildQueue.length - 1) {
             setMessage("You can only cancel the last item in the queue.");
             return;
@@ -121,9 +133,8 @@ export const useBuildingActions = ({
 
         const newQueue = [...currentState.buildQueue];
         const canceledTask = newQueue.splice(itemIndex, 1)[0];
-        
         const newGameState = { ...currentState, buildQueue: newQueue };
-    
+
         if (canceledTask.type !== 'demolish') {
             let cost;
             if (canceledTask.isSpecial) {
@@ -131,25 +142,23 @@ export const useBuildingActions = ({
             } else {
                 cost = getUpgradeCost(canceledTask.buildingId, canceledTask.level);
             }
-    
             newGameState.resources = {
                 ...currentState.resources,
                 wood: currentState.resources.wood + Math.floor(cost.wood * 0.5),
                 stone: currentState.resources.stone + Math.floor(cost.stone * 0.5),
                 silver: currentState.resources.silver + Math.floor(cost.silver * 0.5),
             };
-    
             if (canceledTask.buildingId === 'academy' && !canceledTask.isSpecial) {
                 newGameState.researchPoints = (newGameState.researchPoints || 0) - 4;
             }
         }
-        
+
         for (let i = itemIndex; i < newQueue.length; i++) {
             const previousTaskEndTime = (i === 0)
                 ? Date.now()
                 : (newQueue[i - 1]?.endTime ? new Date(newQueue[i - 1].endTime).getTime() : Date.now());
+
             const taskToUpdate = newQueue[i];
-            
             let taskTime;
             if (taskToUpdate.isSpecial) {
                 taskTime = 7200;
@@ -161,49 +170,48 @@ export const useBuildingActions = ({
             else {
                 taskTime = getUpgradeCost(taskToUpdate.buildingId, taskToUpdate.level).time;
             }
-            
+
             const newEndTime = new Date(previousTaskEndTime + taskTime * 1000);
             newQueue[i] = { ...taskToUpdate, endTime: newEndTime };
         }
-        
+
         await saveGameState(newGameState);
         setCityGameState(newGameState);
     };
-    
+
     const handleDemolish = async (buildingId) => {
         const currentState = cityGameState;
         if (!currentState || !worldId) return;
-    
+
         const currentQueue = currentState.buildQueue || [];
         if (currentQueue.length >= 5) {
             setMessage("Build queue is full (max 5).");
             return;
         }
-    
+
         const building = currentState.buildings[buildingId];
         if (!building) {
             setMessage("Building not found.");
             return;
         }
-    
+
         let finalLevel = building.level;
         const tasksForBuilding = currentQueue.filter(task => task.buildingId === buildingId);
         if (tasksForBuilding.length > 0) {
             finalLevel = tasksForBuilding[tasksForBuilding.length - 1].level;
         }
-    
+
         if (finalLevel <= 0) {
             setMessage("Building is already at or being demolished to level 0.");
             return;
         }
-    
+
         const levelToDemolishFrom = finalLevel;
         const targetLevel = finalLevel - 1;
-    
         const costConfig = buildingConfig[buildingId].baseCost;
         const calculatedTime = Math.floor(costConfig.time * Math.pow(1.25, levelToDemolishFrom - 1));
         const demolitionTime = isInstantBuild ? 1 : Math.floor(calculatedTime / 2);
-    
+
         let lastEndTime = Date.now();
         if (currentQueue.length > 0) {
             const lastQueueItem = currentQueue[currentQueue.length - 1];
@@ -213,8 +221,9 @@ export const useBuildingActions = ({
                     : new Date(lastQueueItem.endTime).getTime();
             }
         }
+
         const endTime = new Date(lastEndTime + demolitionTime * 1000);
-    
+
         const newQueueItem = {
             id: uuidv4(),
             type: 'demolish',
@@ -223,10 +232,10 @@ export const useBuildingActions = ({
             currentLevel: levelToDemolishFrom,
             endTime: endTime,
         };
-    
+
         const newGameState = JSON.parse(JSON.stringify(currentState));
         newGameState.buildQueue = [...currentQueue, newQueueItem];
-    
+
         try {
             await saveGameState(newGameState);
             setCityGameState(newGameState);
@@ -238,7 +247,6 @@ export const useBuildingActions = ({
 
     const handleBuildSpecialBuilding = async (buildingId, cost) => {
         const currentState = cityGameState;
-        
         if (currentState.specialBuilding || (currentState.buildQueue || []).some(task => task.isSpecial)) {
             setMessage("You can only build one special building per city.");
             return;
@@ -249,7 +257,7 @@ export const useBuildingActions = ({
             setMessage("Build queue is full (max 5).");
             return;
         }
-        
+
         const currentUsedPopulation = calculateUsedPopulation(currentState.buildings, currentState.units, currentState.specialBuilding);
         const maxPopulation = getFarmCapacity(currentState.buildings.farm.level);
         const availablePopulation = maxPopulation - currentUsedPopulation;
@@ -282,7 +290,8 @@ export const useBuildingActions = ({
                     : new Date(lastQueueItem.endTime).getTime();
             }
         }
-        const buildTimeInSeconds = 7200; // 2 hours for wonders
+
+        const buildTimeInSeconds = 7200;
         const endTime = new Date(lastEndTime + buildTimeInSeconds * 1000);
 
         const newQueueItem = {
@@ -292,14 +301,14 @@ export const useBuildingActions = ({
             level: 1,
             endTime: endTime,
         };
-        newGameState.buildQueue = [...currentQueue, newQueueItem];
 
+        newGameState.buildQueue = [...currentQueue, newQueueItem];
         await saveGameState(newGameState);
         setCityGameState(newGameState);
         closeModal('isSpecialBuildingMenuOpen');
         setMessage("Construction of your wonder has begun!");
     };
-    
+
     const handleDemolishSpecialBuilding = async () => {
         const currentState = cityGameState;
         if (!currentState.specialBuilding) {
@@ -315,11 +324,9 @@ export const useBuildingActions = ({
         };
 
         const newGameState = JSON.parse(JSON.stringify(currentState));
-        
         newGameState.resources.wood += refund.wood;
         newGameState.resources.stone += refund.stone;
         newGameState.resources.silver += refund.silver;
-        
         delete newGameState.specialBuilding;
 
         await saveGameState(newGameState);

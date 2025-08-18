@@ -1,18 +1,16 @@
-// src/components/city/SenateView.js
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import buildingConfig from '../../gameData/buildings.json';
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
 import BuildQueue from './BuildQueue';
+import './SenateView.css'; // Import the new CSS file
 
-// #comment Dynamically import all building and special building images
 const buildingImages = {};
 const contexts = [
     require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/special_buildings', false, /\.(png|jpe?g|svg)$/)
 ];
-
 contexts.forEach(context => {
     context.keys().forEach((item) => {
         const key = item.replace('./', '');
@@ -36,7 +34,6 @@ const ConfirmationModal = ({ message, onConfirm, onCancel }) => (
 // #comment Component to manage workers in production buildings
 const WorkerManager = ({ buildings, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation }) => {
     const productionBuildings = ['timber_camp', 'quarry', 'silver_mine'];
-
     return (
         <div className="bg-gray-900 rounded-lg p-4">
             <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Worker Management</h3>
@@ -44,10 +41,8 @@ const WorkerManager = ({ buildings, onAddWorker, onRemoveWorker, getMaxWorkerSlo
                 {productionBuildings.map(id => {
                     const building = buildings[id];
                     if (!building || building.level === 0) return null;
-
                     const workers = building.workers || 0;
                     const maxWorkers = getMaxWorkerSlots(building.level);
-
                     return (
                         <div key={id} className="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
                             <div>
@@ -75,10 +70,8 @@ const WorkerManager = ({ buildings, onAddWorker, onRemoveWorker, getMaxWorkerSlo
     );
 };
 
-// #comment Component to manage building presets for workers
 const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleApplyPreset, setIsSavingPreset, handleDeletePreset }) => {
     const selectedPreset = presets.find(p => p.id === selectedPresetId);
-
     return (
         <div className="bg-gray-900 rounded-lg p-4">
             <h3 className="text-xl font-bold font-title text-yellow-300 mb-3 text-center">Worker Presets</h3>
@@ -114,7 +107,6 @@ const PresetManager = ({ presets, selectedPresetId, setSelectedPresetId, handleA
     );
 };
 
-
 const BuildingCard = ({ id, config, level, finalQueuedLevel, cost, canAfford, onUpgrade, isQueueFull, isMaxLevel }) => {
     let buttonText;
     if (level === 0 && finalQueuedLevel === 0) {
@@ -122,9 +114,7 @@ const BuildingCard = ({ id, config, level, finalQueuedLevel, cost, canAfford, on
     } else {
         buttonText = `Expand to ${finalQueuedLevel + 1}`;
     }
-
     if (isMaxLevel) buttonText = 'Max Level';
-
     let disabledReason = '';
     if (isMaxLevel) disabledReason = 'Max Level';
     else if (isQueueFull) disabledReason = 'Queue Full';
@@ -155,7 +145,6 @@ const BuildingCard = ({ id, config, level, finalQueuedLevel, cost, canAfford, on
 const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
     const specialBuildingId = cityGameState.specialBuilding;
     const config = specialBuildingId ? specialBuildingsConfig[specialBuildingId] : buildingConfig.special_building_plot;
-    
     return (
         <div className="bg-gray-700/80 border-2 border-gray-600 rounded-lg p-2 w-48 text-center flex flex-col items-center relative shadow-lg">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-500/50"></div>
@@ -174,7 +163,6 @@ const SpecialBuildingCard = ({ cityGameState, onOpenSpecialBuildingMenu }) => {
     );
 };
 
-
 const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCost, onClose, usedPopulation, maxPopulation, buildQueue = [], onCancelBuild, setMessage, cityGameState, onOpenSpecialBuildingMenu, onDemolishSpecialBuilding, currentUser, worldId, onAddWorker, onRemoveWorker, getMaxWorkerSlots, availablePopulation, onApplyWorkerPreset }) => {
     const [activeTab, setActiveTab] = useState('upgrade');
     const [presets, setPresets] = useState([]);
@@ -182,7 +170,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
     const [isSavingPreset, setIsSavingPreset] = useState(false);
     const [newPresetName, setNewPresetName] = useState('');
     const [confirmAction, setConfirmAction] = useState(null);
-    
+
     const buildingRows = [
         ['senate'],
         ['timber_camp', 'quarry', 'silver_mine', 'farm'],
@@ -203,12 +191,10 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         return () => unsubscribe();
     }, [currentUser, worldId]);
 
-    // #comment Calculate the final level of a building after all queued tasks are complete.
     const getFinalLevelInQueue = (buildingId) => {
         let finalLevel = buildings[buildingId]?.level || 0;
         const tasksForBuilding = (buildQueue || []).filter(task => task.buildingId === buildingId && task.type !== 'demolish');
         const demolishTasks = (buildQueue || []).filter(task => task.buildingId === buildingId && task.type === 'demolish');
-
         if (tasksForBuilding.length > 0) {
             finalLevel = Math.max(...tasksForBuilding.map(t => t.level));
         }
@@ -218,17 +204,14 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         return finalLevel;
     };
 
-    // #comment Save the current city worker layout as a new preset.
     const handleSavePreset = async () => {
         if (!newPresetName.trim()) {
             setMessage("Please enter a name for the preset.");
             return;
         }
-
         const presetId = newPresetName.trim().toLowerCase().replace(/\s+/g, '-');
         const presetDocRef = doc(db, `users/${currentUser.uid}/games/${worldId}/presets`, presetId);
         const existingPreset = presets.find(p => p.id === presetId);
-
         if (presets.length >= 3 && !existingPreset) {
             setMessage("You can only have a maximum of 3 presets. Delete one to save a new one.");
             setIsSavingPreset(false);
@@ -241,21 +224,18 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
             productionBuildings.forEach(id => {
                 currentWorkers[id] = buildings[id]?.workers || 0;
             });
-
             const presetData = {
                 name: newPresetName.trim(),
                 workers: currentWorkers
             };
-
             await setDoc(presetDocRef, presetData);
-
             setNewPresetName('');
             setIsSavingPreset(false);
             setSelectedPresetId(presetId);
             setConfirmAction(null);
             setMessage(`Preset '${presetData.name}' saved successfully!`);
         };
-        
+
         if (existingPreset) {
             setConfirmAction({
                 message: `A preset named "${newPresetName.trim()}" already exists. Do you want to overwrite it?`,
@@ -265,7 +245,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
             await onConfirmSave();
         }
     };
-    
+
     // #comment Delete the selected preset after confirmation
     const handleDeletePreset = async () => {
         if (!selectedPresetId) return;
@@ -291,7 +271,6 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
         }
         onApplyWorkerPreset(selectedPreset);
     };
-
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-30">
@@ -320,14 +299,12 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                     </div>
                 </div>
             )}
-            <div className="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div className="senate-view-container text-white p-6 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-600 pb-3 mb-4">
                     <h2 className="text-3xl font-bold font-title text-yellow-300">Senate</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
                 </div>
-                
                 <BuildQueue buildQueue={buildQueue} onCancel={onCancelBuild} />
-                
                 <div className='flex justify-between items-center mb-4 p-3 bg-gray-900 rounded-lg'>
                     <p className="text-lg">Population: <span className="font-bold text-green-400">{availablePopulation}</span> / {maxPopulation}</p>
                     <div className="flex gap-4">
@@ -336,13 +313,11 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                         <p>Silver: <span className='font-bold text-blue-300'>{Math.floor(resources.silver)}</span></p>
                     </div>
                 </div>
-
                 <div className="flex border-b border-gray-600 mb-4">
                     <button onClick={() => setActiveTab('upgrade')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'upgrade' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Upgrade</button>
                     <button onClick={() => setActiveTab('demolish')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'demolish' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Demolish</button>
                     <button onClick={() => setActiveTab('management')} className={`flex-1 p-2 text-lg font-bold transition-colors ${activeTab === 'management' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>Management</button>
                 </div>
-
                 <div className="overflow-y-auto pr-2">
                     {activeTab === 'upgrade' && (
                         <div className="flex flex-col items-center space-y-12 py-6">
@@ -355,22 +330,19 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                         }
                                         const config = buildingConfig[id];
                                         if (config.constructible === false && id !== 'senate') return null;
-                                        
                                         const currentLevel = buildings[id]?.level || 0;
                                         const finalQueuedLevel = getFinalLevelInQueue(id);
                                         const nextLevelToBuild = finalQueuedLevel + 1;
                                         const isMaxLevel = finalQueuedLevel >= (config.maxLevel || 99);
-
                                         const cost = getUpgradeCost(id, nextLevelToBuild);
                                         let canAfford = resources.wood >= cost.wood && resources.stone >= cost.stone && resources.silver >= cost.silver;
                                         if (id !== 'farm' && id !== 'warehouse') {
                                             canAfford = canAfford && (maxPopulation - usedPopulation >= cost.population);
                                         }
                                         const isQueueFull = (buildQueue || []).length >= 5;
-
                                         return (
-                                            <BuildingCard 
-                                                key={id} 
+                                            <BuildingCard
+                                                key={id}
                                                 id={id}
                                                 config={config}
                                                 level={currentLevel}
@@ -396,19 +368,17 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                     const finalLevel = getFinalLevelInQueue(id);
                                     const canDemolish = finalLevel > 0;
                                     const isQueueFull = (buildQueue || []).length >= 5;
-                                    
                                     let buttonText = 'Demolish';
                                     if (finalLevel > 1) {
                                         buttonText = `Demolish to Lvl ${finalLevel - 1}`;
                                     }
-
                                     return (
                                         <div key={id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
                                             <div>
                                                 <h4 className="text-xl font-semibold text-yellow-400">{config.name}</h4>
                                                 <p className="text-sm text-gray-300">Level {data.level}</p>
                                             </div>
-                                            <button 
+                                            <button
                                                 onClick={() => onDemolish(id)}
                                                 disabled={!canDemolish || isQueueFull}
                                                 className={`py-2 px-4 rounded font-bold ${!canDemolish || isQueueFull ? 'btn-disabled' : 'btn-danger'}`}
@@ -425,7 +395,7 @@ const SenateView = ({ buildings, resources, onUpgrade, onDemolish, getUpgradeCos
                                         <h4 className="text-xl font-semibold text-yellow-400">{specialBuildingsConfig[cityGameState.specialBuilding].name}</h4>
                                         <p className="text-sm text-gray-300">Wonder</p>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={onDemolishSpecialBuilding}
                                         className="py-2 px-4 rounded font-bold btn-danger"
                                     >
