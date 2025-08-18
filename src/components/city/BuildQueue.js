@@ -1,23 +1,17 @@
-// src/components/city/BuildQueue.js
 import React, { useState, useEffect, useRef } from 'react';
 import buildingConfig from '../../gameData/buildings.json';
 import specialBuildingsConfig from '../../gameData/specialBuildings.json';
-
-// #comment Dynamically import all building and special building images
 const buildingImages = {};
 const contexts = [
     require.context('../../images/buildings', false, /\.(png|jpe?g|svg)$/),
     require.context('../../images/special_buildings', false, /\.(png|jpe?g|svg)$/)
 ];
-
 contexts.forEach(context => {
     context.keys().forEach((item) => {
         const key = item.replace('./', '');
         buildingImages[key] = context(item);
     });
 });
-
-
 const formatTime = (seconds) => {
     if (seconds < 0) seconds = 0;
     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -25,13 +19,10 @@ const formatTime = (seconds) => {
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
 };
-
 const QueueItem = ({ item, isFirst, onCancel, isLast, onHover, onLeave, hoveredItem }) => {
     const [timeLeft, setTimeLeft] = useState(0);
-
     useEffect(() => {
-        if (!isFirst) return; // Only calculate time for the first item in the queue
-
+        if (!isFirst) return;
         const calculateTimeLeft = () => {
             const endTime = (item.endTime instanceof Date) ? item.endTime : new Date(item.endTime);
             if (isNaN(endTime.getTime())) {
@@ -41,30 +32,23 @@ const QueueItem = ({ item, isFirst, onCancel, isLast, onHover, onLeave, hoveredI
             const remaining = Math.max(0, endTime.getTime() - Date.now());
             setTimeLeft(remaining / 1000);
         };
-
         calculateTimeLeft();
         const interval = setInterval(calculateTimeLeft, 1000);
         return () => clearInterval(interval);
     }, [item.endTime, isFirst]);
-
-    // #comment Check if the item is a special building and get its config accordingly.
     const building = item.isSpecial
         ? specialBuildingsConfig[item.buildingId]
         : buildingConfig[item.buildingId];
-
     if (!building) return null;
     const imageSrc = buildingImages[building.image];
-
     const isDemolition = item.type === 'demolish';
-    const title = isDemolition 
+    const title = isDemolition
         ? `Demolish ${building.name} to Lvl ${item.level}`
         : `${building.name} (Level ${item.level})`;
     const levelText = isDemolition ? ` Lvl ${item.level}` : `^${item.level}`;
-
-
     return (
-        <div 
-            className={`relative w-16 h-16 bg-gray-700 border-2 rounded-md flex-shrink-0 ${isDemolition ? 'border-red-500' : 'border-gray-600'}`} 
+        <div
+            className={`relative w-16 h-16 bg-gray-700 border-2 rounded-md flex-shrink-0 ${isDemolition ? 'border-red-500' : 'border-gray-600'}`}
             title={title}
             onMouseEnter={() => onHover(item.id)}
             onMouseLeave={onLeave}
@@ -74,9 +58,9 @@ const QueueItem = ({ item, isFirst, onCancel, isLast, onHover, onLeave, hoveredI
                 {levelText}
             </span>
             {isFirst && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs text-center py-0.5 font-mono">
+                <span className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-red-500 text-xs text-center py-0.5 font-mono">
                     {formatTime(timeLeft)}
-                </div>
+                </span>
             )}
             {isLast && (
                 <button
@@ -98,26 +82,20 @@ const QueueItem = ({ item, isFirst, onCancel, isLast, onHover, onLeave, hoveredI
         </div>
     );
 };
-
 const BuildQueue = ({ buildQueue, onCancel }) => {
     const [hoveredItem, setHoveredItem] = useState(null);
     const tooltipTimeoutRef = useRef(null);
     const queueCapacity = 5;
     const emptySlots = Array(Math.max(0, queueCapacity - (buildQueue?.length || 0))).fill(null);
-
-    // #comment handle mouse enter to show tooltip
     const handleMouseEnter = (itemId) => {
         clearTimeout(tooltipTimeoutRef.current);
         setHoveredItem(itemId);
     };
-
-    // #comment handle mouse leave to hide tooltip
     const handleMouseLeave = () => {
         tooltipTimeoutRef.current = setTimeout(() => {
             setHoveredItem(null);
         }, 200);
     };
-
     return (
         <div className="bg-gray-900 p-2 rounded-lg mb-4 flex items-center gap-3 border border-gray-700">
             <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center text-4xl flex-shrink-0" title="Construction">
@@ -125,12 +103,12 @@ const BuildQueue = ({ buildQueue, onCancel }) => {
             </div>
             <div className="flex-grow flex items-center gap-3">
                 {buildQueue && buildQueue.map((item, index) => (
-                    <QueueItem 
-                        key={item.id || `${item.buildingId}-${index}`} 
-                        item={item} 
-                        isFirst={index === 0} 
-                        isLast={index === buildQueue.length - 1} 
-                        onCancel={() => onCancel(item)} 
+                    <QueueItem
+                        key={item.id || `${item.buildingId}-${index}`}
+                        item={item}
+                        isFirst={index === 0}
+                        isLast={index === buildQueue.length - 1}
+                        onCancel={() => onCancel(item)}
                         onHover={handleMouseEnter}
                         onLeave={handleMouseLeave}
                         hoveredItem={hoveredItem}
@@ -145,5 +123,4 @@ const BuildQueue = ({ buildQueue, onCancel }) => {
         </div>
     );
 };
-
 export default BuildQueue;

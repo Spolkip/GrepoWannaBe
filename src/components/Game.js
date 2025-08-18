@@ -1,5 +1,4 @@
-// src/components/Game.js
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
 import { useAlliance } from '../contexts/AllianceContext';
@@ -10,7 +9,6 @@ import MapView from './MapView';
 import LoadingScreen from './shared/LoadingScreen';
 import Chat from './chat/Chat';
 import { useMovementProcessor } from '../hooks/useMovementProcessor';
-
 import { useModalState } from '../hooks/useModalState';
 import { useMapState } from '../hooks/useMapState';
 import { useMapEvents } from '../hooks/useMapEvents';
@@ -18,8 +16,6 @@ import { useQuestTracker } from '../hooks/useQuestTracker';
 import { useMapActions } from '../hooks/useMapActions';
 import { useKeyboardControls } from '../hooks/useKeyboardControls';
 import { useCityModalManager } from '../hooks/useCityModalManager';
-
-
 import ReportsView from './ReportsView';
 import MessagesView from './messaging/MessagesView';
 import AllianceModal from './map/AllianceModal';
@@ -36,19 +32,15 @@ import EventTrigger from './admin/EventTrigger';
 import GodTownModal from './map/GodTownModal';
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction, serverTimestamp, getDocs} from 'firebase/firestore';
 import unitConfig from '../gameData/units.json';
-
-// #comment Import the icons
 import logoutIcon from '../images/logout.png';
 import worldIcon from '../images/world_selection.png';
 
-// #comment Cache for world-level data like villages and ruins
 let worldDataCache = {
     villages: null,
     ruins: null,
     lastFetchTimestamp: 0,
 };
 
-// #comment Function to clear the world data cache
 export const clearWorldDataCache = () => {
     worldDataCache = {
         villages: null,
@@ -57,8 +49,6 @@ export const clearWorldDataCache = () => {
     };
 };
 
-
-// #comment get warehouse capacity based on its level
 const getWarehouseCapacity = (level) => {
     if (!level) return 0;
     return Math.floor(1500 * Math.pow(1.4, level - 1));
@@ -74,21 +64,19 @@ const Game = ({ onBackToWorlds }) => {
     const [viewingReportId, setViewingReportId] = useState(null);
     const [selectedGodTownId, setSelectedGodTownId] = useState(null);
     const [initialMapAction, setInitialMapAction] = useState(null);
-
-
     const [movements, setMovements] = useState([]);
     const [villages, setVillages] = useState({});
     const [ruins, setRuins] = useState({});
     const [godTowns, setGodTowns] = useState({});
+    const prevActiveCityIdRef = useRef();
+    const prevViewRef = useRef();
 
     useMovementProcessor(worldId);
-
     const { modalState, openModal, closeModal } = useModalState();
     const { modalState: cityModalState, openModal: openCityModal, closeModal: closeCityModal, setModalState: setCityModalState } = useCityModalManager();
     const { unreadReportsCount, setUnreadReportsCount, unreadMessagesCount, setUnreadMessagesCount } = useMapState();
 
     const showMap = () => setView('map');
-
     const showCity = useCallback((cityId) => {
         if (cityId) setActiveCityId(cityId);
         setView('city');
@@ -106,23 +94,29 @@ const Game = ({ onBackToWorlds }) => {
         }
     }, [view, playerCity]);
 
-
-    // #comment Sets the active city.
     const switchCity = useCallback((cityId) => {
         setActiveCityId(cityId);
     }, [setActiveCityId]);
 
-    // #comment Pans the map to the active city when it changes while in map view.
+    // #comment This effect pans the map to the active city only when the city ID or view actually changes.
     useEffect(() => {
-        if (view === 'map' && activeCityId) {
-            const nextCity = playerCities[activeCityId];
-            if (nextCity) {
-                setPanToCoords({ x: nextCity.x, y: nextCity.y });
+        if (view === 'map') {
+            const hasCityChanged = activeCityId !== prevActiveCityIdRef.current;
+            const hasViewChanged = view !== prevViewRef.current;
+
+            if (hasCityChanged || hasViewChanged) {
+                const nextCity = playerCities[activeCityId];
+                if (nextCity) {
+                    setPanToCoords({ x: nextCity.x, y: nextCity.y });
+                }
             }
         }
+        // #comment Update refs for the next render
+        prevActiveCityIdRef.current = activeCityId;
+        prevViewRef.current = view;
     }, [activeCityId, view, playerCities]);
 
-    // #comment This effect updates the player's online status (lastSeen) periodically.
+
     useEffect(() => {
         if (!currentUser || !worldId) return;
 
@@ -132,41 +126,33 @@ const Game = ({ onBackToWorlds }) => {
         const updatePresence = async () => {
             const timestamp = serverTimestamp();
             try {
-                // Update both the main user doc and the game-specific doc
                 await updateDoc(userDocRef, { lastSeen: timestamp });
                 await updateDoc(gameDocRef, { lastSeen: timestamp });
             } catch (error) {
-                // It's possible the game doc doesn't exist yet (e.g., during city founding).
-                // This is not a critical error, so we can safely ignore it in that case.
                 if (error.code !== 'not-found') {
                     console.error("Failed to update presence:", error);
                 }
             }
         };
 
-        // Update presence immediately when the game loads
         updatePresence();
-
-        // Then, set up an interval to update it every 3 minutes
         const presenceInterval = setInterval(updatePresence, 3 * 60 * 1000);
-        
-        // #comment Set status to offline when the user closes the tab/browser.
+
         const handleBeforeUnload = () => {
              if (currentUser) {
                 updateDoc(userDocRef, { lastSeen: null });
                 updateDoc(gameDocRef, { lastSeen: null });
             }
         };
+
         window.addEventListener('beforeunload', handleBeforeUnload);
 
-        // Clean up the interval when the component unmounts
         return () => {
             clearInterval(presenceInterval);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         }
     }, [currentUser, worldId]);
 
-    // #comment Handles user logout, setting their status to offline.
     const handleLogout = async () => {
         if (currentUser) {
             const userDocRef = doc(db, "users", currentUser.uid);
@@ -177,7 +163,6 @@ const Game = ({ onBackToWorlds }) => {
         signOut(auth);
     };
 
-
     const cycleCity = useCallback((direction) => {
         const sortedCities = Object.values(playerCities).sort((a, b) => a.cityName.localeCompare(b.cityName));
         const cityIds = sortedCities.map(c => c.id);
@@ -185,13 +170,11 @@ const Game = ({ onBackToWorlds }) => {
 
         const currentIndex = cityIds.indexOf(activeCityId);
         let nextIndex;
-
         if (direction === 'right') {
             nextIndex = (currentIndex + 1) % cityIds.length;
         } else {
             nextIndex = (currentIndex - 1 + cityIds.length) % cityIds.length;
         }
-
         const nextCityId = cityIds[nextIndex];
         switchCity(nextCityId);
     }, [playerCities, activeCityId, switchCity]);
@@ -209,7 +192,6 @@ const Game = ({ onBackToWorlds }) => {
         openSettings: () => openModal('settings'),
         cycleCityLeft: () => cycleCity('left'),
         cycleCityRight: () => cycleCity('right'),
-        // Building shortcuts
         openSenate: () => openCityModal('isSenateViewOpen'),
         openBarracks: () => openCityModal('isBarracksMenuOpen'),
         openShipyard: () => openCityModal('isShipyardMenuOpen'),
@@ -228,18 +210,15 @@ const Game = ({ onBackToWorlds }) => {
             setMovements(allMovements.sort((a, b) => a.arrivalTime.toMillis() - b.arrivalTime.toMillis()));
         });
 
-        // #comment Fetch static world data like villages and ruins with caching
         const fetchWorldData = async () => {
             const now = Date.now();
-            const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-
+            const CACHE_DURATION = 15 * 60 * 1000;
             if (now - worldDataCache.lastFetchTimestamp < CACHE_DURATION && worldDataCache.villages && worldDataCache.ruins) {
                 setVillages(worldDataCache.villages);
                 setRuins(worldDataCache.ruins);
                 return;
             }
 
-            // Fetch Villages
             const villagesColRef = collection(db, 'worlds', worldId, 'villages');
             const villagesSnapshot = await getDocs(villagesColRef);
             const villagesData = {};
@@ -249,7 +228,6 @@ const Game = ({ onBackToWorlds }) => {
             setVillages(villagesData);
             worldDataCache.villages = villagesData;
 
-            // Fetch Ruins
             const ruinsColRef = collection(db, 'worlds', worldId, 'ruins');
             const ruinsSnapshot = await getDocs(ruinsColRef);
             const ruinsData = {};
@@ -296,7 +274,6 @@ const Game = ({ onBackToWorlds }) => {
             await runTransaction(db, async (transaction) => {
                 const cityDoc = await transaction.get(cityDocRef);
                 if (!cityDoc.exists()) throw new Error("City data not found.");
-
                 const currentState = cityDoc.data();
                 const itemIndex = currentState[queueName].findIndex(i => i.id === item.id);
                 if (itemIndex === -1) throw new Error("Item not found in queue.");
@@ -328,6 +305,7 @@ const Game = ({ onBackToWorlds }) => {
                     resources: newResources,
                     [queueName]: newQueue,
                 };
+
                 if (queueType === 'heal') {
                     updates.wounded = newRefundUnits;
                 }
@@ -338,7 +316,6 @@ const Game = ({ onBackToWorlds }) => {
             console.error("Error cancelling training:", error);
         }
     }, [worldId, currentUser, playerCities]);
-
 
     const handleRushMovement = useCallback(async (movementId) => {
         if (userProfile?.is_admin) {
@@ -391,7 +368,6 @@ const Game = ({ onBackToWorlds }) => {
     const handleOpenEvents = () => {
         openModal('eventTrigger');
     };
-
 
     const handleAction = (type, data) => {
         closeModal('reports');
@@ -513,7 +489,6 @@ const Game = ({ onBackToWorlds }) => {
                     setInitialMapAction={setInitialMapAction}
                 />
             )}
-
             {/* Global Modals */}
             {modalState.isReportsPanelOpen && <ReportsView onClose={() => closeModal('reports')} onActionClick={handleAction} />}
             {modalState.isMessagesPanelOpen && <MessagesView onClose={() => closeModal('messages')} onActionClick={handleAction} initialRecipientId={modalState.actionDetails?.city?.ownerId} initialRecipientUsername={modalState.actionDetails?.city?.ownerUsername} />}
@@ -531,9 +506,7 @@ const Game = ({ onBackToWorlds }) => {
             {modalState.isAllianceProfileOpen && <AllianceProfile allianceId={modalState.viewingAllianceId} onClose={() => closeModal('allianceProfile')} onOpenProfile={handleOpenProfile} />}
             {modalState.isSettingsModalOpen && <SettingsModal onClose={() => closeModal('settings')} />}
             {modalState.isEventTriggerOpen && userProfile?.is_admin && <EventTrigger onClose={() => closeModal('eventTrigger')} />}
-
             {viewingReportId && <SharedReportView reportId={viewingReportId} onClose={() => setViewingReportId(null)} onActionClick={handleAction} />}
-
             {selectedGodTownId && (
                 <GodTownModal
                     townId={selectedGodTownId}
@@ -541,7 +514,6 @@ const Game = ({ onBackToWorlds }) => {
                     onAttack={handleAttackGodTown}
                 />
             )}
-
             {modalState.isMovementsPanelOpen && <MovementsPanel
                 movements={movements}
                 onClose={() => closeModal('movements')}
@@ -551,15 +523,12 @@ const Game = ({ onBackToWorlds }) => {
                 onRush={handleRushMovement}
                 isAdmin={userProfile?.is_admin}
             />}
-
-
             <div className="chat-container">
                 <button onClick={() => setIsChatOpen(prev => !prev)} className="chat-toggle-button">
                     💬
                 </button>
                 <Chat isVisible={isChatOpen} onClose={() => setIsChatOpen(false)} />
             </div>
-
             <div className="absolute bottom-4 left-4 z-30 flex flex-col space-y-2">
                 {view === 'map' && (
                     <button onClick={onBackToWorlds} className="p-2 rounded-full shadow-lg hover:bg-blue-500 transition-colors" title="Back to Worlds">
@@ -573,5 +542,4 @@ const Game = ({ onBackToWorlds }) => {
         </div>
     );
 };
-
 export default Game;

@@ -1,29 +1,24 @@
-/* src/components/map/RadialMenu.css */
 .radial-menu-overlay {
     position: fixed;
     inset: 0;
     z-index: 50;
-    /* The overlay is transparent but catches clicks to close the menu */
 }
-
 .radial-menu-container {
-    position: absolute; /* Positioned based on click coordinates */
-    /* #comment Make the container large enough to encompass the icons */
-    width: 270px;
-    height: 270px;
+    position: absolute;
+    width: 100px;
+    height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* This centers the menu on the click point */
     transform: translate(-50%, -50%);
-    border-radius: 50%; /* Make the hover area circular */
+    border-radius: 50%;
+    border: 2px solid #8B4513;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
 }
-
 .radial-menu-item {
     position: absolute;
-    /* Make the button itself a larger, transparent click area */
-    width: 70px;
-    height: 70px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: transparent;
     border: none;
@@ -31,37 +26,27 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    padding: 0; /* Remove default padding */
-    transition: transform 0.3s ease-in-out; /* Add transition for smooth movement */
+    padding: 0;
 }
-
-/* #comment When an item is active, it moves to the center */
-.radial-menu-item.active {
-    transform: translate(0, 0) !important; /* Override inline style to center */
-    z-index: 10; /* Bring to front */
-}
-
 .radial-menu-icon-wrapper {
-    width: 60px; /* This is the visible part */
-    height: 60px;
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
     background: linear-gradient(to bottom, #f0e68c, #cd853f);
     color: #4a2c2a;
-    border: 2px solid #8B4513;
+    border: 1px solid #8B4513;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
-
-/* #comment Scale up the icon when its parent button is hovered OR active */
-.radial-menu-item:hover .radial-menu-icon-wrapper,
-.radial-menu-item.active .radial-menu-icon-wrapper {
-    transform: scale(1.15); /* Slightly larger scale for better feedback */
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+.radial-menu-item:hover .radial-menu-icon-wrapper {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
-
 .radial-menu-icon {
-    font-size: 24px;
+    font-size: 18px;
+}
+.radial-menu-center-button {
+    position: absolute;
+    z-index: 11; /* Above other items */
 }

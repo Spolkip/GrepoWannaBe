@@ -408,7 +408,6 @@ const TopBar = ({
                 >
                     <img src={woodImage} alt="Wood" className="w-6 h-6 mr-2"/>
                     <span className="text-yellow-800 font-bold">{Math.floor(resources.wood || 0)}</span>
-                    {productionRates && productionRates.wood !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.wood}/hr)</span>}
                     {activeTooltip === 'wood' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="wood"
@@ -426,7 +425,6 @@ const TopBar = ({
                 >
                     <img src={stoneImage} alt="Stone" className="w-6 h-6 mr-2"/>
                     <span className="text-gray-600 font-bold">{Math.floor(resources.stone || 0)}</span>
-                     {productionRates && productionRates.stone !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.stone}/hr)</span>}
                      {activeTooltip === 'stone' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="stone"
@@ -444,7 +442,6 @@ const TopBar = ({
                 >
                     <img src={silverImage} alt="Silver" className="w-6 h-6 mr-2"/>
                     <span className="text-blue-800 font-bold">{Math.floor(resources.silver || 0)}</span>
-                     {productionRates && productionRates.silver !== undefined && <span className="text-xs text-gray-500 ml-1">(+{productionRates.silver}/hr)</span>}
                      {activeTooltip === 'silver' && productionRates && getWarehouseCapacity && (
                         <ResourceTooltip
                             resource="silver"

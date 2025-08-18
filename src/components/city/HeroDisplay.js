@@ -20,7 +20,7 @@ const HeroDisplay = ({ heroes }) => {
 
     return (
         <div className="hero-display-container">
-            <h3 className="hero-display-header">Heroes</h3>
+            <h3 className="hero-display-header">Hero</h3>
             <div className="heroes-grid">
                 {recruitedHeroes.map(heroId => {
                     const hero = heroesConfig[heroId];

@@ -479,7 +479,6 @@ const ReportsView = ({ onClose, onActionClick }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
             <div className="reports-container">
                 <div className="reports-header">
-                    <h2 className="font-title text-3xl">Reports</h2>
                     <button onClick={onClose} className="close-btn">&times;</button>
                 </div>
                 <div className="flex flex-grow overflow-hidden">

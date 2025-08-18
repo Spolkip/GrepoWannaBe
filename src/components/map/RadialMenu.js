@@ -1,20 +1,13 @@
-// src/components/map/RadialMenu.js
-import React, { useState } from 'react';
+import React from 'react';
 import './RadialMenu.css';
 
-const RadialMenu = ({ actions, position, onClose }) => {
-    const [activeIndex, setActiveIndex] = useState(null);
-    const radius = 100;
+const RadialMenu = ({ actions, centerAction, position, onClose }) => {
+    const radius = 50; // Changed from 40
     const angleStep = (2 * Math.PI) / actions.length;
 
     if (!position) {
         return null;
     }
-
-    // #comment This handler will reset the active item when the mouse leaves the central area of the menu.
-    const handleMouseLeaveContainer = () => {
-        setActiveIndex(null);
-    };
 
     return (
         <div className="radial-menu-overlay" onClick={onClose}>
@@ -25,21 +18,34 @@ const RadialMenu = ({ actions, position, onClose }) => {
                     top: `${position.y}px`,
                 }}
                 onClick={e => e.stopPropagation()}
-                // #comment The onMouseLeave is now on the container.
-                onMouseLeave={handleMouseLeaveContainer}
             >
+                {/* Center Button */}
+                {centerAction && (
+                    <button
+                        className="radial-menu-item radial-menu-center-button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            centerAction.handler();
+                            onClose();
+                        }}
+                        title={centerAction.label}
+                    >
+                        <span className="radial-menu-icon-wrapper">
+                            <span className="radial-menu-icon">{centerAction.icon}</span>
+                        </span>
+                    </button>
+                )}
+
+                {/* Radial Buttons */}
                 {actions.map((action, index) => {
                     const angle = index * angleStep - Math.PI / 2;
                     const x = radius * Math.cos(angle);
                     const y = radius * Math.sin(angle);
-
                     return (
                         <button
                             key={index}
-                            className={`radial-menu-item ${activeIndex === index ? 'active' : ''}`}
+                            className="radial-menu-item"
                             style={{ transform: `translate(${x}px, ${y}px)` }}
-                            onMouseEnter={() => setActiveIndex(index)}
-                            // onMouseLeave is removed from individual items to prevent flickering
                             onClick={(e) => {
                                 e.stopPropagation();
                                 action.handler();

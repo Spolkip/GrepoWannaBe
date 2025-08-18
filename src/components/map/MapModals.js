@@ -1,4 +1,3 @@
-// src/components/map/MapModals.js
 import React from 'react';
 import RadialMenu from './RadialMenu';
 import OtherCityModal from './OtherCityModal';
@@ -7,7 +6,6 @@ import MovementModal from './MovementModal';
 import MovementsPanel from './MovementsPanel';
 import ReinforcementModal from '../city/ReinforcementModal';
 import { useAuth } from '../../contexts/AuthContext';
-
 const MapModals = ({
     modalState,
     closeModal,
@@ -35,51 +33,8 @@ const MapModals = ({
     const { currentUser } = useAuth();
     const { selectedCity } = modalState;
 
-    // #comment Determines which actions are available in the radial menu based on city ownership
-    const getRadialMenuActions = () => {
-        if (!selectedCity) return [];
-
-        const isOwn = selectedCity.ownerId === currentUser.uid;
-        const isActive = gameState?.id === selectedCity.id;
-        const hasReinforcements = selectedCity.reinforcements && Object.keys(selectedCity.reinforcements).length > 0;
-
-        if (isOwn) {
-            if (isActive) {
-                const actions = [
-                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
-                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
-                ];
-                if (hasReinforcements) {
-                    actions.push({ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) });
-                }
-                return actions;
-            } else { // Own Inactive City
-                return [
-                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
-                    { label: 'Select City', icon: '✅', handler: () => onSwitchCity(selectedCity.id) },
-                    { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
-                    { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
-                    ...(hasReinforcements ? [{ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) }] : []),
-                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
-                ];
-            }
-        } else { // Other City
-            return [
-                { label: 'Attack', icon: '⚔️', handler: () => handleActionClick('attack', selectedCity) },
-                { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
-                { label: 'Scout', icon: '👁️', handler: () => handleActionClick('scout', selectedCity) },
-                { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
-                { label: 'Cast Spell', icon: '✨', handler: () => onCastSpell(null, selectedCity) },
-                { label: 'Profile', icon: '👤', handler: () => handleActionClick('profile', selectedCity) },
-            ];
-        }
-    };
-
-    // #comment Renders the correct interaction modal (Radial Menu for cities, standard modal for others)
     const renderCityInteraction = () => {
         if (!selectedCity) return null;
-
-        // #comment Villages and Ruins still use the old modal style
         if (selectedCity.isRuinTarget || selectedCity.isVillageTarget) {
             return (
                 <OtherCityModal
@@ -97,20 +52,56 @@ const MapModals = ({
             );
         }
 
-        // #comment All other city clicks will now open the radial menu
+        const isOwn = selectedCity.ownerId === currentUser.uid;
+        const isActive = gameState?.id === selectedCity.id;
+        const hasReinforcements = selectedCity.reinforcements && Object.keys(selectedCity.reinforcements).length > 0;
+
+        let allActions = [];
+        if (isOwn) {
+            if (isActive) {
+                allActions = [
+                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
+                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
+                ];
+                if (hasReinforcements) {
+                    allActions.push({ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) });
+                }
+            } else {
+                allActions = [
+                    { label: 'Enter City', icon: '🏛️', handler: () => onEnterCity(selectedCity.id) },
+                    { label: 'Select City', icon: '✅', handler: () => onSwitchCity(selectedCity.id) },
+                    { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
+                    { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
+                    ...(hasReinforcements ? [{ label: 'Withdraw Troops', icon: '🛡️', handler: () => onWithdraw(selectedCity) }] : []),
+                    { label: 'Center on Map', icon: '📍', handler: () => goToCoordinates(selectedCity.x, selectedCity.y) },
+                ];
+            }
+        } else {
+            allActions = [
+                { label: 'Attack', icon: '⚔️', handler: () => handleActionClick('attack', selectedCity) },
+                { label: 'Reinforce', icon: '🛡️', handler: () => handleActionClick('reinforce', selectedCity) },
+                { label: 'Scout', icon: '👁️', handler: () => handleActionClick('scout', selectedCity) },
+                { label: 'Trade', icon: '⚖️', handler: () => handleActionClick('trade', selectedCity) },
+                { label: 'Cast Spell', icon: '✨', handler: () => onCastSpell(null, selectedCity) },
+                { label: 'Profile', icon: '👤', handler: () => handleActionClick('profile', selectedCity) },
+            ];
+        }
+
+        const centerAction = allActions.find(a => a.label === 'Select City');
+        const radialActions = allActions.filter(a => a.label !== 'Select City');
+
         return (
             <RadialMenu
-                actions={getRadialMenuActions()}
+                actions={radialActions}
+                centerAction={centerAction}
                 position={selectedCity.position}
                 onClose={() => closeModal('city')}
             />
         );
     };
-
     return (
         <>
             {renderCityInteraction()}
-            
             {modalState.selectedVillage && (
                 <FarmingVillageModal
                     village={modalState.selectedVillage}
@@ -155,5 +146,4 @@ const MapModals = ({
         </>
     );
 };
-
 export default MapModals;

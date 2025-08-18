@@ -9,7 +9,6 @@ import ReactDOM from 'react-dom';
 import './MessagesView.css';
 import TextEditor from '../shared/TextEditor';
 import { playerCache } from '../alliance/AllianceInvitations';
-
 const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUsername = null, onActionClick }) => {
     const { currentUser, userProfile } = useAuth();
     const { worldId } = useGame();
@@ -21,17 +20,14 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
     const [isComposing, setIsComposing] = useState(false);
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null); // Ref for the message container
-
     // Autocomplete states
     const [allPlayers, setAllPlayers] = useState([]);
     const [suggestions, setSuggestions] = useState([]);
-
     // #comment Fetch all players for autocomplete using the shared cache
     useEffect(() => {
         const fetchPlayers = async () => {
             const now = Date.now();
             const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
-
             if (now - playerCache.timestamp < CACHE_DURATION && playerCache.allPlayers) {
                 setAllPlayers(playerCache.allPlayers);
             } else {
@@ -47,10 +43,8 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         };
         fetchPlayers();
     }, [userProfile.username]);
-
     const handleCompose = useCallback(async (recipientId = null, recipientUsername = null) => {
         if (recipientId && recipientUsername) {
-
             const convoQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
                 where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
@@ -68,59 +62,44 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             setNewRecipient(recipientUsername);
         }
     }, [currentUser, worldId]);
-
     useEffect(() => {
         if (!currentUser || !worldId) return;
-
         const conversationsQuery = query(
             collection(db, 'worlds', worldId, 'conversations'),
             where('participants', 'array-contains', currentUser.uid)
         );
-
         const unsubscribe = onSnapshot(conversationsQuery, (snapshot) => {
             const convos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
             convos.sort((a, b) => (b.lastMessage?.timestamp?.toDate() || 0) - (a.lastMessage?.timestamp?.toDate() || 0));
             setConversations(convos);
         });
-
         return () => unsubscribe();
     }, [currentUser, worldId]);
-
     useEffect(() => {
         if (initialRecipientId && initialRecipientUsername) {
             handleCompose(initialRecipientId, initialRecipientUsername);
         }
     }, [initialRecipientId, initialRecipientUsername, handleCompose]);
-
     useEffect(() => {
         if (selectedConversation) {
             const messagesQuery = query(
                 collection(db, 'worlds', worldId, 'conversations', selectedConversation.id, 'messages'),
                 orderBy('timestamp', 'asc')
             );
-
             const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
                 const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setMessages(msgs);
             });
-
-
             const convoRef = doc(db, 'worlds', worldId, 'conversations', selectedConversation.id);
             updateDoc(convoRef, {
                 readBy: arrayUnion(currentUser.uid)
             });
-
-
             return () => unsubscribe();
         }
     }, [selectedConversation, worldId, currentUser.uid]);
-
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
-
-
     useEffect(() => {
         if (messageContainerRef.current) {
             const placeholders = messageContainerRef.current.querySelectorAll('.shared-report-placeholder');
@@ -132,26 +111,20 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             });
         }
     }, [messages, worldId, onActionClick]);
-
     const handleSelectConversation = async (convo) => {
         setSelectedConversation(convo);
         setIsComposing(false);
     };
-
     const getOtherParticipant = (convo) => {
         if (!convo || !convo.participants || !convo.participantUsernames) return 'Unknown';
         const otherId = convo.participants.find(p => p !== currentUser.uid);
         return convo.participantUsernames[otherId] || 'Unknown';
     };
-
     const isSystemChat = selectedConversation ? getOtherParticipant(selectedConversation) === 'System' : false;
-
     const handleSendMessage = async () => {
         if (isSystemChat) return;
         if (newMessage.trim() === '' || (!selectedConversation && !newRecipient)) return;
-
         let conversationId = selectedConversation?.id;
-
         if (isComposing) {
             if (newRecipient.toLowerCase() === 'system') {
                 alert("You cannot send messages to the System.");
@@ -165,18 +138,15 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             }
             const recipientData = recipientSnapshot.docs[0].data();
             const recipientId = recipientSnapshot.docs[0].id;
-
             if (recipientId === currentUser.uid) {
                 alert("You cannot send a message to yourself.");
                 return;
             }
-
             const convoQuery = query(
                 collection(db, 'worlds', worldId, 'conversations'),
                 where('participants', 'in', [[currentUser.uid, recipientId], [recipientId, currentUser.uid]])
             );
             const convoSnapshot = await getDocs(convoQuery);
-
             if (convoSnapshot.empty) {
                 const newConvoRef = doc(collection(db, 'worlds', worldId, 'conversations'));
                 await setDoc(newConvoRef, {
@@ -197,7 +167,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                 conversationId = convoSnapshot.docs[0].id;
             }
         }
-
         const convoRef = doc(db, 'worlds', worldId, 'conversations', conversationId);
         await addDoc(collection(convoRef, 'messages'), {
             text: newMessage,
@@ -205,7 +174,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             senderUsername: userProfile.username,
             timestamp: serverTimestamp(),
         });
-
         await updateDoc(convoRef, {
             lastMessage: {
                 text: newMessage,
@@ -214,7 +182,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             },
             readBy: [currentUser.uid],
         });
-
         setNewMessage('');
         if (isComposing) {
             setIsComposing(false);
@@ -223,12 +190,10 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
         }
     };
-
     const handleContentClick = (e) => {
         const target = e.target;
         if (target.classList.contains('bbcode-action') && onActionClick) {
             const { actionType, actionId, actionOwnerId, actionCoordsX, actionCoordsY } = target.dataset;
-
             if (actionType === 'city_link') {
                 onActionClick(actionType, { cityId: actionId, ownerId: actionOwnerId, coords: { x: actionCoordsX, y: actionCoordsY } });
             } else {
@@ -240,8 +205,6 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             onClose();
         }
     };
-
-
     const handleRecipientChange = (e) => {
         const value = e.target.value;
         setNewRecipient(value);
@@ -254,23 +217,18 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
             setSuggestions([]);
         }
     };
-
-
     const handleSuggestionClick = (username) => {
         setNewRecipient(username);
         setSuggestions([]);
     };
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="papyrus-bg papyrus-text w-full max-w-4xl h-3/4 flex flex-col rounded-lg">
-                <div className="p-4 border-b-2 border-[#8B4513] flex justify-between items-center">
-                    <h2 className="papyrus-header">Missives & Scrolls</h2>
+            <div className="papyrus-bg papyrus-text" onClick={e => e.stopPropagation()}>
+                <div className="messages-header">
                     <button onClick={onClose} className="papyrus-text text-3xl font-bold hover:text-red-700">&times;</button>
                 </div>
-
-                <div className="flex flex-grow overflow-hidden">
-                    <div className="w-1/3 border-r-2 border-[#8B4513] flex flex-col">
+                <div className="messages-body">
+                    <div className="messages-left-panel">
                         <div className="p-2 border-b-2 border-[#8B4513]">
                             <button onClick={() => handleCompose()} className="w-full papyrus-btn">
                                 New Scroll
@@ -291,8 +249,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                             )})}
                         </ul>
                     </div>
-
-                    <div className="w-2/3 flex flex-col">
+                    <div className="messages-right-panel">
                         {selectedConversation || isComposing ? (
                             <>
                                 <div className="p-4 border-b-2 border-[#8B4513] autocomplete-suggestions-container">
@@ -333,7 +290,7 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
                                     <div ref={messagesEndRef} />
                                 </div>
                                 {!isSystemChat && (
-                                    <div className="p-4 border-t-2 border-[#8B4513]">
+                                    <div className="p-4 border-t-2 border-[#8B4513] mt-auto">
                                         <div className="flex">
                                             <TextEditor value={newMessage} onChange={setNewMessage} />
                                             <button onClick={handleSendMessage} className="papyrus-btn ml-2">Send</button>
@@ -352,5 +309,4 @@ const MessagesView = ({ onClose, initialRecipientId = null, initialRecipientUser
         </div>
     );
 };
-
 export default MessagesView;
