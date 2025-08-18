@@ -24,16 +24,16 @@ const SidebarNav = ({ onToggleView, view, onOpenReports, onOpenAlliance, onOpenM
         <div className="sidebar" onMouseDown={(e) => e.stopPropagation()}>
             <NavButton icon="🗺️" text={view === 'map' ? 'City View' : 'Map View'} onClick={onToggleView} />
             
-            <NavButton icon="✉️" text="Reports" onClick={onOpenReports} notificationCount={unreadReportsCount} glowing={unreadReportsCount > 0} />
-            <NavButton icon="🛡️" text="Alliance" onClick={onOpenAlliance} />
+            <NavButton icon="📜" text="Reports" onClick={onOpenReports} notificationCount={unreadReportsCount} glowing={unreadReportsCount > 0} />
+            <NavButton icon="🏛️" text="Alliance" onClick={onOpenAlliance} />
             <NavButton 
-                icon="📖" 
+                icon="🖋️" 
                 text="Forum" 
                 onClick={onOpenForum} 
                 disabled={!isAllianceMember}
                 title={!isAllianceMember ? "You must be in an alliance to access the forum" : "Forum"}
             />
-            <NavButton icon="💬" text="Messages" onClick={onOpenMessages} notificationCount={unreadMessagesCount} glowing={unreadMessagesCount > 0} />
+            <NavButton icon="✉️" text="Messages" onClick={onOpenMessages} notificationCount={unreadMessagesCount} glowing={unreadMessagesCount > 0} />
             <NavButton icon="🏆" text="Leaderboard" onClick={onOpenLeaderboard} />
             <NavButton icon="👤" text="Profile" onClick={() => onOpenProfile()} />  
             <NavButton icon="⚙️" text="Settings" onClick={onOpenSettings} />

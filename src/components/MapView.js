@@ -2,7 +2,7 @@
 import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGame } from '../contexts/GameContext';
-import { useAlliance } from '../contexts/AllianceProvider';
+import { useAlliance } from '../contexts/AllianceContext';
 import { db } from '../firebase/config';
 import { doc, updateDoc, writeBatch, serverTimestamp, getDoc, collection, getDocs, query,orderBy, onSnapshot, where, collectionGroup } from 'firebase/firestore';
 

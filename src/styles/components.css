@@ -50,19 +50,17 @@
 /* --- Layout Components --- */
 .sidebar {
     @apply w-auto flex flex-col p-2 rounded-lg;
-    background-image: linear-gradient(rgba(245, 222, 179, 0.95), rgba(245, 222, 179, 0.95)), url('https://www.transparenttextures.com/patterns/cracks.png');
-    background-color: #F5DEB3; /* wheat */
-    border: 8px solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(to right, #8B4513, #CD853F);
+    background-image: url('../images/bg/nav_bar_bg.png');
+    background-size: 110% 115%;
+    background-position: center;
+    border: none;
     box-shadow: 0 0 20px rgba(0,0,0,0.6);
-    color: #4a2c2a;
     
     /* Centered positioning for both views */
     @apply absolute top-[55%] -translate-y-1/2 z-30;
     
     /* #comment Transparency on hover effect */
-    @apply opacity-40 transition-opacity duration-300 ease-in-out;
+    @apply opacity-50 transition-opacity duration-300 ease-in-out;
 }
 
 .sidebar:hover {
@@ -72,20 +70,25 @@
 
 .sidebar-button {
     @apply w-full relative flex items-center justify-start p-2 rounded-md transition-colors duration-200 font-semibold my-1 text-sm gap-3;
-    color: #4a2c2a;
-    border: 2px solid #8B4513;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    background: linear-gradient(to bottom, #f0e68c, #cd853f);
+    color: #d4af37;
+    border: 1px solid rounded;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to top, #d4af37, #b8860b);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5), 0 2px 2px rgba(255, 255, 255, 0.2);
 }
 
 .sidebar-button:hover:not(:disabled) {
-    background: linear-gradient(to bottom, #fff2b2, #d6914d);
+    background: linear-gradient(to bottom, #5a5a5a, #3a3a3a);
 }
 
 .sidebar-button:disabled {
     @apply opacity-50 cursor-not-allowed;
     background: #d2b48c;
+}
+
+.sidebar-button .icon-container {
+    @apply w-6 h-6 flex items-center justify-center;
 }
 
 .sidebar-button .notification-badge {
